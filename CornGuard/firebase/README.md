@@ -16,6 +16,10 @@ Services Lead, per `claude/05_DEVELOPMENT_PLAN.md` (Sprint 0) and
 - `security/storage.rules` — Cloud Storage path/validation rules for uploaded images.
 - `gis/gis-service-interface.md` — a provider-agnostic GIS/location service interface.
 - `notifications/fcm-plan.md` — FCM device-token and notification-payload plan.
+- `repositories/auth-repository-interface.md` — account creation/sign-in contract.
+- `repositories/user-farm-repository-interface.md` — profile and farm data contract.
+- `repositories/diagnosis-sharing-repository-interface.md` — opt-in cloud sharing of a local scan.
+- `repositories/community-repository-interface.md` — posts, comments, and upvotes contract.
 
 ## What this drop deliberately does NOT do
 
