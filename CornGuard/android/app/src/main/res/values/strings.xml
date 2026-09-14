@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CornGuard</string>
+
+    <!-- Bottom navigation destinations (claude/02_PROJECT_CONTEXT.md confirmed screens) -->
+    <string name="nav_home">Home</string>
+    <string name="nav_scan">Scan</string>
+    <string name="nav_history">History</string>
+    <string name="nav_map">Map</string>
+    <string name="nav_community">Community</string>
+
+    <!-- Home -->
+    <string name="home_title">CornGuard</string>
+    <string name="home_scan_cta">Scan Corn Leaf</string>
+    <string name="home_scan_cta_hint">Take or choose a photo to check for disease</string>
+
+    <!-- Scan -->
+    <string name="scan_title">Scan Corn Leaf</string>
+    <string name="scan_placeholder_body">Camera capture and gallery selection will be built in
+        Sprint 2 (feature/tflite-integration), after the model preprocessing contract (D-04) is
+        frozen by Acenas.</string>
+    <string name="scan_model_not_ready">The disease-detection model is not yet available on this
+        build. Detection cannot run until it is integrated.</string>
+
+    <!-- Diagnosis result / treatment -->
+    <string name="result_title">Diagnosis Result</string>
+    <string name="treatment_title">Treatment Recommendation</string>
+
+    <!-- History -->
+    <string name="history_title">Scan History</string>
+    <string name="history_empty">No scans yet. Your past results will appear here, even offline.</string>
+
+    <!-- Map -->
+    <string name="map_title">Disease Map</string>
+    <string name="map_placeholder_body">GIS disease map and heatmap will be built in Sprint 4,
+        after the map/GIS provider decision (D-10).</string>
+
+    <!-- Community -->
+    <string name="community_title">Community</string>
+    <string name="community_placeholder_body">Community reporting and discussion require an
+        internet connection and will be built in Sprint 3.</string>
+
+    <!-- Shared / connectivity -->
+    <string name="offline_banner_text">You\'re offline. Scanning and history still work.
+        Community, map, and notifications need internet.</string>
+    <string name="online_only_feature">This feature needs an internet connection.</string>
+</resources>

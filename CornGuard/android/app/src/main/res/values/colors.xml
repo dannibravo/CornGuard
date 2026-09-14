@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Placeholder palette only — CORNGUARD has no approved final UI/UX per
+        claude/16_UI_UX_AND_DIAGRAM_REVISION_GUIDE.md (not yet present in this doc pack) and
+        claude/15_CLAUDE.md's UI/UX rule. Ligue/Panes/Acenas have final authority to replace this.
+        Chosen for high contrast and quick recognition for low digital-literacy / outdoor use.
+    -->
+    <color name="corn_green_700">#2E7D32</color>
+    <color name="corn_green_500">#4CAF50</color>
+    <color name="corn_gold_500">#F9A825</color>
+    <color name="alert_red_600">#D32F2F</color>
+    <color name="surface_light">#FFFFFF</color>
+    <color name="surface_dark">#121212</color>
+    <color name="on_surface_light">#1B1B1B</color>
+    <color name="on_surface_dark">#F2F2F2</color>
+    <color name="offline_banner_bg">#FFF3CD</color>
+    <color name="offline_banner_text">#5C4400</color>
+</resources>
