@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.CornGuard" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/corn_green_700</item>
+        <item name="colorPrimaryVariant">@color/corn_green_500</item>
+        <item name="colorOnPrimary">@color/surface_light</item>
+        <item name="colorSecondary">@color/corn_gold_500</item>
+        <item name="colorError">@color/alert_red_600</item>
+        <item name="android:statusBarColor" tools:targetApi="l">@color/corn_green_700</item>
+    </style>
+</resources>

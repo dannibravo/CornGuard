@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <!--
+        Top-level destinations mirror the bottom nav (bottom_nav_menu.xml) and the confirmed
+        screens in claude/02_PROJECT_CONTEXT.md. Diagnosis Result and Treatment Recommendation are
+        reached only from Scan, matching the Disease Scan Workflow in
+        claude/01_MASTER_DEVELOPMENT_CONTEXT.md — they are not separate bottom-nav destinations.
+    -->
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.cornguard.app.ui.home.HomeFragment"
+        android:label="@string/home_title"
+        tools:layout="@layout/fragment_home">
+        <action
+            android:id="@+id/action_home_to_scan"
+            app:destination="@id/scanFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/scanFragment"
+        android:name="com.cornguard.app.ui.scan.ScanFragment"
+        android:label="@string/scan_title"
+        tools:layout="@layout/fragment_scan">
+        <action
+            android:id="@+id/action_scan_to_result"
+            app:destination="@id/diagnosisResultFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/diagnosisResultFragment"
+        android:name="com.cornguard.app.ui.result.DiagnosisResultFragment"
+        android:label="@string/result_title"
+        tools:layout="@layout/fragment_diagnosis_result">
+        <action
+            android:id="@+id/action_result_to_treatment"
+            app:destination="@id/treatmentFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/treatmentFragment"
+        android:name="com.cornguard.app.ui.treatment.TreatmentFragment"
+        android:label="@string/treatment_title"
+        tools:layout="@layout/fragment_treatment" />
+
+    <fragment
+        android:id="@+id/historyFragment"
+        android:name="com.cornguard.app.ui.history.HistoryFragment"
+        android:label="@string/history_title"
+        tools:layout="@layout/fragment_history" />
+
+    <fragment
+        android:id="@+id/mapFragment"
+        android:name="com.cornguard.app.ui.map.MapFragment"
+        android:label="@string/map_title"
+        tools:layout="@layout/fragment_map" />
+
+    <fragment
+        android:id="@+id/communityFragment"
+        android:name="com.cornguard.app.ui.community.CommunityFragment"
+        android:label="@string/community_title"
+        tools:layout="@layout/fragment_community" />
+
+</navigation>

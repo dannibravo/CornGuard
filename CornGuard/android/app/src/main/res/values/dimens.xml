@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_md">16dp</dimen>
+    <dimen name="spacing_lg">24dp</dimen>
+    <dimen name="spacing_xl">32dp</dimen>
+
+    <!-- Large-target rule for low digital-literacy / gloved-hand field use
+         (claude/04_DEVELOPMENT_RULES.md #11). -->
+    <dimen name="primary_cta_min_height">64dp</dimen>
+    <dimen name="touch_target_min">48dp</dimen>
+
+    <dimen name="text_body">16sp</dimen>
+    <dimen name="text_title">22sp</dimen>
+    <dimen name="text_cta">18sp</dimen>
+</resources>
