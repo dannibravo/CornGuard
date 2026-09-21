@@ -1,0 +1,51 @@
+# Built application files
+*.apk
+*.aab
+*.ap_
+*.aar
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+release/
+
+# Gradle files
+.gradle/
+build/
+
+# Local configuration file (contains SDK path and machine-specific values)
+local.properties
+
+# Log/profiler files
+*.log
+.navigation/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# Keystores — never commit a release signing key (see claude/10_ENV_GUIDE.md)
+*.jks
+*.keystore
+
+# Per-environment Firebase config placed inside the app module (kept only in firebase/config
+# per Panes's ownership; do not duplicate secrets into the Android module without review)
+app/google-services.json
+app/src/*/google-services.json
+
+# Freeze reports
+lint-results*.html
+lint-results*.xml

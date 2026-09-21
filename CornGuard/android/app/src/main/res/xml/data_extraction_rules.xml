@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    API 31+ data extraction rules. Auto-backup is disabled (android:allowBackup="false") — see
+    backup_rules.xml for rationale. Kept as a documented no-op.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+    </cloud-backup>
+</data-extraction-rules>

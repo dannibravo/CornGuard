@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CornGuard</string>
+    <string name="notification_channel_alerts_name">Community &amp; Outbreak Alerts</string>
+    <string name="notification_channel_alerts_description">Replies, upvotes, and area disease alerts.</string>
+
+    <!-- Bottom navigation destinations (claude/02_PROJECT_CONTEXT.md confirmed screens) -->
+    <string name="nav_home">Home</string>
+    <string name="nav_scan">Scan</string>
+    <string name="nav_history">History</string>
+    <string name="nav_map">Map</string>
+    <string name="nav_community">Community</string>
+
+    <!-- Home -->
+    <string name="home_title">CornGuard</string>
+    <string name="home_scan_cta">Scan Corn Leaf</string>
+    <string name="home_scan_cta_hint">Take or choose a photo to check for disease</string>
+
+    <!-- Scan -->
+    <string name="scan_title">Scan Corn Leaf</string>
+    <string name="scan_placeholder_body">Camera capture and gallery selection will be built in
+        Sprint 2 (feature/tflite-integration), after the model preprocessing contract (D-04) is
+        frozen by Acenas.</string>
+    <string name="scan_model_not_ready">The disease-detection model is not yet available on this
+        build. Detection cannot run until it is integrated.</string>
+    <string name="scan_take_photo_action">Take Photo</string>
+    <string name="scan_choose_gallery_action">Choose from Gallery</string>
+    <string name="scan_permission_denied_camera">Camera permission is needed to take a photo.</string>
+    <string name="scan_permission_denied_gallery">Gallery permission is needed to choose a photo.</string>
+    <string name="scan_processing">Analyzing photo…</string>
+    <string name="scan_invalid_image">That photo couldn\'t be read. Please try another one.</string>
+
+    <!-- Diagnosis result / treatment -->
+    <string name="result_title">Diagnosis Result</string>
+    <string name="result_confidence_format">%1$d%% confidence</string>
+    <string name="result_type_local">On-device detection</string>
+    <string name="result_scan_time_label">Scanned</string>
+    <string name="result_location_captured">Location captured</string>
+    <string name="result_location_not_captured">No location recorded</string>
+    <string name="result_save_status_shared">Saved and shared to community</string>
+    <string name="result_save_status_local">Saved on this device only</string>
+    <string name="result_model_version_format">Model version: %1$s</string>
+    <string name="result_share_action">Share to Community</string>
+    <string name="result_shared_action_done">Shared to Community</string>
+    <string name="result_share_requires_sign_in">Sign in to share this result with the community.</string>
+    <string name="result_share_failed">Couldn\'t share this result. Check your connection and try again.</string>
+    <string name="treatment_title">Treatment Recommendation</string>
+    <string name="treatment_symptoms_label">What to look for</string>
+    <string name="treatment_steps_label">Management steps</string>
+    <string name="treatment_prevention_label">Prevention</string>
+    <string name="treatment_source_label">Source</string>
+    <string name="treatment_offline_indicator">Available offline — no internet needed</string>
+    <string name="treatment_not_found">No reference content is available for this disease on this device yet.</string>
+    <string name="treatment_disclaimer">This guidance is a development placeholder and has not been
+        verified by an agricultural expert. Do not use it to make real treatment decisions —
+        consult a local agricultural technician.</string>
+
+    <!-- History -->
+    <string name="history_title">Scan History</string>
+    <string name="history_empty">No scans yet. Your past results will appear here, even offline.</string>
+
+    <!-- Map -->
+    <string name="map_title">Disease Map</string>
+    <string name="map_placeholder_body">GIS disease map and heatmap will be built in Sprint 4,
+        after the map/GIS provider decision (D-10).</string>
+    <string name="map_sign_in_prompt">Sign in to see nearby disease reports for your area.</string>
+    <string name="map_no_area_profile">Add your barangay to your profile to see nearby reports.</string>
+    <string name="map_verified_title">Verified Outbreaks Near You</string>
+    <string name="map_verified_empty">No verified outbreaks recorded yet. This list only shows
+        AI-detected scans an admin has confirmed — not every community report.</string>
+    <string name="map_nearby_title">Nearby Community Reports</string>
+    <string name="map_nearby_empty">No community reports in your area yet.</string>
+    <string name="map_list_view_note">Shown as a list, not a map — CornGuard doesn\'t have a map
+        provider wired in yet.</string>
+
+    <!-- Community -->
+    <string name="community_title">Community</string>
+    <string name="community_placeholder_body">Community reporting and discussion require an
+        internet connection and will be built in Sprint 3.</string>
+
+    <!-- Shared / connectivity -->
+    <string name="offline_banner_text">You\'re offline. Scanning and history still work.
+        Community, map, and notifications need internet.</string>
+    <string name="online_only_feature">This feature needs an internet connection.</string>
+
+    <!-- Auth (online-only; never gates the offline core — claude/01_MASTER_DEVELOPMENT_CONTEXT.md
+         Project Principle). Reached only from an online-only screen\'s sign-in prompt. -->
+    <string name="auth_title_signin">Sign In</string>
+    <string name="auth_title_register">Create Account</string>
+    <string name="auth_subtitle">Sign in to share scans, post to the community, and see nearby
+        reports. Scanning and treatment guides always work without an account.</string>
+    <string name="auth_display_name_hint">Full name</string>
+    <string name="auth_email_hint">Email</string>
+    <string name="auth_password_hint">Password</string>
+    <string name="auth_barangay_hint">Barangay</string>
+    <string name="auth_municipality_hint">Municipality / City</string>
+    <string name="auth_province_hint">Province</string>
+    <string name="auth_signin_action">Sign In</string>
+    <string name="auth_register_action">Create Account</string>
+    <string name="auth_toggle_to_register">New here? Create an account</string>
+    <string name="auth_toggle_to_signin">Already have an account? Sign in</string>
+    <string name="auth_skip_action">Not now</string>
+    <string name="auth_error_missing_fields">Please fill in all required fields.</string>
+    <string name="auth_signed_in_as">Signed in as %1$s</string>
+    <string name="auth_sign_out_action">Sign out</string>
+    <string name="auth_required_prompt">Sign in to use this feature.</string>
+    <string name="auth_required_signin_cta">Sign In</string>
+
+    <!-- Community -->
+    <string name="create_post_title">Post a Report</string>
+    <string name="post_detail_title">Report</string>
+    <string name="community_sign_in_prompt">Sign in to view and post community reports.</string>
+    <string name="community_empty">No reports yet in this area.</string>
+    <string name="community_load_failed">Couldn\'t load the community feed. Check your connection and try again.</string>
+    <string name="community_create_cta">Post a Report</string>
+    <string name="post_title_hint">Title</string>
+    <string name="post_body_hint">Describe what you\'re seeing</string>
+    <string name="post_submit_action">Submit</string>
+    <string name="post_disease_label">Disease</string>
+    <string name="post_reply_hint">Write a reply</string>
+    <string name="post_reply_action">Reply</string>
+    <string name="post_add_photo_action">Add Photo</string>
+    <string name="post_change_photo_action">Change Photo</string>
+    <string name="post_upvote_action">Helpful</string>
+    <string name="post_upvote_action_active">Marked Helpful</string>
+    <string name="post_upvote_count_format">%1$d found this helpful</string>
+    <string name="post_comments_title">Comments</string>
+    <string name="post_comments_empty">No comments yet.</string>
+    <string name="post_disease_none">Not disease-specific</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_not_signed_in">You\'re not signed in.</string>
+    <string name="profile_farms_title">My Farms</string>
+    <string name="profile_add_farm_action">Add Farm</string>
+    <string name="profile_farm_name_hint">Farm name</string>
+    <string name="profile_farms_empty">No farms added yet.</string>
+    <string name="profile_farm_added_from_profile_address">Uses your profile\'s barangay,
+        municipality, and province.</string>
+</resources>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder mark only (a stylized leaf) — not an approved final app icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#F9A825"
+        android:pathData="M54,27 C74,27 81,44 81,58 C81,76 68,86 54,86 C40,86 27,76 27,58 C27,44 34,27 54,27 Z" />
+    <path
+        android:strokeColor="#2E7D32"
+        android:strokeWidth="4"
+        android:pathData="M54,34 L54,82" />
+</vector>

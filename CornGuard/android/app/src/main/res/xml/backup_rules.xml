@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Legacy (pre-API 31) backup rules. Auto-backup is disabled in the manifest
+    (android:allowBackup="false") because local diagnosis history can include farm coordinates
+    and imagery — see claude/04_DEVELOPMENT_RULES.md #9 and #17. This file is kept as a documented
+    no-op in case a future approved workflow re-enables scoped backup.
+-->
+<full-backup-content>
+</full-backup-content>
