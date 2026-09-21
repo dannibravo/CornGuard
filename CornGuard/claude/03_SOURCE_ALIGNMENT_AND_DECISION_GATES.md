@@ -19,6 +19,19 @@ Choose one cloud datastore before Sprint 3:
 ### Allowed work before decision
 Developers may define logical entities, DTO/data classes, repository interfaces, security requirements, and local mocks without binding to one Firebase database implementation.
 
+### Development-only provisioning note (2026-09-09)
+A Firestore database was provisioned in the `cornguard-dev` Firebase project (Sprint 0,
+`feature/firebase-setup`) so the drafted `firebase/security/firestore.rules` could actually be
+deployed and validated rather than remain an untested draft. `firebase/security/storage.rules`
+was not deployed (Cloud Storage requires the Blaze billing plan, deferred to Sprint 3).
+
+This is **not** the required D-01 decision. It is a reversible, dev-only choice, approved by
+Panes, to unblock rules testing. Production still requires a formal team decision — Firestore
+vs. Realtime Database — before Sprint 3, per the Required decision above. If the team ultimately
+chooses Realtime Database, the `cornguard-dev` Firestore instance is disposable and the schema/
+security-matrix work in `firebase/` does not need to change, since it was written implementation-
+agnostic per the Allowed work rule.
+
 ---
 
 ## D-02 — Agricultural Technician Role
