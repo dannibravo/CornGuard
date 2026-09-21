@@ -135,6 +135,26 @@ code: `data.repository.GisRepository` has zero map-SDK dependency, only Firestor
   notifications used to silently do nothing; fixed there, this is the client-side half).
 - Added `firebase-messaging-ktx`. Compiles cleanly, existing test suite still passes.
 
+### Sprint 5 (continued on this branch) — admin authorization, moderation, user management
+
+- `data.repository.AdminRepository` + `data.repository.firebase.FirebaseAdminRepository`. Every
+  method corresponds to an operation `security/firestore.rules` only allows an `isAdmin()` caller
+  to perform — authorization is enforced server-side, not re-checked client-side
+  (`claude/04_DEVELOPMENT_RULES.md` #14).
+- `verifyDiagnosisRecord`/`verifyPost` are **not blocked by D-02** — Admin is already a confirmed
+  role, distinct from the conditional Technician role D-02 gates. These are what actually populate
+  what `gisRepository`'s `getHeatmapAggregates`/`getVerifiedOccurrences` read — verified via a real
+  automated rules test (`firebase/tests/rules.test.mjs`), not just asserted in a comment.
+- `promoteToAdmin` calls the Cloud Function of the same name (`firebase/functions/index.mjs`) —
+  the very first admin still can't be created this way (needs an existing admin to call it);
+  that's `firebase/scripts/bootstrap-first-admin.mjs`'s job, done once, out-of-band.
+- `setPostModerationStatus`/`setCommentModerationStatus`/`setUserAccountStatus`/
+  `updateDiseaseReference` are thin, direct Firestore updates — the rules are the real
+  enforcement point, same pattern as every other repository here.
+- `getRecentNotifications` is the notification-monitoring/logging piece — reads the
+  `notifications` collection ordered by `created_at`, admin-only per the rules.
+- Added `firebase-functions-ktx`. Compiles cleanly, existing test suite still passes.
+
 ## What this drop deliberately does NOT do
 
 Per `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`, none of the following are resolved here:
