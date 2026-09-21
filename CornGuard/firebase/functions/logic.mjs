@@ -61,18 +61,37 @@ export function computeVoteCountDelta(existedBefore, existsAfter) {
 }
 
 /**
+ * Decides how a notifications/{id} document should be delivered, per
+ * firebase/notifications/fcm-plan.md's "Delivery targeting" section: per-user token lookup when
+ * `recipient_user_id` is set, an FCM topic send when `area_scope` is set instead, or null if
+ * neither is present (malformed document — nothing to deliver).
+ *
+ * `area_scope` is expected to already be a valid FCM topic name (e.g. "barangay_malaybalay_poblacion")
+ * — whatever creates the notification (onCommentCreate today; the future outbreak-rule evaluation
+ * path once D-07 is approved) is responsible for formatting it, not this function.
+ */
+export function resolveNotificationTarget(notification) {
+  if (notification?.recipient_user_id) {
+    return { type: 'token', recipientUserId: notification.recipient_user_id };
+  }
+  if (notification?.area_scope) {
+    return { type: 'topic', topic: notification.area_scope };
+  }
+  return null;
+}
+
+/**
  * Builds the FCM data payload for a notifications/{id} document, per
- * firebase/notifications/fcm-plan.md's "Payload shape" section. Returns null if the notification
- * has no per-user recipient (area-scoped notifications route through topics, handled elsewhere).
+ * firebase/notifications/fcm-plan.md's "Payload shape" section. Shared by both the per-token and
+ * topic delivery paths — the payload shape doesn't depend on how it's routed.
  */
 export function buildFcmPayload(notification, notificationId) {
-  if (!notification?.recipient_user_id) return null;
   return {
     notification_id: notificationId,
-    type: notification.type ?? '',
-    title: notification.title ?? '',
-    message: notification.message ?? '',
-    related_post_id: notification.related_post_id ?? '',
-    related_record_id: notification.related_record_id ?? '',
+    type: notification?.type ?? '',
+    title: notification?.title ?? '',
+    message: notification?.message ?? '',
+    related_post_id: notification?.related_post_id ?? '',
+    related_record_id: notification?.related_record_id ?? '',
   };
 }
