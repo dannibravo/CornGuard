@@ -6,6 +6,7 @@ import {
   buildCommentNotification,
   buildFcmPayload,
   computeVoteCountDelta,
+  resolveNotificationTarget,
 } from '../functions/logic.mjs';
 
 // ---------- assertCanPromoteToAdmin ----------
@@ -66,20 +67,40 @@ test('truncates a long comment body to 140 chars in the notification message', (
   assert.equal(payload.message.length, 140);
 });
 
+// ---------- resolveNotificationTarget ----------
+
+test('routes to a token lookup when recipient_user_id is set', () => {
+  const target = resolveNotificationTarget({ recipient_user_id: 'owner' });
+  assert.deepEqual(target, { type: 'token', recipientUserId: 'owner' });
+});
+
+test('routes to a topic send when area_scope is set instead', () => {
+  const target = resolveNotificationTarget({ area_scope: 'barangay_malaybalay_poblacion' });
+  assert.deepEqual(target, { type: 'topic', topic: 'barangay_malaybalay_poblacion' });
+});
+
+test('recipient_user_id wins if both are somehow present', () => {
+  const target = resolveNotificationTarget({ recipient_user_id: 'owner', area_scope: 'barangay_x' });
+  assert.equal(target.type, 'token');
+});
+
+test('returns null when neither is present (malformed document)', () => {
+  assert.equal(resolveNotificationTarget({ type: 'community_reply' }), null);
+});
+
 // ---------- buildFcmPayload ----------
 
-test('builds an FCM payload for a per-user notification', () => {
+test('builds an FCM payload regardless of routing type', () => {
   const payload = buildFcmPayload(
     { recipient_user_id: 'owner', type: 'community_reply', title: 't', message: 'm' },
     'notif1'
   );
   assert.equal(payload.notification_id, 'notif1');
   assert.equal(payload.type, 'community_reply');
-});
 
-test('returns null for an area-scoped notification (no recipient_user_id)', () => {
-  const payload = buildFcmPayload({ area_scope: 'barangay:x', type: 'outbreak_alert' }, 'notif2');
-  assert.equal(payload, null);
+  const areaPayload = buildFcmPayload({ area_scope: 'barangay_x', type: 'outbreak_alert' }, 'notif2');
+  assert.equal(areaPayload.notification_id, 'notif2');
+  assert.equal(areaPayload.type, 'outbreak_alert');
 });
 
 // ---------- computeVoteCountDelta ----------

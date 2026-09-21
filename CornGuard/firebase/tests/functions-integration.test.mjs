@@ -129,3 +129,27 @@ test('a vote create then delete correctly increments then decrements upvote_coun
     return fresh.data().upvote_count === 0 ? fresh : null;
   });
 });
+
+test('an area-scoped notification is routed to the topic-send path, not silently ignored', async () => {
+  // Before the resolveNotificationTarget fix, an area_scope-only notification had no
+  // recipient_user_id, so onNotificationCreate did nothing at all — it stayed "pending" forever,
+  // a silent bug. Now it should at least be attempted and end up in a terminal, visible state.
+  // (No real FCM credentials exist in this sandbox, so the actual send call fails — that's fine;
+  // the point is it no longer sits unprocessed.)
+  const notifRef = await db.collection('notifications').add({
+    area_scope: 'barangay_test_area',
+    type: 'nearby_report',
+    title: 'Nearby report',
+    message: 'A nearby farm reported common rust',
+    delivery_status: 'pending',
+    created_at: FieldValue.serverTimestamp(),
+  });
+
+  await waitFor(async () => {
+    const fresh = await notifRef.get();
+    return fresh.data().delivery_status !== 'pending' ? fresh : null;
+  });
+
+  const finalState = (await notifRef.get()).data();
+  assert.notEqual(finalState.delivery_status, 'pending');
+});

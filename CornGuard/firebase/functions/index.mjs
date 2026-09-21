@@ -21,6 +21,7 @@ import {
   buildCommentNotification,
   buildFcmPayload,
   computeVoteCountDelta,
+  resolveNotificationTarget,
 } from './logic.mjs';
 
 initializeApp();
@@ -98,22 +99,37 @@ export const onNotificationCreate = onDocumentCreated(
   'notifications/{notificationId}',
   async (event) => {
     const notification = event.data?.data();
-    const fcmPayload = buildFcmPayload(notification, event.params.notificationId);
-    if (!fcmPayload) return; // area-scoped notification: routed via topic, not per-token here
-
-    const tokensSnap = await getFirestore()
-      .collection('deviceTokens')
-      .where('user_id', '==', notification.recipient_user_id)
-      .where('active', '==', true)
-      .get();
-
-    const tokens = tokensSnap.docs.map((d) => d.data().fcm_token).filter(Boolean);
-    if (tokens.length === 0) {
+    const target = resolveNotificationTarget(notification);
+    if (!target) {
       await event.data.ref.update({ delivery_status: 'failed' });
       return;
     }
 
+    const fcmPayload = buildFcmPayload(notification, event.params.notificationId);
+
     try {
+      if (target.type === 'topic') {
+        // Area-scoped: nearby-report/monitoring/outbreak alerts, routed to every device
+        // subscribed to that area's topic (fcm-plan.md's "Delivery targeting" section) — no
+        // per-token lookup needed.
+        await getMessaging().send({ topic: target.topic, data: fcmPayload });
+        await event.data.ref.update({ delivery_status: 'sent' });
+        return;
+      }
+
+      // Per-user: look up this recipient's active device tokens.
+      const tokensSnap = await getFirestore()
+        .collection('deviceTokens')
+        .where('user_id', '==', target.recipientUserId)
+        .where('active', '==', true)
+        .get();
+
+      const tokens = tokensSnap.docs.map((d) => d.data().fcm_token).filter(Boolean);
+      if (tokens.length === 0) {
+        await event.data.ref.update({ delivery_status: 'failed' });
+        return;
+      }
+
       await getMessaging().sendEachForMulticast({ tokens, data: fcmPayload });
       await event.data.ref.update({ delivery_status: 'sent' });
     } catch {
