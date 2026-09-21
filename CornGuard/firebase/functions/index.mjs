@@ -15,8 +15,13 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { onDocumentCreated } from 'firebase-functions/v2/firestore';
-import { assertCanPromoteToAdmin, buildCommentNotification, buildFcmPayload } from './logic.mjs';
+import { onDocumentCreated, onDocumentWritten } from 'firebase-functions/v2/firestore';
+import {
+  assertCanPromoteToAdmin,
+  buildCommentNotification,
+  buildFcmPayload,
+  computeVoteCountDelta,
+} from './logic.mjs';
 
 initializeApp();
 
@@ -58,6 +63,28 @@ export const onCommentCreate = onDocumentCreated(
     await getFirestore()
       .collection('notifications')
       .add({ ...payload, created_at: FieldValue.serverTimestamp() });
+  }
+);
+
+/**
+ * Maintains communityPosts/{postId}.upvote_count from the votes/{voterId} subcollection —
+ * security/firestore.rules blocks clients from writing that field directly (it's the "do not
+ * trust client-supplied aggregate count" rule in access-control-matrix.md), but nothing before
+ * this actually computed the real value. Runs in a transaction so concurrent votes can't race.
+ */
+export const onVoteWrite = onDocumentWritten(
+  'communityPosts/{postId}/votes/{voterId}',
+  async (event) => {
+    const delta = computeVoteCountDelta(event.data?.before?.exists, event.data?.after?.exists);
+    if (delta === 0) return;
+
+    const postRef = getFirestore().doc(`communityPosts/${event.params.postId}`);
+    await getFirestore().runTransaction(async (tx) => {
+      const postSnap = await tx.get(postRef);
+      if (!postSnap.exists) return;
+      const current = postSnap.data().upvote_count ?? 0;
+      tx.update(postRef, { upvote_count: Math.max(0, current + delta) });
+    });
   }
 );
 
