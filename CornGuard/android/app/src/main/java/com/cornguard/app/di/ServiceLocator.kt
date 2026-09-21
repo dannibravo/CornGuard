@@ -2,6 +2,7 @@ package com.cornguard.app.di
 
 import android.content.Context
 import com.cornguard.app.data.local.db.AppDatabase
+import com.cornguard.app.data.repository.AdminRepository
 import com.cornguard.app.data.repository.AuthRepository
 import com.cornguard.app.data.repository.CommunityRepository
 import com.cornguard.app.data.repository.DiagnosisHistoryRepository
@@ -9,6 +10,7 @@ import com.cornguard.app.data.repository.DiagnosisSharingRepository
 import com.cornguard.app.data.repository.DiseaseReferenceRepository
 import com.cornguard.app.data.repository.GisRepository
 import com.cornguard.app.data.repository.UserFarmRepository
+import com.cornguard.app.data.repository.firebase.FirebaseAdminRepository
 import com.cornguard.app.data.repository.firebase.FirebaseAuthRepository
 import com.cornguard.app.data.repository.firebase.FirebaseCommunityRepository
 import com.cornguard.app.data.repository.firebase.FirebaseDiagnosisSharingRepository
@@ -22,6 +24,7 @@ import com.cornguard.app.permissions.PermissionManager
 import com.cornguard.app.util.ConnectivityObserver
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
 
@@ -82,10 +85,17 @@ object ServiceLocator {
 
     // Sprint 4 (feature/auth-service, continued). Pragmatic D-10 lean documented in
     // claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md — this is the data layer only, no map-SDK
-    // dependency. getHeatmapAggregates/getVerifiedOccurrences correctly return empty until
-    // verification exists (D-02/D-08) — see GisRepository's doc comments.
+    // dependency. getHeatmapAggregates/getVerifiedOccurrences return empty until something is
+    // actually verified — see adminRepository below for the (now real) path that unblocks that.
     val gisRepository: GisRepository by lazy {
         FirebaseGisRepository(FirebaseFirestore.getInstance(), FirebaseMessaging.getInstance())
+    }
+
+    // Sprint 5 (feature/auth-service, continued). verifyDiagnosisRecord/verifyPost are what
+    // actually populate what gisRepository above reads — not blocked by D-02, since Admin is
+    // already a confirmed role (see AdminRepository's doc comment).
+    val adminRepository: AdminRepository by lazy {
+        FirebaseAdminRepository(FirebaseFirestore.getInstance(), FirebaseFunctions.getInstance())
     }
 
     fun init(context: Context) {
