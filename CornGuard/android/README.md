@@ -40,6 +40,34 @@ git-ignored per `claude/10_ENV_GUIDE.md`.
   keystore must never be committed (`claude/10_ENV_GUIDE.md`); it is injected from a controlled
   location when Sprint 7 actually produces a release build.
 
+## Sprint 1 addition (`feature/auth-service`) — Firebase Auth + cloud repositories
+
+Adds, on top of the Sprint 0 foundation above:
+
+- `google-services` Gradle plugin + Firebase BoM/Auth/Firestore dependencies
+  (`build.gradle.kts`, `app/build.gradle.kts`, `gradle/libs.versions.toml`).
+- `data.repository.AuthRepository` + `data.repository.firebase.FirebaseAuthRepository` — mirrors
+  `firebase/repositories/auth-repository-interface.md`. Email/password only for Sprint 1 (matches
+  the provider actually enabled in the dev Firebase project); phone auth is deferred, not
+  half-built, until the Phone provider and an Activity-bound verification UI are designed.
+- `data.repository.UserFarmRepository` + `data.repository.firebase.FirebaseUserFarmRepository` —
+  mirrors `firebase/repositories/user-farm-repository-interface.md`. Field names in Firestore
+  documents match `firebase/schema/logical-schema.md` exactly (snake_case) — do not rename either
+  side without updating the other.
+- `ServiceLocator` gains `authRepository` and `userFarmRepository`, matching the existing lazy
+  singleton pattern. Both are **online-only**: they throw on no connectivity/an expired session
+  rather than silently no-op, and no offline screen may depend on them
+  (`claude/01_MASTER_DEVELOPMENT_CONTEXT.md` Project Principle).
+- `app/google-services.json` is **not committed** (already covered by this module's `.gitignore`)
+  — copy it from `firebase/config/google-services.dev.json` locally. It now registers two Firebase
+  Android app clients under the same dev project: `com.cornguard.app` (release) and
+  `com.cornguard.app.debug` (the debug build type's `applicationIdSuffix`) — the debug build fails
+  at `processDebugGoogleServices` without the second client entry.
+- No dev/prod product flavor dimension yet — a "prod" flavor needs a prod Firebase project to
+  point it at, which is Sprint 7 work per `claude/10_ENV_GUIDE.md`'s Production Configuration
+  Freeze. Adding an empty flavor now would be structure with nothing real behind it.
+- Verified with `./gradlew :app:compileDebugKotlin` and `:app:testDebugUnitTest` — both pass.
+
 ## What this drop deliberately does NOT do
 
 Per `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`, none of the following are resolved here:
@@ -47,12 +75,10 @@ Per `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`, none of the following ar
 - **D-04 (model preprocessing / class order)** — no preprocessing code exists yet;
   `PlaceholderCornLeafClassifier` refuses to run rather than guess.
 - **D-03 (Farm ownership cardinality)** — `DiagnosisRecordEntity.farmId` is a nullable string FK
-  only.
-- **D-01 (cloud database choice)** — no Firebase SDK dependency is added in this module yet. Panes
-  already configured a dev Firebase project (`firebase/config/google-services.dev.json`,
-  package `com.cornguard.app`, matching this module's `applicationId`); wiring `google-services.json`
-  and the Firebase Auth SDK into `app/` happens together in Sprint 1 (`feature/auth-service`), not
-  in this foundation drop.
+  only; `UserFarmRepository.createFarm` supports 1-to-many without deciding it either.
+- **D-01 (cloud database choice)** — Firestore is one illustrative binding (matching the dev
+  project Panes provisioned), not a resolved team decision; see the dev-provisioning note under
+  D-01 in `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`.
 - **D-10 (GIS/map SDK provider)** — the Map screen is a placeholder with no map dependency.
 - **D-02 (Agricultural Technician role)** — no `technician` path exists anywhere in this module.
 
