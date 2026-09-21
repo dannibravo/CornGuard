@@ -12,11 +12,18 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 let db;
 
-before(() => {
+before(async () => {
   if (getApps().length === 0) {
     initializeApp({ projectId: process.env.GCLOUD_PROJECT || 'cornguard-dev' });
   }
   db = getFirestore();
+
+  // The Functions emulator logs "initialized" for each trigger slightly before its Firestore
+  // event subscription is actually live — without this, the very first write in a fresh emulator
+  // session can race the subscription and the test times out even though the trigger is correct
+  // (confirmed: identical code passes reliably on a second run). A fixed settle delay is simpler
+  // and more honest than a flaky-test retry wrapper.
+  await new Promise((resolve) => setTimeout(resolve, 3000));
 });
 
 async function waitFor(predicateFn, { timeoutMs = 20000, intervalMs = 300 } = {}) {
@@ -95,4 +102,30 @@ test('a post owner commenting on their own post creates no notification', async 
     .where('related_post_id', '==', 'postB')
     .get();
   assert.equal(snap.empty, true);
+});
+
+test('a vote create then delete correctly increments then decrements upvote_count', async () => {
+  const postRef = db.doc('communityPosts/postC');
+  await postRef.set({
+    user_id: 'ownerD',
+    title: 'Networking issue', body: 'x', disease_tag: 'unknown',
+    barangay: 'X', municipality: 'Y', province: 'Bukidnon',
+    verification_status: 'unverified', moderation_status: 'visible',
+    upvote_count: 0, created_at: FieldValue.serverTimestamp(),
+  });
+
+  const voteRef = postRef.collection('votes').doc('voterE');
+  await voteRef.set({ created_at: FieldValue.serverTimestamp() });
+
+  await waitFor(async () => {
+    const fresh = await postRef.get();
+    return fresh.data().upvote_count === 1 ? fresh : null;
+  });
+
+  await voteRef.delete();
+
+  await waitFor(async () => {
+    const fresh = await postRef.get();
+    return fresh.data().upvote_count === 0 ? fresh : null;
+  });
 });

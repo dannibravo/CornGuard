@@ -5,6 +5,7 @@ import {
   assertCanPromoteToAdmin,
   buildCommentNotification,
   buildFcmPayload,
+  computeVoteCountDelta,
 } from '../functions/logic.mjs';
 
 // ---------- assertCanPromoteToAdmin ----------
@@ -79,4 +80,19 @@ test('builds an FCM payload for a per-user notification', () => {
 test('returns null for an area-scoped notification (no recipient_user_id)', () => {
   const payload = buildFcmPayload({ area_scope: 'barangay:x', type: 'outbreak_alert' }, 'notif2');
   assert.equal(payload, null);
+});
+
+// ---------- computeVoteCountDelta ----------
+
+test('a new vote (no doc before, doc after) is +1', () => {
+  assert.equal(computeVoteCountDelta(false, true), 1);
+});
+
+test('a removed vote (doc before, no doc after) is -1', () => {
+  assert.equal(computeVoteCountDelta(true, false), -1);
+});
+
+test('any other transition is a no-op (0)', () => {
+  assert.equal(computeVoteCountDelta(true, true), 0);
+  assert.equal(computeVoteCountDelta(false, false), 0);
 });
