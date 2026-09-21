@@ -204,6 +204,25 @@ test('another farmer cannot read someone else\'s private diagnosis record', asyn
   await assertFails(getDoc(doc(db, 'diagnosisRecordsCloud/rec3')));
 });
 
+test('an admin CAN verify a diagnosis record (Sprint 5 admin verification path)', async () => {
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'diagnosisRecordsCloud/rec4'), {
+      user_id: 'ivan', disease_code: 'common_rust', confidence: 0.95,
+      captured_at: new Date().toISOString(),
+      barangay: 'X', municipality: 'Y', province: 'Bukidnon',
+      model_version: 'v1', verification_status: 'unverified', source: 'ai_scan',
+    });
+  });
+  const db = adminCtx('admin2').firestore();
+  await assertSucceeds(
+    updateDoc(doc(db, 'diagnosisRecordsCloud/rec4'), {
+      verification_status: 'verified',
+      verified_by: 'admin2',
+      verified_at: new Date().toISOString(),
+    })
+  );
+});
+
 // ---------- communityPosts/{postId} ----------
 
 test('a farmer can create a community post with upvote_count=0', async () => {
@@ -251,6 +270,59 @@ test('any signed-in farmer can read the community feed', async () => {
   });
   const db = farmerCtx('reader').firestore();
   await assertSucceeds(getDoc(doc(db, 'communityPosts/post3')));
+});
+
+test('an admin CAN moderate (hide) a post; the post owner CANNOT', async () => {
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'communityPosts/post5'), {
+      user_id: 'karen', title: 'x', body: 'x', disease_tag: 'unknown',
+      barangay: 'X', municipality: 'Y', province: 'Bukidnon',
+      verification_status: 'unverified', moderation_status: 'visible',
+      upvote_count: 0, created_at: new Date().toISOString(),
+    });
+  });
+
+  const ownerDb = farmerCtx('karen').firestore();
+  await assertFails(updateDoc(doc(ownerDb, 'communityPosts/post5'), { moderation_status: 'hidden' }));
+
+  const adminDb = adminCtx('admin3').firestore();
+  await assertSucceeds(updateDoc(doc(adminDb, 'communityPosts/post5'), { moderation_status: 'hidden' }));
+});
+
+// ---------- Sprint 5: admin user management + disease reference maintenance ----------
+
+test('an admin CAN change a user\'s account_status; the user themselves CANNOT', async () => {
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'users/leo'), {
+      display_name: 'Leo', role: 'farmer', account_status: 'active',
+      barangay: 'X', municipality: 'Y', province: 'Bukidnon', farm_ids: [],
+    });
+  });
+
+  const selfDb = farmerCtx('leo').firestore();
+  await assertFails(updateDoc(doc(selfDb, 'users/leo'), { account_status: 'suspended' }));
+
+  const adminDb = adminCtx('admin4').firestore();
+  await assertSucceeds(updateDoc(doc(adminDb, 'users/leo'), { account_status: 'suspended' }));
+});
+
+test('an admin CAN update disease reference content; a farmer CANNOT', async () => {
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'diseaseReferenceCloud/common_rust'), {
+      display_name: 'Common Rust', symptoms: 'x', treatment_steps: 'x',
+      prevention_steps: 'x', source_reference: 'x', content_version: '0.1',
+    });
+  });
+
+  const farmerDb = farmerCtx('mona2').firestore();
+  await assertFails(
+    updateDoc(doc(farmerDb, 'diseaseReferenceCloud/common_rust'), { content_version: '0.2' })
+  );
+
+  const adminDb = adminCtx('admin5').firestore();
+  await assertSucceeds(
+    updateDoc(doc(adminDb, 'diseaseReferenceCloud/common_rust'), { content_version: '0.2' })
+  );
 });
 
 // ---------- notifications/{id} — backend-only ----------
