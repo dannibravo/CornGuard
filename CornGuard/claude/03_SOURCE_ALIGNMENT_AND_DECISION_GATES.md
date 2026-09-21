@@ -19,6 +19,31 @@ Choose one cloud datastore before Sprint 3:
 ### Allowed work before decision
 Developers may define logical entities, DTO/data classes, repository interfaces, security requirements, and local mocks without binding to one Firebase database implementation.
 
+### Development-only provisioning note (2026-09-09)
+A Firestore database was provisioned in the `cornguard-dev` Firebase project (Sprint 0,
+`feature/firebase-setup`) so the drafted `firebase/security/firestore.rules` could actually be
+deployed and validated rather than remain an untested draft. `firebase/security/storage.rules`
+was not deployed (Cloud Storage requires the Blaze billing plan, deferred to Sprint 3).
+
+This is **not** the required D-01 decision. It is a reversible, dev-only choice, approved by
+Panes, to unblock rules testing. Production still requires a formal team decision — Firestore
+vs. Realtime Database — before Sprint 3, per the Required decision above. If the team ultimately
+chooses Realtime Database, the `cornguard-dev` Firestore instance is disposable and the schema/
+security-matrix work in `firebase/` does not need to change, since it was written implementation-
+agnostic per the Allowed work rule.
+
+### Sprint 3 continuation note (2026-09-21)
+Ligue and Acenas are unavailable to participate in the formal D-01 decision this file requires
+before Sprint 3 work begins. Rather than block all Sprint 3 Panes work indefinitely, development
+continued against Firestore — it is already the live, tested `cornguard-dev` database, and it is
+what the manuscript's own architecture diagram (Figure 6) already depicts. **This is explicitly
+not the required three-person team decision** — it is a pragmatic, transparently-recorded
+continuation by Panes alone, made because the alternative was stalling all community-module work
+indefinitely. The Required decision above is still open. If Ligue or Acenas object once available,
+or the team later picks Realtime Database, the Sprint 3 Firestore-specific code (community
+repository, indexes) needs rework — the schema and security matrix themselves do not, for the same
+reason given in the note above.
+
 ---
 
 ## D-02 — Agricultural Technician Role
@@ -192,6 +217,25 @@ GIS mapping and heatmaps are required, but the manuscript does not clearly speci
 
 ### Development rule
 Do not commit provider-specific architecture until the team selects one based on Android compatibility, cost, offline/low-connectivity behavior, heatmap support, key restrictions, and academic/project constraints.
+
+### Sprint 4 continuation note (2026-09-21)
+Same circumstance as the D-01 continuation note above: Ligue and Acenas are unavailable, and the
+Map screen's rendering is blocked without a provider pick. **This is a pragmatic solo lean, not
+the required team decision**, and unlike D-01 it does not even bind any code yet — only the GIS
+*data* layer (nearby-report queries, heatmap aggregation) is built this sprint, and that layer is
+already provider-agnostic per `firebase/gis/gis-service-interface.md` (no map-SDK types). The
+actual rendering/map-SDK dependency stays undone.
+
+If a pick becomes necessary later (e.g. for Ligue's Map screen before the team formally decides):
+**osmdroid (OpenStreetMap)** is the pragmatic lean over Google Maps Platform or Mapbox, specifically
+because it needs no billing account / API key at all — Google Maps Platform requires a GCP billing
+account the same way Blaze does for Storage/Functions (already a repeated blocker this sprint), and
+Mapbox's free tier still requires an account + token. osmdroid also supports offline tile caching,
+which fits the project's own "offline/low-connectivity behavior" criterion better for
+Bukidnon field conditions. Its tradeoff: no official heatmap overlay library as polished as Google's
+`android-maps-utils`, so a heatmap layer would need a community library or custom overlay — a cost
+worth paying to avoid another billing-account wall. This is Ligue's call to make or override when
+he reaches the Map screen (Sprint 4/5, `feature/map-ui`), not something this note locks in.
 
 ---
 
