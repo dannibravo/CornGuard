@@ -20,6 +20,15 @@ Services Lead, per `claude/05_DEVELOPMENT_PLAN.md` (Sprint 0) and
 - `repositories/user-farm-repository-interface.md` — profile and farm data contract.
 - `repositories/diagnosis-sharing-repository-interface.md` — opt-in cloud sharing of a local scan.
 - `repositories/community-repository-interface.md` — posts, comments, and upvotes contract.
+- `tests/rules.test.mjs` — automated Firestore emulator tests verifying `security/firestore.rules`
+  actually enforces the access-control matrix (role self-elevation, cross-user data access,
+  faked upvote counts, direct notification writes, non-admin outbreak-rule visibility, and the
+  default-deny fallback). Run with:
+  ```
+  cd firebase
+  firebase emulators:exec --only firestore "npm --prefix tests test"
+  ```
+  (requires Java on PATH for the Firestore emulator, and `npm install` inside `tests/` once).
 
 ## What this drop deliberately does NOT do
 
