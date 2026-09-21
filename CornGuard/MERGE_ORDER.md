@@ -37,15 +37,35 @@ branch to have that code to build against at all.
 
 ## What's in each branch
 
-- **`feature/firebase-setup`**: cloud logical schema, security rules (Firestore rules tested
-  against the emulator, 26 passing), GIS service interface, FCM plan, all 4 repository interface
-  docs, Cloud Functions for admin-claim granting and community-reply notifications (28 tests
-  passing total), dev fixture/seed scripts, a live `cornguard-dev` Firebase project already
-  provisioned (Firestore + Auth enabled; Storage and Cloud Functions deployment both deferred —
-  need the Blaze plan).
+Both Panes branches now cover the full Sprint 0–5 Panes scope from `claude/05_DEVELOPMENT_PLAN.md`
+— see `firebase/README.md` and `android/README.md` on their respective branches for the complete,
+current breakdown. Summary:
+
+- **`feature/firebase-setup`**: cloud logical schema, security rules (36 rules/logic tests + 3
+  integration tests passing against the emulator, including Sprint 5's admin
+  verification/moderation/user-management paths), all 6 repository interface docs (including
+  `admin-repository-interface.md`), GIS service interface, FCM plan, Firestore composite indexes
+  for the location-aware feed, Cloud Functions (admin-claim granting, community-reply
+  notifications with real FCM delivery — per-user token *and* area-scoped topic routing, and a
+  real `upvote_count`-maintaining trigger), dev fixture/seed scripts. A live `cornguard-dev`
+  Firebase project is provisioned: Firestore (database + rules + indexes) is deployed; Storage and
+  Cloud Functions deployment are both deferred — need the Blaze plan.
 - **`feature/android-foundation`**: Android Studio project scaffold, Room-backed local
   history/disease-reference repositories, navigation shell, permissions strategy — offline-only,
   no Firebase dependency.
-- **`feature/auth-service`**: Firebase Auth (email/password) + Firestore-backed User/Farm
-  repositories, wired into `ServiceLocator`. Verified with a real `./gradlew
-  :app:compileDebugKotlin` and `:app:testDebugUnitTest` run, both passing.
+- **`feature/auth-service`**: every Kotlin repository for Sprint 1–5 — Auth (email/password),
+  User/Farm, Diagnosis-sharing (with Storage image upload), Community (posts/comments/upvotes),
+  GIS (nearby reports, heatmap aggregation, FCM device tokens/topics), and Admin (verification,
+  moderation, user management), all wired into `ServiceLocator`. Verified with a real `./gradlew
+  :app:compileDebugKotlin` and `:app:testDebugUnitTest` run after every addition, all passing.
+
+## A note on scope, for whoever reviews this
+
+Several decision gates (`claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`) that would normally
+require all three developers were instead continued on pragmatically by Panes alone, because Ligue
+and Acenas were unavailable during this stretch of work — D-01 (Firestore), D-10 (a GIS provider
+lean, though no map-SDK code is actually bound anywhere). Each is recorded transparently in its own
+decision-gate section, not silently assumed. D-07 (outbreak thresholds) and D-02 (Technician role)
+were **not** worked around this way — they require expert/team input no amount of solo continuation
+substitutes for, and the code (`getHeatmapAggregates`, `outbreakRules`) stays correctly inert
+until those resolve for real.
