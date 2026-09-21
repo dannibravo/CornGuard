@@ -68,6 +68,23 @@ Adds, on top of the Sprint 0 foundation above:
   Freeze. Adding an empty flavor now would be structure with nothing real behind it.
 - Verified with `./gradlew :app:compileDebugKotlin` and `:app:testDebugUnitTest` — both pass.
 
+### Sprint 2 (continued on this branch) — cloud diagnosis-sharing
+
+- `data.repository.DiagnosisSharingRepository` +
+  `data.repository.firebase.FirebaseDiagnosisSharingRepository` — mirrors
+  `firebase/repositories/diagnosis-sharing-repository-interface.md`. Deliberately takes the
+  existing `DiagnosisRecordEntity` directly rather than introducing a parallel
+  `ShareableScanDraft` Kotlin type — same concept, no duplicated model.
+- Uploads the scan image to Cloud Storage at `diagnosisImages/{userId}/{recordId}/{fileName}`
+  (matching `firebase/security/storage.rules` exactly), then creates the
+  `diagnosisRecordsCloud/{recordId}` Firestore document with the resulting download URL.
+- Per D-11, this is opt-in only — nothing calls it automatically from the scan flow. Per
+  `claude/04_DEVELOPMENT_RULES.md` #16, it never touches local SQLite history; callers mark a
+  local record as shared themselves via `DiagnosisHistoryRepository.markShared` afterward.
+- Added `firebase-storage-ktx`. Compiles and passes the existing test suite, but **not yet
+  exercisable against the live project** — Cloud Storage needs the Blaze plan (same as the
+  Firestore/Storage rules deferral already noted in `firebase/README.md`).
+
 ## What this drop deliberately does NOT do
 
 Per `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`, none of the following are resolved here:

@@ -4,9 +4,11 @@ import android.content.Context
 import com.cornguard.app.data.local.db.AppDatabase
 import com.cornguard.app.data.repository.AuthRepository
 import com.cornguard.app.data.repository.DiagnosisHistoryRepository
+import com.cornguard.app.data.repository.DiagnosisSharingRepository
 import com.cornguard.app.data.repository.DiseaseReferenceRepository
 import com.cornguard.app.data.repository.UserFarmRepository
 import com.cornguard.app.data.repository.firebase.FirebaseAuthRepository
+import com.cornguard.app.data.repository.firebase.FirebaseDiagnosisSharingRepository
 import com.cornguard.app.data.repository.firebase.FirebaseUserFarmRepository
 import com.cornguard.app.data.repository.local.LocalDiagnosisHistoryRepository
 import com.cornguard.app.data.repository.local.LocalDiseaseReferenceRepository
@@ -16,6 +18,7 @@ import com.cornguard.app.permissions.PermissionManager
 import com.cornguard.app.util.ConnectivityObserver
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 
 /**
  * Manual, process-lifetime service locator. CORNGUARD does not use a DI framework in Sprint 0 —
@@ -56,6 +59,13 @@ object ServiceLocator {
 
     val userFarmRepository: UserFarmRepository by lazy {
         FirebaseUserFarmRepository(FirebaseFirestore.getInstance())
+    }
+
+    // Sprint 2 (feature/auth-service, continued). Not yet exercisable against the live dev
+    // project — Storage requires the Blaze plan, deferred (firebase/README.md). Written and
+    // ready for when that's revisited.
+    val diagnosisSharingRepository: DiagnosisSharingRepository by lazy {
+        FirebaseDiagnosisSharingRepository(FirebaseFirestore.getInstance(), FirebaseStorage.getInstance())
     }
 
     fun init(context: Context) {
