@@ -1,0 +1,160 @@
+// CORNGUARD — Firestore Security Rules (DEVELOPMENT DRAFT, Sprint 0)
+//
+// Status: illustrative draft implementing security/access-control-matrix.md.
+// This does NOT resolve D-01 (Firestore vs Realtime Database) — it is written so the
+// team can evaluate a concrete Firestore binding without treating it as the final decision.
+// Do not deploy to a production project until D-01, D-02, D-03, D-07 have team-recorded
+// decisions (per claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md) and this file has been
+// peer-reviewed per claude/04_DEVELOPMENT_RULES.md #13.
+//
+// Role model: `role` is NEVER a client-writable Firestore field. Admin status is asserted only
+// via a custom auth claim (request.auth.token.role == 'admin'), which is set exclusively by a
+// trusted backend process using the Admin SDK. A `technician` claim is intentionally never
+// checked here — that role stays disabled until D-02 is resolved.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      // Set only via Admin SDK custom claims — never trust a Firestore field for this.
+      return isSignedIn() && request.auth.token.role == 'admin';
+    }
+
+    function unchanged(field) {
+      return field in resource.data
+        ? request.resource.data[field] == resource.data[field]
+        : !(field in request.resource.data);
+    }
+
+    // ---------- users/{userId} ----------
+    match /users/{userId} {
+      allow create: if isSelf(userId)
+        && request.resource.data.role == 'farmer'
+        && request.resource.data.account_status == 'active';
+
+      allow read: if isSelf(userId) || isAdmin();
+
+      // Self may update only profile-shape fields; role/account_status/farm_ids are backend-only.
+      allow update: if isAdmin()
+        || (isSelf(userId)
+            && unchanged('role')
+            && unchanged('account_status')
+            && unchanged('farm_ids'));
+
+      allow delete: if isAdmin();
+    }
+
+    // ---------- farms/{farmId} ----------
+    match /farms/{farmId} {
+      allow create: if isSignedIn() && request.resource.data.owner_user_id == request.auth.uid;
+      allow read, update, delete: if isAdmin()
+        || (isSignedIn() && resource.data.owner_user_id == request.auth.uid);
+    }
+
+    // ---------- diagnosisRecordsCloud/{recordId} ----------
+    match /diagnosisRecordsCloud/{recordId} {
+      allow create: if isSignedIn()
+        && request.resource.data.user_id == request.auth.uid
+        && request.resource.data.verification_status == 'unverified';
+
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.user_id == request.auth.uid);
+
+      // Owner may edit their own record but never touch verification fields themselves.
+      allow update: if isAdmin()
+        || (isSignedIn() && resource.data.user_id == request.auth.uid
+            && unchanged('verification_status')
+            && unchanged('verified_by')
+            && unchanged('verified_at'));
+
+      allow delete: if isAdmin()
+        || (isSignedIn() && resource.data.user_id == request.auth.uid);
+    }
+
+    // ---------- communityPosts/{postId} ----------
+    match /communityPosts/{postId} {
+      allow create: if isSignedIn()
+        && request.resource.data.user_id == request.auth.uid
+        && request.resource.data.upvote_count == 0
+        && request.resource.data.moderation_status == 'visible';
+
+      allow read: if isSignedIn();
+
+      // Owner may edit content fields; never the moderation status or the vote counter.
+      allow update: if isAdmin()
+        || (isSignedIn() && resource.data.user_id == request.auth.uid
+            && unchanged('upvote_count')
+            && unchanged('moderation_status')
+            && unchanged('verification_status'));
+
+      allow delete: if isAdmin()
+        || (isSignedIn() && resource.data.user_id == request.auth.uid);
+
+      // ---------- comments (single-level nesting) ----------
+      match /comments/{commentId} {
+        allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+        allow read: if isSignedIn();
+        allow update: if isAdmin()
+          || (isSignedIn() && resource.data.user_id == request.auth.uid
+              && unchanged('moderation_status'));
+        allow delete: if isAdmin()
+          || (isSignedIn() && resource.data.user_id == request.auth.uid);
+      }
+
+      // ---------- votes: one doc per user, doc ID == uid ----------
+      match /votes/{voterId} {
+        allow create: if isSelf(voterId);
+        allow read: if isSignedIn();
+        allow update: if false; // delete + recreate to change a vote
+        allow delete: if isSelf(voterId) || isAdmin();
+      }
+    }
+
+    // ---------- notifications/{notificationId} ----------
+    // Written only by a trusted backend (Cloud Function via Admin SDK). No client create/delete.
+    match /notifications/{notificationId} {
+      allow create, delete: if false;
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.recipient_user_id == request.auth.uid);
+      // Recipient may only mark their own notification as read.
+      allow update: if isAdmin()
+        || (isSignedIn() && resource.data.recipient_user_id == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read_at']));
+    }
+
+    // ---------- deviceTokens/{tokenId} ----------
+    match /deviceTokens/{tokenId} {
+      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+      allow read, update, delete: if isAdmin()
+        || (isSignedIn() && resource.data.user_id == request.auth.uid);
+    }
+
+    // ---------- diseaseReferenceCloud/{diseaseCode} ----------
+    match /diseaseReferenceCloud/{diseaseCode} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ---------- outbreakRules/{ruleId} ----------
+    // Not publicly readable — avoids leaking un-approved thresholds (D-07).
+    match /outbreakRules/{ruleId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    // Deny everything else by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

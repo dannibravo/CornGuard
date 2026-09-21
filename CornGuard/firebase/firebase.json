@@ -1,0 +1,17 @@
+{
+  "firestore": {
+    "rules": "security/firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "security/storage.rules"
+  },
+  "functions": {
+    "source": "functions"
+  },
+  "emulators": {
+    "firestore": { "port": 8080 },
+    "functions": { "port": 5001 },
+    "ui": { "enabled": true, "port": 4000 }
+  }
+}

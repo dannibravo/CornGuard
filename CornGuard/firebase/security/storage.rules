@@ -1,0 +1,60 @@
+// CORNGUARD — Cloud Storage Security Rules (DEVELOPMENT DRAFT, Sprint 0)
+//
+// Status: illustrative draft. Pairs with firestore.rules and access-control-matrix.md.
+// Do not deploy to production before peer review (claude/04_DEVELOPMENT_RULES.md #13).
+//
+// Path conventions:
+//   /diagnosisImages/{userId}/{recordId}/{fileName}   — leaf photos for shared diagnosis records
+//   /postImages/{postId}/{fileName}                   — community post photos
+//   /profileImages/{userId}/{fileName}                — optional profile photo
+//
+// All uploads are size- and content-type-restricted. Nothing here trusts a client-supplied
+// path outside these prefixes.
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidImage() {
+      return request.resource.size < 8 * 1024 * 1024 // 8 MB cap per upload
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ---------- diagnosis images (owner-only) ----------
+    match /diagnosisImages/{userId}/{recordId}/{fileName} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isSignedIn() && request.auth.uid == userId && isValidImage();
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ---------- community post images (readable by any signed-in user) ----------
+    match /postImages/{postId}/{fileName} {
+      allow read: if isSignedIn();
+      // Ownership of the underlying post is enforced in firestore.rules at post-create time;
+      // here we only gate on being signed in plus file validity. The app must create the
+      // Firestore post document referencing this path as part of the same client transaction
+      // it uses to upload the image.
+      allow write: if isSignedIn() && isValidImage();
+      allow delete: if isSignedIn()
+        && firestore.get(/databases/(default)/documents/communityPosts/$(postId)).data.user_id
+             == request.auth.uid;
+    }
+
+    // ---------- profile images (owner-only) ----------
+    match /profileImages/{userId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId && isValidImage();
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Deny everything else by default.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
