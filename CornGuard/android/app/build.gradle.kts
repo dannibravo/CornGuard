@@ -2,6 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.ksp)
+    // Reads app/google-services.json (currently the dev Firebase project only — see
+    // firebase/README.md and this file's dependencies comment below for the D-01/flavor note).
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -45,11 +48,14 @@ android {
         }
     }
 
-    // Sprint 0 ships only debug/release build types (claude/05_DEVELOPMENT_PLAN.md Sprint 0:
-    // "Prepare build variants for development and release where practical"). A dev/prod product
-    // flavor dimension tied to Firebase environments belongs with the Firebase wiring itself
-    // (feature/auth-service, Sprint 1) so the two environments' google-services.json and any
-    // Firebase-dependent build config fields land together — see claude/10_ENV_GUIDE.md.
+    // Firebase wiring lands here (feature/auth-service, Sprint 1) as planned in the Sprint 0
+    // comment this replaces. Still only debug/release, no dev/prod product flavor dimension yet:
+    // a "prod" flavor needs a prod Firebase project to point it at, and per
+    // claude/10_ENV_GUIDE.md's Production Configuration Freeze, that's Sprint 7 work, not now.
+    // Adding an empty prod flavor today would just be structure with nothing real behind it.
+    // app/google-services.json is the dev project only (package com.cornguard.app, matching
+    // firebase/config/google-services.dev.json) — add the flavor split when a prod project
+    // actually exists, not before.
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -101,6 +107,13 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+
+    // Firebase BoM controls Firebase library versions — do not add version numbers to the
+    // individual firebase-* dependencies below, they're resolved through this platform.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth.ktx)
+    implementation(libs.firebase.firestore.ktx)
+    implementation(libs.kotlinx.coroutines.play.services)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

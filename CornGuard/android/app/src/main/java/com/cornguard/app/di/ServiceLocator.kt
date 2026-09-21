@@ -2,14 +2,20 @@ package com.cornguard.app.di
 
 import android.content.Context
 import com.cornguard.app.data.local.db.AppDatabase
+import com.cornguard.app.data.repository.AuthRepository
 import com.cornguard.app.data.repository.DiagnosisHistoryRepository
 import com.cornguard.app.data.repository.DiseaseReferenceRepository
+import com.cornguard.app.data.repository.UserFarmRepository
+import com.cornguard.app.data.repository.firebase.FirebaseAuthRepository
+import com.cornguard.app.data.repository.firebase.FirebaseUserFarmRepository
 import com.cornguard.app.data.repository.local.LocalDiagnosisHistoryRepository
 import com.cornguard.app.data.repository.local.LocalDiseaseReferenceRepository
 import com.cornguard.app.model.CornLeafClassifier
 import com.cornguard.app.model.PlaceholderCornLeafClassifier
 import com.cornguard.app.permissions.PermissionManager
 import com.cornguard.app.util.ConnectivityObserver
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 /**
  * Manual, process-lifetime service locator. CORNGUARD does not use a DI framework in Sprint 0 —
@@ -42,6 +48,15 @@ object ServiceLocator {
     val permissionManager: PermissionManager by lazy { PermissionManager(appContext) }
 
     val connectivityObserver: ConnectivityObserver by lazy { ConnectivityObserver(appContext) }
+
+    // Online-only (Sprint 1, feature/auth-service). Never called from the offline scan path —
+    // claude/01_MASTER_DEVELOPMENT_CONTEXT.md's Project Principle. Callers must check
+    // connectivityObserver first; these throw on no connectivity rather than silently no-op.
+    val authRepository: AuthRepository by lazy { FirebaseAuthRepository(FirebaseAuth.getInstance()) }
+
+    val userFarmRepository: UserFarmRepository by lazy {
+        FirebaseUserFarmRepository(FirebaseFirestore.getInstance())
+    }
 
     fun init(context: Context) {
         appContext = context.applicationContext
