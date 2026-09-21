@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Camera capture writes a temp JPEG here before ScanFragment decodes and discards it (the
+         decoded Bitmap, not this file, is what gets classified and permanently saved). -->
+    <cache-path name="scan_capture" path="scan_capture/" />
+</paths>

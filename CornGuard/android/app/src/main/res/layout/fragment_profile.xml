@@ -12,32 +12,24 @@
         android:padding="@dimen/spacing_lg">
 
         <TextView
-            android:id="@+id/mapTitle"
+            android:id="@+id/profileTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/map_title"
+            android:text="@string/profile_title"
             android:textSize="@dimen/text_title"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/mapListViewNote"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_xs"
-            android:text="@string/map_list_view_note"
-            android:textSize="@dimen/text_body" />
-
         <!-- Shown when signed out -->
         <TextView
-            android:id="@+id/mapSignInPrompt"
+            android:id="@+id/profileNotSignedIn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_lg"
-            android:text="@string/map_sign_in_prompt"
+            android:text="@string/profile_not_signed_in"
             android:textSize="@dimen/text_body" />
 
         <Button
-            android:id="@+id/mapSignInButton"
+            android:id="@+id/profileSignInButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_md"
@@ -46,59 +38,76 @@
 
         <!-- Shown when signed in -->
         <LinearLayout
-            android:id="@+id/mapContent"
+            android:id="@+id/profileContent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:visibility="gone">
 
             <TextView
-                android:id="@+id/mapVerifiedTitle"
+                android:id="@+id/profileSignedInAs"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_lg"
-                android:text="@string/map_verified_title"
+                android:textSize="@dimen/text_body" />
+
+            <Button
+                android:id="@+id/profileSignOutButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/auth_sign_out_action" />
+
+            <TextView
+                android:id="@+id/profileFarmsTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_lg"
+                android:text="@string/profile_farms_title"
                 android:textSize="@dimen/text_body"
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/mapVerifiedEmpty"
+                android:id="@+id/profileFarmsEmpty"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_xs"
-                android:text="@string/map_verified_empty"
+                android:text="@string/profile_farms_empty"
                 android:textSize="@dimen/text_body"
                 android:visibility="gone" />
 
             <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/mapVerifiedRecyclerView"
+                android:id="@+id/profileFarmsRecyclerView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false" />
 
-            <TextView
-                android:id="@+id/mapNearbyTitle"
+            <EditText
+                android:id="@+id/profileFarmNameInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_lg"
-                android:text="@string/map_nearby_title"
-                android:textSize="@dimen/text_body"
-                android:textStyle="bold" />
+                android:layout_marginTop="@dimen/spacing_md"
+                android:autofillHints=""
+                android:hint="@string/profile_farm_name_hint"
+                android:inputType="text"
+                android:minHeight="@dimen/input_min_height" />
 
             <TextView
-                android:id="@+id/mapNearbyEmpty"
+                android:id="@+id/profileFarmAddressNote"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_xs"
-                android:text="@string/map_nearby_empty"
-                android:textSize="@dimen/text_body"
-                android:visibility="gone" />
+                android:text="@string/profile_farm_added_from_profile_address"
+                android:textSize="@dimen/text_body" />
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/mapNearbyRecyclerView"
+            <Button
+                android:id="@+id/profileAddFarmButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false" />
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/profile_add_farm_action" />
 
         </LinearLayout>
 

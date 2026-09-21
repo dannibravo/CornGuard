@@ -21,6 +21,12 @@
         frozen by Acenas.</string>
     <string name="scan_model_not_ready">The disease-detection model is not yet available on this
         build. Detection cannot run until it is integrated.</string>
+    <string name="scan_take_photo_action">Take Photo</string>
+    <string name="scan_choose_gallery_action">Choose from Gallery</string>
+    <string name="scan_permission_denied_camera">Camera permission is needed to take a photo.</string>
+    <string name="scan_permission_denied_gallery">Gallery permission is needed to choose a photo.</string>
+    <string name="scan_processing">Analyzing photo…</string>
+    <string name="scan_invalid_image">That photo couldn\'t be read. Please try another one.</string>
 
     <!-- Diagnosis result / treatment -->
     <string name="result_title">Diagnosis Result</string>
@@ -51,6 +57,15 @@
     <string name="map_title">Disease Map</string>
     <string name="map_placeholder_body">GIS disease map and heatmap will be built in Sprint 4,
         after the map/GIS provider decision (D-10).</string>
+    <string name="map_sign_in_prompt">Sign in to see nearby disease reports for your area.</string>
+    <string name="map_no_area_profile">Add your barangay to your profile to see nearby reports.</string>
+    <string name="map_verified_title">Verified Outbreaks Near You</string>
+    <string name="map_verified_empty">No verified outbreaks recorded yet. This list only shows
+        AI-detected scans an admin has confirmed — not every community report.</string>
+    <string name="map_nearby_title">Nearby Community Reports</string>
+    <string name="map_nearby_empty">No community reports in your area yet.</string>
+    <string name="map_list_view_note">Shown as a list, not a map — CornGuard doesn\'t have a map
+        provider wired in yet.</string>
 
     <!-- Community -->
     <string name="community_title">Community</string>
@@ -111,4 +126,7 @@
     <string name="profile_farms_title">My Farms</string>
     <string name="profile_add_farm_action">Add Farm</string>
     <string name="profile_farm_name_hint">Farm name</string>
+    <string name="profile_farms_empty">No farms added yet.</string>
+    <string name="profile_farm_added_from_profile_address">Uses your profile\'s barangay,
+        municipality, and province.</string>
 </resources>
