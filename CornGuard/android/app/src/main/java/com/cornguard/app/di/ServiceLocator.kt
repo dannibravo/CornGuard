@@ -1,6 +1,7 @@
 package com.cornguard.app.di
 
 import android.content.Context
+import android.provider.Settings
 import com.cornguard.app.data.local.db.AppDatabase
 import com.cornguard.app.data.local.db.DiseaseReferenceSeedData
 import com.cornguard.app.data.repository.AdminRepository
@@ -19,6 +20,7 @@ import com.cornguard.app.data.repository.firebase.FirebaseGisRepository
 import com.cornguard.app.data.repository.firebase.FirebaseUserFarmRepository
 import com.cornguard.app.data.repository.local.LocalDiagnosisHistoryRepository
 import com.cornguard.app.data.repository.local.LocalDiseaseReferenceRepository
+import com.cornguard.app.location.LocationHelper
 import com.cornguard.app.model.CornLeafClassifier
 import com.cornguard.app.model.PlaceholderCornLeafClassifier
 import com.cornguard.app.permissions.PermissionManager
@@ -65,6 +67,8 @@ object ServiceLocator {
 
     val connectivityObserver: ConnectivityObserver by lazy { ConnectivityObserver(appContext) }
 
+    val locationHelper: LocationHelper by lazy { LocationHelper(appContext) }
+
     // Online-only (Sprint 1, feature/auth-service). Never called from the offline scan path —
     // claude/01_MASTER_DEVELOPMENT_CONTEXT.md's Project Principle. Callers must check
     // connectivityObserver first; these throw on no connectivity rather than silently no-op.
@@ -106,6 +110,15 @@ object ServiceLocator {
     // Process-lifetime scope for startup-only work (seeding). Not exposed for general use —
     // screens use viewLifecycleOwner.lifecycleScope, not this.
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /**
+     * Stable per-install identifier used as the `{deviceId}` half of GisRepository's
+     * `{userId}-{deviceId}` device token document id (fcm-plan.md). ANDROID_ID is stable for the
+     * life of the app install on API 26+ and needs no permission or persisted state of our own.
+     */
+    val deviceId: String by lazy {
+        Settings.Secure.getString(appContext.contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown-device"
+    }
 
     fun init(context: Context) {
         appContext = context.applicationContext

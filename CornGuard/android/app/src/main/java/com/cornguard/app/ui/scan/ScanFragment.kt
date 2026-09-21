@@ -32,8 +32,10 @@ import java.io.File
  * until Sprint 2's real TFLite model lands — [ModelNotReadyException] must be surfaced honestly,
  * never papered over with a fabricated result (claude/15_CLAUDE.md Model Rule).
  *
- * Does not attempt to attach GPS/barangay location to the saved record — that needs a location
- * subsystem this screen doesn't have yet, and the offline scan path must keep working without one.
+ * Attaches an approximate location to the saved record via [ServiceLocator.locationHelper] when
+ * [AppPermission.LOCATION] is already granted — best-effort, never requested synchronously in the
+ * save path, so a denial or missing fix never blocks or delays the scan itself
+ * (claude/04_DEVELOPMENT_RULES.md #9).
  */
 class ScanFragment : Fragment() {
 
@@ -51,6 +53,10 @@ class ScanFragment : Fragment() {
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) launchGallery() else showError(getString(R.string.scan_permission_denied_gallery))
         }
+
+    // Fired once, best-effort, after a successful detection — never awaited, never blocks saving.
+    private val locationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { /* no-op: next scan will pick it up if granted */ }
 
     private val takePictureLauncher =
         registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
@@ -153,6 +159,8 @@ class ScanFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             val imagePath = withContext(Dispatchers.IO) { persistImage(bitmap) }
             val capturedAt = System.currentTimeMillis()
+            val location = captureLocationBestEffort()
+
             val record = DiagnosisRecordEntity(
                 userId = null,
                 farmId = null,
@@ -161,8 +169,8 @@ class ScanFragment : Fragment() {
                 confidence = result.confidence,
                 imageUriOrLocalPath = imagePath,
                 capturedAt = capturedAt,
-                latitude = null,
-                longitude = null,
+                latitude = location?.latitude,
+                longitude = location?.longitude,
                 barangay = null,
                 municipality = null,
                 province = null,
@@ -179,10 +187,23 @@ class ScanFragment : Fragment() {
                     "capturedAt" to capturedAt,
                     "modelVersion" to result.modelVersion,
                     "sharedToCloud" to false,
-                    "hasLocation" to false
+                    "hasLocation" to (location != null)
                 )
             )
         }
+    }
+
+    /**
+     * Never requests permission synchronously — if it's not already granted, this kicks off a
+     * request for *next* time and returns null now, so a scan is never held up waiting on a
+     * permission dialog or a location fix.
+     */
+    private suspend fun captureLocationBestEffort(): android.location.Location? {
+        if (!ServiceLocator.permissionManager.isGranted(AppPermission.LOCATION)) {
+            locationPermissionLauncher.launch(AppPermission.LOCATION.manifestPermissions.toTypedArray())
+            return null
+        }
+        return runCatching { ServiceLocator.locationHelper.getLastKnownLocation() }.getOrNull()
     }
 
     private fun persistImage(bitmap: Bitmap): String {

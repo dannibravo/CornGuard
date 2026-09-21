@@ -30,6 +30,7 @@ class MapFragment : Fragment() {
     private val binding get() = _binding!!
     private val verifiedAdapter = MapOccurrenceAdapter()
     private val nearbyAdapter = NearbyReportAdapter()
+    private var currentUid: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -50,6 +51,10 @@ class MapFragment : Fragment() {
         binding.mapSignInButton.setOnClickListener {
             findNavController().navigate(R.id.authFragment)
         }
+        binding.mapSwipeRefresh.setOnRefreshListener {
+            val uid = currentUid
+            if (uid != null) loadGisData(uid) else binding.mapSwipeRefresh.isRefreshing = false
+        }
 
         observeAuthState()
     }
@@ -62,16 +67,19 @@ class MapFragment : Fragment() {
                     binding.mapSignInPrompt.visibility = if (signedIn) View.GONE else View.VISIBLE
                     binding.mapSignInButton.visibility = if (signedIn) View.GONE else View.VISIBLE
                     binding.mapContent.visibility = if (signedIn) View.VISIBLE else View.GONE
-                    if (signedIn) loadGisData(user!!.uid)
+                    currentUid = user?.uid
+                    if (signedIn) loadGisData(user!!.uid) else binding.mapSwipeRefresh.isRefreshing = false
                 }
             }
         }
     }
 
     private fun loadGisData(uid: String) {
+        binding.mapSwipeRefresh.isRefreshing = true
         viewLifecycleOwner.lifecycleScope.launch {
             val profile = runCatching { ServiceLocator.userFarmRepository.getUserProfile(uid) }.getOrNull()
             if (profile == null || profile.barangay.isBlank()) {
+                binding.mapSwipeRefresh.isRefreshing = false
                 binding.mapVerifiedEmpty.text = getString(R.string.map_no_area_profile)
                 binding.mapVerifiedEmpty.visibility = View.VISIBLE
                 binding.mapNearbyEmpty.text = getString(R.string.map_no_area_profile)
@@ -94,6 +102,8 @@ class MapFragment : Fragment() {
             nearbyAdapter.submitList(nearbyReports)
             binding.mapNearbyEmpty.text = getString(R.string.map_nearby_empty)
             binding.mapNearbyEmpty.visibility = if (nearbyReports.isEmpty()) View.VISIBLE else View.GONE
+
+            binding.mapSwipeRefresh.isRefreshing = false
         }
     }
 

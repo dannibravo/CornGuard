@@ -21,8 +21,7 @@ import kotlinx.coroutines.launch
  * Location-aware community feed. Online-only (claude/01_MASTER_DEVELOPMENT_CONTEXT.md Project
  * Principle) — signed-out users see a sign-in prompt here rather than the app gating at launch.
  * Feed loading is a one-shot suspend call ([com.cornguard.app.data.repository.CommunityRepository.getPostsFeed]),
- * not a live listener, per that interface's contract; pull-to-refresh is a later polish item, not
- * required for this to be real, working code.
+ * not a live listener, per that interface's contract — pull-to-refresh is how a farmer re-runs it.
  */
 class CommunityFragment : Fragment() {
 
@@ -50,6 +49,7 @@ class CommunityFragment : Fragment() {
         binding.communityCreatePostButton.setOnClickListener {
             findNavController().navigate(R.id.action_community_to_createPost)
         }
+        binding.communitySwipeRefresh.setOnRefreshListener { loadFeed() }
 
         observeAuthState()
     }
@@ -63,9 +63,10 @@ class CommunityFragment : Fragment() {
                     binding.communitySignInButton.visibility = if (signedIn) View.GONE else View.VISIBLE
                     binding.communityCreatePostButton.visibility = if (signedIn) View.VISIBLE else View.GONE
                     if (signedIn) {
+                        binding.communitySwipeRefresh.visibility = View.VISIBLE
                         loadFeed()
                     } else {
-                        binding.communityRecyclerView.visibility = View.GONE
+                        binding.communitySwipeRefresh.visibility = View.GONE
                         binding.communityEmptyState.visibility = View.GONE
                     }
                 }
@@ -74,20 +75,20 @@ class CommunityFragment : Fragment() {
     }
 
     private fun loadFeed() {
+        binding.communitySwipeRefresh.isRefreshing = true
         viewLifecycleOwner.lifecycleScope.launch {
             val result = runCatching {
                 ServiceLocator.communityRepository.getPostsFeed(areaFilter = null, diseaseTag = null)
             }
+            binding.communitySwipeRefresh.isRefreshing = false
             val posts = result.getOrNull()
             if (posts == null) {
-                binding.communityRecyclerView.visibility = View.GONE
                 binding.communityEmptyState.visibility = View.VISIBLE
                 binding.communityEmptyState.text = getString(R.string.community_load_failed)
                 return@launch
             }
             adapter.submitList(posts)
             binding.communityEmptyState.text = getString(R.string.community_empty)
-            binding.communityRecyclerView.visibility = if (posts.isEmpty()) View.GONE else View.VISIBLE
             binding.communityEmptyState.visibility = if (posts.isEmpty()) View.VISIBLE else View.GONE
         }
     }

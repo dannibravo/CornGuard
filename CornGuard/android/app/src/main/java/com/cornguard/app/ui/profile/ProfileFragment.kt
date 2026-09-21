@@ -45,9 +45,7 @@ class ProfileFragment : Fragment() {
         binding.profileSignInButton.setOnClickListener {
             findNavController().navigate(R.id.authFragment)
         }
-        binding.profileSignOutButton.setOnClickListener {
-            viewLifecycleOwner.lifecycleScope.launch { ServiceLocator.authRepository.signOut() }
-        }
+        binding.profileSignOutButton.setOnClickListener { signOut() }
         binding.profileAddFarmButton.setOnClickListener { addFarm() }
 
         observeAuthState()
@@ -68,6 +66,17 @@ class ProfileFragment : Fragment() {
                     }
                 }
             }
+        }
+    }
+
+    private fun signOut() {
+        val uid = ServiceLocator.authRepository.getCurrentUser()?.uid
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (uid != null) {
+                // Best-effort — a failure here must never block sign-out itself.
+                runCatching { ServiceLocator.gisRepository.deactivateDeviceToken(uid, ServiceLocator.deviceId) }
+            }
+            ServiceLocator.authRepository.signOut()
         }
     }
 

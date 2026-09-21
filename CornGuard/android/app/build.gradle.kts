@@ -93,6 +93,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.swiperefreshlayout)
     implementation(libs.androidx.fragment.ktx)
 
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
