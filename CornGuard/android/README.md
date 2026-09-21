@@ -85,6 +85,31 @@ Adds, on top of the Sprint 0 foundation above:
   exercisable against the live project** — Cloud Storage needs the Blaze plan (same as the
   Firestore/Storage rules deferral already noted in `firebase/README.md`).
 
+### Sprint 3 (continued on this branch) — community posts, comments, upvotes
+
+Built against Firestore per the pragmatic solo-context continuation note added under D-01
+(`claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`, 2026-09-21) — **not** the formal three-person
+team decision D-01 still requires. Ligue and Acenas were unavailable; see that note for the full
+reasoning and what happens if the team later picks Realtime Database instead.
+
+- `data.repository.CommunityRepository` + `data.repository.firebase.FirebaseCommunityRepository` —
+  mirrors `firebase/repositories/community-repository-interface.md`. Posts, single-level comments,
+  and upvotes (via a `votes/{userId}` subcollection document, not a client-writable counter).
+- `getPostsFeed`'s filter combinations (`moderation_status="visible"` + optional single area level
+  + optional disease tag, ordered by `created_at` desc) match the composite indexes in
+  `firebase/firestore.indexes.json` exactly — adding a new filter combination needs a matching
+  index added there first, or the query throws at runtime.
+- `toggleUpvote` only ever writes the `votes/{userId}` document — it deliberately does not touch
+  `upvote_count` itself. That field is recomputed server-side by `onVoteWrite`
+  (`firebase/functions/index.mjs`), a real Cloud Function trigger, not a TODO.
+- `prefillPostFromScan` builds a local-only `DraftPost` from an existing `DiagnosisRecordEntity` —
+  purely local, never touches the network, and never calls `createPost` itself; the farmer must
+  still review and submit.
+- Post images upload to `postImages/{postId}/{fileName}`, matching `security/storage.rules`
+  exactly — same Blaze-plan deferral as the diagnosis-sharing repository above.
+- Compiles and passes the existing test suite (`./gradlew :app:compileDebugKotlin`,
+  `:app:testDebugUnitTest`).
+
 ## What this drop deliberately does NOT do
 
 Per `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`, none of the following are resolved here:
