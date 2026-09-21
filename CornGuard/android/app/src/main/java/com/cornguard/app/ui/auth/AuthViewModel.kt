@@ -3,10 +3,12 @@ package com.cornguard.app.ui.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cornguard.app.di.ServiceLocator
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 enum class AuthMode { SIGN_IN, REGISTER }
 
@@ -39,7 +41,8 @@ class AuthViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch {
             try {
-                ServiceLocator.authRepository.signInWithEmail(email, password)
+                val result = ServiceLocator.authRepository.signInWithEmail(email, password)
+                registerFcmTokenBestEffort(result.user.uid)
                 _uiState.value = _uiState.value.copy(isLoading = false, completed = true)
             } catch (t: Throwable) {
                 _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = t.message ?: GENERIC_ERROR)
@@ -75,10 +78,23 @@ class AuthViewModel : ViewModel() {
                     municipality = municipality,
                     province = province
                 )
+                registerFcmTokenBestEffort(result.user.uid)
                 _uiState.value = _uiState.value.copy(isLoading = false, completed = true)
             } catch (t: Throwable) {
                 _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = t.message ?: GENERIC_ERROR)
             }
+        }
+    }
+
+    /**
+     * Best-effort — a failure here must never fail the sign-in/registration itself. Covers the
+     * "already has a stable token, just signed in" case; [com.cornguard.app.notifications.CornGuardMessagingService.onNewToken]
+     * covers the "token rotated while already signed in" case.
+     */
+    private suspend fun registerFcmTokenBestEffort(uid: String) {
+        runCatching {
+            val token = FirebaseMessaging.getInstance().token.await()
+            ServiceLocator.gisRepository.registerDeviceToken(uid, ServiceLocator.deviceId, token)
         }
     }
 

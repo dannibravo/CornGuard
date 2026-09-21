@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">CornGuard</string>
+    <string name="notification_channel_alerts_name">Community &amp; Outbreak Alerts</string>
+    <string name="notification_channel_alerts_description">Replies, upvotes, and area disease alerts.</string>
 
     <!-- Bottom navigation destinations (claude/02_PROJECT_CONTEXT.md confirmed screens) -->
     <string name="nav_home">Home</string>
@@ -38,6 +40,10 @@
     <string name="result_save_status_shared">Saved and shared to community</string>
     <string name="result_save_status_local">Saved on this device only</string>
     <string name="result_model_version_format">Model version: %1$s</string>
+    <string name="result_share_action">Share to Community</string>
+    <string name="result_shared_action_done">Shared to Community</string>
+    <string name="result_share_requires_sign_in">Sign in to share this result with the community.</string>
+    <string name="result_share_failed">Couldn\'t share this result. Check your connection and try again.</string>
     <string name="treatment_title">Treatment Recommendation</string>
     <string name="treatment_symptoms_label">What to look for</string>
     <string name="treatment_steps_label">Management steps</string>
@@ -113,6 +119,8 @@
     <string name="post_disease_label">Disease</string>
     <string name="post_reply_hint">Write a reply</string>
     <string name="post_reply_action">Reply</string>
+    <string name="post_add_photo_action">Add Photo</string>
+    <string name="post_change_photo_action">Change Photo</string>
     <string name="post_upvote_action">Helpful</string>
     <string name="post_upvote_action_active">Marked Helpful</string>
     <string name="post_upvote_count_format">%1$d found this helpful</string>

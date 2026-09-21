@@ -1,10 +1,12 @@
 package com.cornguard.app.ui.community
 
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -20,6 +22,10 @@ import kotlinx.coroutines.launch
  * [com.cornguard.app.data.repository.CommunityRepository.createPost]. Only reachable while
  * signed in (from [CommunityFragment]'s create button, itself only shown when signed in), so
  * [ServiceLocator.authRepository.getCurrentUser] is expected non-null here.
+ *
+ * A photo is optional — [FirebaseCommunityRepository][com.cornguard.app.data.repository.firebase.FirebaseCommunityRepository.createPost]
+ * already knows how to upload [DraftPost.imageUri] to Cloud Storage if present; this screen just
+ * has to let the farmer pick one.
  */
 class CreatePostFragment : Fragment() {
 
@@ -27,6 +33,17 @@ class CreatePostFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val diseaseOptions = listOf("") + DiseaseCode.ALL
+    private var selectedImageUri: Uri? = null
+
+    private val pickImageLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            if (uri != null) {
+                selectedImageUri = uri
+                binding.postPreviewImage.setImageURI(uri)
+                binding.postPreviewImage.visibility = View.VISIBLE
+                binding.postAddPhotoButton.setText(R.string.post_change_photo_action)
+            }
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -46,6 +63,7 @@ class CreatePostFragment : Fragment() {
             diseaseOptions.map { code -> if (code.isEmpty()) getString(R.string.post_disease_none) else code }
         )
 
+        binding.postAddPhotoButton.setOnClickListener { pickImageLauncher.launch("image/*") }
         binding.postSubmitButton.setOnClickListener { submit() }
     }
 
@@ -78,7 +96,7 @@ class CreatePostFragment : Fragment() {
                 title = title,
                 body = body,
                 diseaseTag = diseaseTag,
-                imageUri = null,
+                imageUri = selectedImageUri?.toString(),
                 linkedDiagnosisRecordId = null,
                 barangay = profile.barangay,
                 municipality = profile.municipality,

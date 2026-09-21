@@ -116,5 +116,38 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/resultModelVersion" />
 
+        <Button
+            android:id="@+id/shareToCommunityButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:minHeight="@dimen/touch_target_min"
+            android:text="@string/result_share_action"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/viewTreatmentButton" />
+
+        <ProgressBar
+            android:id="@+id/shareProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/shareToCommunityButton" />
+
+        <TextView
+            android:id="@+id/shareError"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:textColor="@color/alert_red_600"
+            android:textSize="@dimen/text_body"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/shareProgress"
+            tools:text="Something went wrong." />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>

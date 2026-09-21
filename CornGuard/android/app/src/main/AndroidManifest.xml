@@ -50,6 +50,15 @@
             </intent-filter>
         </activity>
 
+        <!-- Receiving side of firebase/functions/index.mjs's onNotificationCreate (fcm-plan.md). -->
+        <service
+            android:name=".notifications.CornGuardMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <!-- Gives the system camera app a content:// Uri to write the capture to (required on
              API 24+ instead of a raw file:// Uri). Scan Corn Leaf only. -->
         <provider

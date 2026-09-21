@@ -71,6 +71,31 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/postDiseaseLabel" />
 
+        <ImageView
+            android:id="@+id/postPreviewImage"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:background="@color/offline_banner_bg"
+            android:contentDescription="@null"
+            android:scaleType="centerCrop"
+            android:visibility="gone"
+            app:layout_constraintDimensionRatio="16:9"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/postDiseaseSpinner" />
+
+        <Button
+            android:id="@+id/postAddPhotoButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:minHeight="@dimen/touch_target_min"
+            android:text="@string/post_add_photo_action"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/postPreviewImage" />
+
         <TextView
             android:id="@+id/createPostError"
             android:layout_width="0dp"
@@ -81,7 +106,7 @@
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/postDiseaseSpinner"
+            app:layout_constraintTop_toBottomOf="@id/postAddPhotoButton"
             tools:text="Something went wrong." />
 
         <ProgressBar
