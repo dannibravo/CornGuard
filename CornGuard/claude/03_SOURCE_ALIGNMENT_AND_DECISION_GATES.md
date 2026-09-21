@@ -32,6 +32,18 @@ chooses Realtime Database, the `cornguard-dev` Firestore instance is disposable 
 security-matrix work in `firebase/` does not need to change, since it was written implementation-
 agnostic per the Allowed work rule.
 
+### Sprint 3 continuation note (2026-09-21)
+Ligue and Acenas are unavailable to participate in the formal D-01 decision this file requires
+before Sprint 3 work begins. Rather than block all Sprint 3 Panes work indefinitely, development
+continued against Firestore — it is already the live, tested `cornguard-dev` database, and it is
+what the manuscript's own architecture diagram (Figure 6) already depicts. **This is explicitly
+not the required three-person team decision** — it is a pragmatic, transparently-recorded
+continuation by Panes alone, made because the alternative was stalling all community-module work
+indefinitely. The Required decision above is still open. If Ligue or Acenas object once available,
+or the team later picks Realtime Database, the Sprint 3 Firestore-specific code (community
+repository, indexes) needs rework — the schema and security matrix themselves do not, for the same
+reason given in the note above.
+
 ---
 
 ## D-02 — Agricultural Technician Role
