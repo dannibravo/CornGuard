@@ -200,6 +200,25 @@ GIS mapping and heatmaps are required, but the manuscript does not clearly speci
 ### Development rule
 Do not commit provider-specific architecture until the team selects one based on Android compatibility, cost, offline/low-connectivity behavior, heatmap support, key restrictions, and academic/project constraints.
 
+### Sprint 4 continuation note (2026-09-21)
+Same circumstance as the D-01 continuation note above: Ligue and Acenas are unavailable, and the
+Map screen's rendering is blocked without a provider pick. **This is a pragmatic solo lean, not
+the required team decision**, and unlike D-01 it does not even bind any code yet — only the GIS
+*data* layer (nearby-report queries, heatmap aggregation) is built this sprint, and that layer is
+already provider-agnostic per `firebase/gis/gis-service-interface.md` (no map-SDK types). The
+actual rendering/map-SDK dependency stays undone.
+
+If a pick becomes necessary later (e.g. for Ligue's Map screen before the team formally decides):
+**osmdroid (OpenStreetMap)** is the pragmatic lean over Google Maps Platform or Mapbox, specifically
+because it needs no billing account / API key at all — Google Maps Platform requires a GCP billing
+account the same way Blaze does for Storage/Functions (already a repeated blocker this sprint), and
+Mapbox's free tier still requires an account + token. osmdroid also supports offline tile caching,
+which fits the project's own "offline/low-connectivity behavior" criterion better for
+Bukidnon field conditions. Its tradeoff: no official heatmap overlay library as polished as Google's
+`android-maps-utils`, so a heatmap layer would need a community library or custom overlay — a cost
+worth paying to avoid another billing-account wall. This is Ligue's call to make or override when
+he reaches the Map screen (Sprint 4/5, `feature/map-ui`), not something this note locks in.
+
 ---
 
 ## D-11 — Public Diagnosis Record vs Local-Only Scan
