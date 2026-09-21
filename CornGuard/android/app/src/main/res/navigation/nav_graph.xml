@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <!--
+        Top-level destinations mirror the bottom nav (bottom_nav_menu.xml) and the confirmed
+        screens in claude/02_PROJECT_CONTEXT.md. Diagnosis Result and Treatment Recommendation are
+        reached only from Scan, matching the Disease Scan Workflow in
+        claude/01_MASTER_DEVELOPMENT_CONTEXT.md — they are not separate bottom-nav destinations.
+    -->
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.cornguard.app.ui.home.HomeFragment"
+        android:label="@string/home_title"
+        tools:layout="@layout/fragment_home">
+        <action
+            android:id="@+id/action_home_to_scan"
+            app:destination="@id/scanFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/scanFragment"
+        android:name="com.cornguard.app.ui.scan.ScanFragment"
+        android:label="@string/scan_title"
+        tools:layout="@layout/fragment_scan">
+        <action
+            android:id="@+id/action_scan_to_result"
+            app:destination="@id/diagnosisResultFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/diagnosisResultFragment"
+        android:name="com.cornguard.app.ui.result.DiagnosisResultFragment"
+        android:label="@string/result_title"
+        tools:layout="@layout/fragment_diagnosis_result">
+        <argument android:name="localId" app:argType="long" />
+        <argument android:name="diseaseCode" app:argType="string" />
+        <argument android:name="displayLabel" app:argType="string" />
+        <argument android:name="confidence" app:argType="float" />
+        <argument android:name="capturedAt" app:argType="long" />
+        <argument android:name="modelVersion" app:argType="string" />
+        <argument
+            android:name="sharedToCloud"
+            app:argType="boolean"
+            android:defaultValue="false" />
+        <argument
+            android:name="hasLocation"
+            app:argType="boolean"
+            android:defaultValue="false" />
+        <action
+            android:id="@+id/action_result_to_treatment"
+            app:destination="@id/treatmentFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/treatmentFragment"
+        android:name="com.cornguard.app.ui.treatment.TreatmentFragment"
+        android:label="@string/treatment_title"
+        tools:layout="@layout/fragment_treatment">
+        <argument android:name="diseaseCode" app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/historyFragment"
+        android:name="com.cornguard.app.ui.history.HistoryFragment"
+        android:label="@string/history_title"
+        tools:layout="@layout/fragment_history">
+        <action
+            android:id="@+id/action_history_to_result"
+            app:destination="@id/diagnosisResultFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/mapFragment"
+        android:name="com.cornguard.app.ui.map.MapFragment"
+        android:label="@string/map_title"
+        tools:layout="@layout/fragment_map" />
+
+    <fragment
+        android:id="@+id/communityFragment"
+        android:name="com.cornguard.app.ui.community.CommunityFragment"
+        android:label="@string/community_title"
+        tools:layout="@layout/fragment_community">
+        <action
+            android:id="@+id/action_community_to_createPost"
+            app:destination="@id/createPostFragment" />
+        <action
+            android:id="@+id/action_community_to_postDetail"
+            app:destination="@id/postDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/createPostFragment"
+        android:name="com.cornguard.app.ui.community.CreatePostFragment"
+        android:label="@string/create_post_title"
+        tools:layout="@layout/fragment_create_post" />
+
+    <fragment
+        android:id="@+id/postDetailFragment"
+        android:name="com.cornguard.app.ui.community.PostDetailFragment"
+        android:label="@string/post_detail_title"
+        tools:layout="@layout/fragment_post_detail">
+        <argument android:name="postId" app:argType="string" />
+    </fragment>
+
+    <!--
+        Reached from any online-only screen's "sign in required" prompt (Community today; Map/
+        Profile once built) via navigate(R.id.authFragment) — not a fixed edge from one screen,
+        and never the app's start destination (claude/01_MASTER_DEVELOPMENT_CONTEXT.md Project
+        Principle: the offline core must never depend on being signed in).
+    -->
+    <fragment
+        android:id="@+id/authFragment"
+        android:name="com.cornguard.app.ui.auth.AuthFragment"
+        android:label="@string/auth_title_signin"
+        tools:layout="@layout/fragment_auth" />
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.cornguard.app.ui.profile.ProfileFragment"
+        android:label="@string/profile_title"
+        tools:layout="@layout/fragment_profile" />
+
+</navigation>

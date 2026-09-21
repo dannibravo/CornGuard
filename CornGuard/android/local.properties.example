@@ -1,0 +1,11 @@
+# Copy this file to `local.properties` (already git-ignored) and fill in your machine-specific
+# values. Do not commit `local.properties` — see claude/10_ENV_GUIDE.md.
+#
+# Forward slashes work fine in local.properties on Windows too, and avoid backslash-escaping
+# mistakes in this Java-properties-format file.
+
+sdk.dir=C:/Users/YOUR_USERNAME/AppData/Local/Android/Sdk
+
+# Reserved for a future GIS/map provider key once D-10 is resolved (claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md).
+# Do not commit an unrestricted key. See claude/10_ENV_GUIDE.md.
+# MAPS_API_KEY=

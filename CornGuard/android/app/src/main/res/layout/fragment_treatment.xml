@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/spacing_lg">
+
+        <TextView
+            android:id="@+id/treatmentDisclaimer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:background="@color/offline_banner_bg"
+            android:padding="@dimen/spacing_sm"
+            android:text="@string/treatment_disclaimer"
+            android:textColor="@color/offline_banner_text"
+            android:textSize="@dimen/text_body"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/treatmentTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:textSize="@dimen/text_title"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/treatmentDisclaimer"
+            tools:text="Common Rust" />
+
+        <TextView
+            android:id="@+id/treatmentOfflineIndicator"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:text="@string/treatment_offline_indicator"
+            android:textColor="@color/corn_green_700"
+            android:textSize="@dimen/text_body"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/treatmentTitle" />
+
+        <TextView
+            android:id="@+id/treatmentSymptomsLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="@string/treatment_symptoms_label"
+            android:textSize="@dimen/text_body"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/treatmentOfflineIndicator" />
+
+        <TextView
+            android:id="@+id/treatmentSymptomsBody"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:textSize="@dimen/text_body"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/treatmentSymptomsLabel"
+            tools:text="Small, reddish-brown pustules scattered across both leaf surfaces." />
+
+        <TextView
+            android:id="@+id/treatmentStepsLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="@string/treatment_steps_label"
+            android:textSize="@dimen/text_body"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/treatmentSymptomsBody" />
+
+        <TextView
+            android:id="@+id/treatmentStepsBody"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:textSize="@dimen/text_body"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/treatmentStepsLabel"
+            tools:text="[PLACEHOLDER] Consult a local agricultural technician before applying any treatment." />
+
+        <TextView
+            android:id="@+id/treatmentPreventionLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="@string/treatment_prevention_label"
+            android:textSize="@dimen/text_body"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/treatmentStepsBody" />
+
+        <TextView
+            android:id="@+id/treatmentPreventionBody"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:textSize="@dimen/text_body"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/treatmentPreventionLabel"
+            tools:text="[PLACEHOLDER] Consult a local agricultural technician for region-appropriate prevention practices." />
+
+        <TextView
+            android:id="@+id/treatmentSourceBody"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:textSize="@dimen/text_body"
+            android:textStyle="italic"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/treatmentPreventionBody"
+            tools:text="Source: PLACEHOLDER — pending approved agricultural source" />
+
+        <TextView
+            android:id="@+id/treatmentEmptyState"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="@string/treatment_not_found"
+            android:textSize="@dimen/text_body"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/treatmentOfflineIndicator" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>
