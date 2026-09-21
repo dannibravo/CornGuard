@@ -3,11 +3,13 @@ package com.cornguard.app.di
 import android.content.Context
 import com.cornguard.app.data.local.db.AppDatabase
 import com.cornguard.app.data.repository.AuthRepository
+import com.cornguard.app.data.repository.CommunityRepository
 import com.cornguard.app.data.repository.DiagnosisHistoryRepository
 import com.cornguard.app.data.repository.DiagnosisSharingRepository
 import com.cornguard.app.data.repository.DiseaseReferenceRepository
 import com.cornguard.app.data.repository.UserFarmRepository
 import com.cornguard.app.data.repository.firebase.FirebaseAuthRepository
+import com.cornguard.app.data.repository.firebase.FirebaseCommunityRepository
 import com.cornguard.app.data.repository.firebase.FirebaseDiagnosisSharingRepository
 import com.cornguard.app.data.repository.firebase.FirebaseUserFarmRepository
 import com.cornguard.app.data.repository.local.LocalDiagnosisHistoryRepository
@@ -66,6 +68,13 @@ object ServiceLocator {
     // ready for when that's revisited.
     val diagnosisSharingRepository: DiagnosisSharingRepository by lazy {
         FirebaseDiagnosisSharingRepository(FirebaseFirestore.getInstance(), FirebaseStorage.getInstance())
+    }
+
+    // Sprint 3 (feature/auth-service, continued), built against Firestore per the pragmatic
+    // solo-context continuation note under D-01 (claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md)
+    // — not the formal team decision. Image upload has the same Blaze-plan caveat as above.
+    val communityRepository: CommunityRepository by lazy {
+        FirebaseCommunityRepository(FirebaseFirestore.getInstance(), FirebaseStorage.getInstance())
     }
 
     fun init(context: Context) {
