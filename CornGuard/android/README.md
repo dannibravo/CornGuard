@@ -110,6 +110,31 @@ reasoning and what happens if the team later picks Realtime Database instead.
 - Compiles and passes the existing test suite (`./gradlew :app:compileDebugKotlin`,
   `:app:testDebugUnitTest`).
 
+### Sprint 4 (continued on this branch) — GIS data layer, FCM device tokens/topics
+
+Pragmatic D-10 lean documented in `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`
+(2026-09-21) — not the formal team decision. Unlike D-01, this doesn't even bind any map-SDK
+code: `data.repository.GisRepository` has zero map-SDK dependency, only Firestore/FCM.
+
+- `data.repository.GisRepository` + `data.repository.firebase.FirebaseGisRepository` — mirrors
+  `firebase/gis/gis-service-interface.md`. `getNearbyReports` (from `communityPosts`, any
+  verification status — informational display per D-08) vs. `getHeatmapAggregates` /
+  `getVerifiedOccurrences` (from `diagnosisRecordsCloud`, **hardcoded** to
+  `verification_status="verified"`, not a caller-settable filter).
+- The verified-only filter is deliberate, not a placeholder to loosen later without a decision:
+  per D-08, unverified reports must not read as confirmed outbreaks, and per D-07 no production
+  outbreak signal may go out without expert-approved validation. Since nothing has an authorized
+  path to set `verification_status="verified"` yet (D-02 unresolved), **both methods correctly
+  return empty for now** — same "stays inert until approved" pattern as `outbreakRules`.
+- `registerDeviceToken`/`deactivateDeviceToken` write `deviceTokens/{userId}-{deviceId}` (a
+  deterministic id, so a token refresh updates in place rather than duplicating — matches
+  `firebase/notifications/fcm-plan.md`'s device token lifecycle).
+- `subscribeToAreaTopic`/`unsubscribeFromAreaTopic` wrap `FirebaseMessaging`'s topic APIs directly
+  — topic naming (`barangay_<slug>`, etc.) matches what `firebase/functions/index.mjs`'s
+  `onNotificationCreate` now actually sends to (see that branch's latest commit — area-scoped
+  notifications used to silently do nothing; fixed there, this is the client-side half).
+- Added `firebase-messaging-ktx`. Compiles cleanly, existing test suite still passes.
+
 ## What this drop deliberately does NOT do
 
 Per `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`, none of the following are resolved here:

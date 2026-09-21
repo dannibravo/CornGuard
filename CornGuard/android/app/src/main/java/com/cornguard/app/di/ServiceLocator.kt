@@ -7,10 +7,12 @@ import com.cornguard.app.data.repository.CommunityRepository
 import com.cornguard.app.data.repository.DiagnosisHistoryRepository
 import com.cornguard.app.data.repository.DiagnosisSharingRepository
 import com.cornguard.app.data.repository.DiseaseReferenceRepository
+import com.cornguard.app.data.repository.GisRepository
 import com.cornguard.app.data.repository.UserFarmRepository
 import com.cornguard.app.data.repository.firebase.FirebaseAuthRepository
 import com.cornguard.app.data.repository.firebase.FirebaseCommunityRepository
 import com.cornguard.app.data.repository.firebase.FirebaseDiagnosisSharingRepository
+import com.cornguard.app.data.repository.firebase.FirebaseGisRepository
 import com.cornguard.app.data.repository.firebase.FirebaseUserFarmRepository
 import com.cornguard.app.data.repository.local.LocalDiagnosisHistoryRepository
 import com.cornguard.app.data.repository.local.LocalDiseaseReferenceRepository
@@ -20,6 +22,7 @@ import com.cornguard.app.permissions.PermissionManager
 import com.cornguard.app.util.ConnectivityObserver
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
 
 /**
@@ -75,6 +78,14 @@ object ServiceLocator {
     // — not the formal team decision. Image upload has the same Blaze-plan caveat as above.
     val communityRepository: CommunityRepository by lazy {
         FirebaseCommunityRepository(FirebaseFirestore.getInstance(), FirebaseStorage.getInstance())
+    }
+
+    // Sprint 4 (feature/auth-service, continued). Pragmatic D-10 lean documented in
+    // claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md — this is the data layer only, no map-SDK
+    // dependency. getHeatmapAggregates/getVerifiedOccurrences correctly return empty until
+    // verification exists (D-02/D-08) — see GisRepository's doc comments.
+    val gisRepository: GisRepository by lazy {
+        FirebaseGisRepository(FirebaseFirestore.getInstance(), FirebaseMessaging.getInstance())
     }
 
     fun init(context: Context) {
