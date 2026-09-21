@@ -24,7 +24,24 @@
 
     <!-- Diagnosis result / treatment -->
     <string name="result_title">Diagnosis Result</string>
+    <string name="result_confidence_format">%1$d%% confidence</string>
+    <string name="result_type_local">On-device detection</string>
+    <string name="result_scan_time_label">Scanned</string>
+    <string name="result_location_captured">Location captured</string>
+    <string name="result_location_not_captured">No location recorded</string>
+    <string name="result_save_status_shared">Saved and shared to community</string>
+    <string name="result_save_status_local">Saved on this device only</string>
+    <string name="result_model_version_format">Model version: %1$s</string>
     <string name="treatment_title">Treatment Recommendation</string>
+    <string name="treatment_symptoms_label">What to look for</string>
+    <string name="treatment_steps_label">Management steps</string>
+    <string name="treatment_prevention_label">Prevention</string>
+    <string name="treatment_source_label">Source</string>
+    <string name="treatment_offline_indicator">Available offline — no internet needed</string>
+    <string name="treatment_not_found">No reference content is available for this disease on this device yet.</string>
+    <string name="treatment_disclaimer">This guidance is a development placeholder and has not been
+        verified by an agricultural expert. Do not use it to make real treatment decisions —
+        consult a local agricultural technician.</string>
 
     <!-- History -->
     <string name="history_title">Scan History</string>
@@ -44,4 +61,54 @@
     <string name="offline_banner_text">You\'re offline. Scanning and history still work.
         Community, map, and notifications need internet.</string>
     <string name="online_only_feature">This feature needs an internet connection.</string>
+
+    <!-- Auth (online-only; never gates the offline core — claude/01_MASTER_DEVELOPMENT_CONTEXT.md
+         Project Principle). Reached only from an online-only screen\'s sign-in prompt. -->
+    <string name="auth_title_signin">Sign In</string>
+    <string name="auth_title_register">Create Account</string>
+    <string name="auth_subtitle">Sign in to share scans, post to the community, and see nearby
+        reports. Scanning and treatment guides always work without an account.</string>
+    <string name="auth_display_name_hint">Full name</string>
+    <string name="auth_email_hint">Email</string>
+    <string name="auth_password_hint">Password</string>
+    <string name="auth_barangay_hint">Barangay</string>
+    <string name="auth_municipality_hint">Municipality / City</string>
+    <string name="auth_province_hint">Province</string>
+    <string name="auth_signin_action">Sign In</string>
+    <string name="auth_register_action">Create Account</string>
+    <string name="auth_toggle_to_register">New here? Create an account</string>
+    <string name="auth_toggle_to_signin">Already have an account? Sign in</string>
+    <string name="auth_skip_action">Not now</string>
+    <string name="auth_error_missing_fields">Please fill in all required fields.</string>
+    <string name="auth_signed_in_as">Signed in as %1$s</string>
+    <string name="auth_sign_out_action">Sign out</string>
+    <string name="auth_required_prompt">Sign in to use this feature.</string>
+    <string name="auth_required_signin_cta">Sign In</string>
+
+    <!-- Community -->
+    <string name="create_post_title">Post a Report</string>
+    <string name="post_detail_title">Report</string>
+    <string name="community_sign_in_prompt">Sign in to view and post community reports.</string>
+    <string name="community_empty">No reports yet in this area.</string>
+    <string name="community_load_failed">Couldn\'t load the community feed. Check your connection and try again.</string>
+    <string name="community_create_cta">Post a Report</string>
+    <string name="post_title_hint">Title</string>
+    <string name="post_body_hint">Describe what you\'re seeing</string>
+    <string name="post_submit_action">Submit</string>
+    <string name="post_disease_label">Disease</string>
+    <string name="post_reply_hint">Write a reply</string>
+    <string name="post_reply_action">Reply</string>
+    <string name="post_upvote_action">Helpful</string>
+    <string name="post_upvote_action_active">Marked Helpful</string>
+    <string name="post_upvote_count_format">%1$d found this helpful</string>
+    <string name="post_comments_title">Comments</string>
+    <string name="post_comments_empty">No comments yet.</string>
+    <string name="post_disease_none">Not disease-specific</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_not_signed_in">You\'re not signed in.</string>
+    <string name="profile_farms_title">My Farms</string>
+    <string name="profile_add_farm_action">Add Farm</string>
+    <string name="profile_farm_name_hint">Farm name</string>
 </resources>

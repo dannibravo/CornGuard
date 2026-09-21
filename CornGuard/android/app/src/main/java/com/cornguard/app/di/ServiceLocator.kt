@@ -2,6 +2,7 @@ package com.cornguard.app.di
 
 import android.content.Context
 import com.cornguard.app.data.local.db.AppDatabase
+import com.cornguard.app.data.local.db.DiseaseReferenceSeedData
 import com.cornguard.app.data.repository.AdminRepository
 import com.cornguard.app.data.repository.AuthRepository
 import com.cornguard.app.data.repository.CommunityRepository
@@ -27,6 +28,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Manual, process-lifetime service locator. CORNGUARD does not use a DI framework in Sprint 0 —
@@ -98,7 +103,17 @@ object ServiceLocator {
         FirebaseAdminRepository(FirebaseFirestore.getInstance(), FirebaseFunctions.getInstance())
     }
 
+    // Process-lifetime scope for startup-only work (seeding). Not exposed for general use —
+    // screens use viewLifecycleOwner.lifecycleScope, not this.
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     fun init(context: Context) {
         appContext = context.applicationContext
+        appScope.launch {
+            // Dev-only placeholder content so the Treatment screen has something to render before
+            // Sprint 2's Scan flow exists. See DiseaseReferenceSeedData's doc comment — this is
+            // NOT verified agricultural guidance.
+            diseaseReferenceRepository.upsertAll(DiseaseReferenceSeedData.all)
+        }
     }
 }
