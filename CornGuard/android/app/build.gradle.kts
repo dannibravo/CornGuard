@@ -81,6 +81,12 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    // TFLite's Interpreter mmaps the model file directly out of the APK — it must stay
+    // uncompressed or that fails at load time.
+    androidResources {
+        noCompress += "tflite"
+    }
 }
 
 ksp {
@@ -108,6 +114,11 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+
+    // Sprint 2 (feature/tflite-integration). Real on-device inference —
+    // TfliteCornLeafClassifier. See ml/README.md for the training/export pipeline that produces
+    // the .tflite file this loads from assets/.
+    implementation(libs.tensorflow.lite)
 
     // Firebase BoM controls Firebase library versions — do not add version numbers to the
     // individual firebase-* dependencies below, they're resolved through this platform.

@@ -66,7 +66,11 @@ def _scan_raw_images(raw_dir: Path, local_metadata: dict[str, dict[str, str]]) -
                     {
                         "sample_id": image_path.stem,
                         "original_filename": image_path.name,
-                        "relative_path": str(image_path.relative_to(raw_dir.parent)),
+                        # Relative to the cwd every consumer script (dataset.py, train.py,
+                        # evaluate.py) is documented to run from — the ml/ directory — NOT
+                        # relative to raw_dir.parent, which silently disagreed with dataset.py's
+                        # dataset_root default and made every path resolve one directory short.
+                        "relative_path": str(image_path.resolve().relative_to(Path.cwd().resolve())),
                         "class_label": class_name,
                         "source_type": source_type,
                         "source_repository_or_farm": meta.get("source_farm", ""),
