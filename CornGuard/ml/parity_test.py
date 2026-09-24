@@ -30,6 +30,10 @@ import numpy as np
 import tensorflow as tf
 
 import config
+# Unused directly, but importing it runs @keras.saving.register_keras_serializable on
+# MobileNetV2Preprocess — required before tf.keras.models.load_model can reconstruct a saved
+# model that uses it, or loading fails with "Could not locate class 'MobileNetV2Preprocess'".
+import model  # noqa: F401
 
 
 def _load_and_preprocess(image_path: Path) -> np.ndarray:

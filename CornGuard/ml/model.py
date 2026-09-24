@@ -2,9 +2,27 @@
 MobileNetV2 transfer-learning model, per claude/09_ML_MODEL_CONTRACT.md "Base Architecture".
 """
 
+import keras
 import tensorflow as tf
 
 import config
+
+
+@keras.saving.register_keras_serializable(package="cornguard")
+class MobileNetV2Preprocess(tf.keras.layers.Layer):
+    """
+    Registered, serializable equivalent of tf.keras.applications.mobilenet_v2.preprocess_input:
+    maps [0, 255] RGB input to [-1, 1] via (x / 127.5) - 1.
+
+    Implemented directly rather than wrapping the library function in a Lambda layer — Keras 3
+    cannot reliably reconstruct a Lambda around an unregistered external function when reloading
+    a saved model (`Could not locate function 'preprocess_input'`), which surfaced as a real
+    failure the first time evaluate.py tried to load a model saved this way. A plain registered
+    Layer subclass has no such dependency.
+    """
+
+    def call(self, inputs):
+        return (inputs / 127.5) - 1.0
 
 
 def build_preprocessing_layer() -> tf.keras.layers.Layer:
@@ -13,13 +31,7 @@ def build_preprocessing_layer() -> tf.keras.layers.Layer:
     solo-context default for D-04, not Acenas's frozen decision.
     """
     if config.NORMALIZATION_MODE == "mobilenet_v2_pm1_1":
-        # tf.keras.applications.mobilenet_v2.preprocess_input maps uint8 [0, 255] RGB input to
-        # float32 [-1, 1] via (x / 127.5) - 1. Expressed as a Lambda so it serializes with the
-        # model rather than needing to be reapplied by hand at inference time.
-        return tf.keras.layers.Lambda(
-            tf.keras.applications.mobilenet_v2.preprocess_input,
-            name="mobilenet_v2_preprocess",
-        )
+        return MobileNetV2Preprocess(name="mobilenet_v2_preprocess")
     raise ValueError(
         f"Unknown NORMALIZATION_MODE '{config.NORMALIZATION_MODE}'. If you're switching to the "
         "manuscript's other named option ([0, 1] normalization), add that branch here explicitly "

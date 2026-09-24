@@ -23,6 +23,7 @@ import com.cornguard.app.data.repository.local.LocalDiseaseReferenceRepository
 import com.cornguard.app.location.LocationHelper
 import com.cornguard.app.model.CornLeafClassifier
 import com.cornguard.app.model.PlaceholderCornLeafClassifier
+import com.cornguard.app.model.TfliteCornLeafClassifier
 import com.cornguard.app.permissions.PermissionManager
 import com.cornguard.app.util.ConnectivityObserver
 import com.google.firebase.auth.FirebaseAuth
@@ -58,10 +59,17 @@ object ServiceLocator {
     }
 
     /**
-     * Placeholder until Sprint 2 wires in the real TFLite-backed classifier
-     * (see [PlaceholderCornLeafClassifier]).
+     * Sprint 2 (feature/tflite-integration): real inference when `assets/model.tflite` +
+     * `assets/labels.json` are bundled (see [TfliteCornLeafClassifier.isAvailable]), falling back
+     * to [PlaceholderCornLeafClassifier] on a dev build without them — never a silent fake result.
      */
-    val cornLeafClassifier: CornLeafClassifier by lazy { PlaceholderCornLeafClassifier() }
+    val cornLeafClassifier: CornLeafClassifier by lazy {
+        if (TfliteCornLeafClassifier.isAvailable(appContext)) {
+            TfliteCornLeafClassifier(appContext)
+        } else {
+            PlaceholderCornLeafClassifier()
+        }
+    }
 
     val permissionManager: PermissionManager by lazy { PermissionManager(appContext) }
 
