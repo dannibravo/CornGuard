@@ -1,0 +1,22 @@
+[
+  {
+    "index": 0,
+    "disease_code": "common_rust",
+    "display_label": "Common Rust"
+  },
+  {
+    "index": 1,
+    "disease_code": "gray_leaf_spot",
+    "display_label": "Gray Leaf Spot"
+  },
+  {
+    "index": 2,
+    "disease_code": "northern_leaf_blight",
+    "display_label": "Northern Leaf Blight"
+  },
+  {
+    "index": 3,
+    "disease_code": "healthy",
+    "display_label": "Healthy"
+  }
+]

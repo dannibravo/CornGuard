@@ -26,6 +26,10 @@ from sklearn.metrics import classification_report, confusion_matrix
 
 import config
 from dataset import build_split_dataset, load_manifest
+# Unused directly, but importing it runs @keras.saving.register_keras_serializable on
+# MobileNetV2Preprocess — required before tf.keras.models.load_model can reconstruct a saved
+# model that uses it, or loading fails with "Could not locate class 'MobileNetV2Preprocess'".
+import model  # noqa: F401
 
 
 def _predict(model: tf.keras.Model, ds: tf.data.Dataset) -> tuple[np.ndarray, np.ndarray]:

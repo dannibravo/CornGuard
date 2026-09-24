@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -24,10 +25,24 @@ from sklearn.metrics import classification_report
 
 import config
 from dataset import build_split_dataset, load_manifest
+# Unused directly, but importing it runs @keras.saving.register_keras_serializable on
+# MobileNetV2Preprocess — required before tf.keras.models.load_model can reconstruct a saved
+# model that uses it, or loading fails with "Could not locate class 'MobileNetV2Preprocess'".
+import model  # noqa: F401
 
 
 def convert_to_tflite(model_path: Path, quantize: bool) -> bytes:
-    converter = tf.lite.TFLiteConverter.from_keras_model(tf.keras.models.load_model(model_path))
+    keras_model = tf.keras.models.load_model(model_path)
+
+    # Converting straight from the in-memory Keras model (from_keras_model) hits a hard MLIR
+    # crash on this model ("LLVM ERROR: Failed to infer result type(s)") — reproduced against the
+    # full training-config Functional model this project actually saves. Exporting a clean,
+    # inference-only SavedModel first (Keras 3's Model.export, no optimizer/compile_config
+    # baggage) and converting from that avoids it; verified against a minimal repro model before
+    # relying on it here.
+    export_dir = tempfile.mkdtemp()
+    keras_model.export(export_dir)
+    converter = tf.lite.TFLiteConverter.from_saved_model(export_dir)
     if quantize:
         converter.optimizations = [tf.lite.Optimize.DEFAULT]
     return converter.convert()
