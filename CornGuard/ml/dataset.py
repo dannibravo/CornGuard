@@ -39,9 +39,9 @@ def build_split_dataset(
     augment: bool = False,
 ) -> tf.data.Dataset:
     """
-    dataset_root is the directory prepare_dataset.py's --raw-dir's *parent* was run from (the
-    manifest's relative_path column is relative to that directory) — normally the ml/ directory
-    itself, i.e. the same cwd every other script in this pipeline expects.
+    dataset_root is the directory the manifest's relative_path column is relative to — the cwd
+    prepare_dataset.py was run from (normally the ml/ directory itself, matching every other
+    script in this pipeline).
     """
     rows = manifest[manifest["split"] == split]
     if rows.empty:

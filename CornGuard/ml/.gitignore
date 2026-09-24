@@ -3,6 +3,10 @@ artifacts/
 data/raw/*
 !data/raw/.gitkeep
 data/dataset_manifest.csv
+data/local_image_metadata.csv
 
 __pycache__/
 *.pyc
+
+.venv/
+*.log
