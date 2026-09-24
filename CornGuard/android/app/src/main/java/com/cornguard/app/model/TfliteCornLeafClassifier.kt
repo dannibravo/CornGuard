@@ -22,11 +22,13 @@ import java.nio.channels.FileChannel
  * ... must exactly match the trained model"). `assets/model_version.txt` holds the plain
  * `model_version` string from the same export run.
  *
- * Preprocessing MUST match ml/model.py's `build_preprocessing_layer` exactly (D-04 —
- * claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md): pixels scaled to [-1, 1] via
- * `(value / 127.5) - 1`, RGB order, 224x224. This is Acenas's pragmatic solo-context default,
- * not a frozen decision — if that changes, this class's [preprocess] must change with it, and
- * the Android Parity Test (ml/parity_test.py) must be re-run.
+ * Pixel normalization (D-04 — claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md) is NOT done here
+ * — ml/export_tflite.py converts the full Keras model, so the (value / 127.5) - 1 transform
+ * (ml/model.py's MobileNetV2Preprocess layer) is already the first op inside model.tflite itself.
+ * [preprocess] only resizes and hands over raw [0, 255] RGB values; normalizing again here would
+ * double-apply the transform (this was a real bug — see [preprocess]'s doc comment). If D-04's
+ * normalization choice ever changes, that change belongs in ml/model.py and requires a re-export,
+ * not an edit here — and the Android Parity Test (ml/parity_test.py) must be re-run.
  */
 class TfliteCornLeafClassifier(context: Context) : CornLeafClassifier {
 
@@ -78,6 +80,16 @@ class TfliteCornLeafClassifier(context: Context) : CornLeafClassifier {
         interpreter.close()
     }
 
+    /**
+     * Feeds raw [0, 255] pixel values straight to the interpreter — no manual normalization here.
+     * The exported model graph (ml/model.py's MobileNetV2Preprocess layer) already does the
+     * (value / 127.5) - 1 transform as its first op, because ml/export_tflite.py converts the
+     * full Keras model, preprocessing layer included. Normalizing again here double-applies the
+     * transform, crushing every image toward a near-constant input regardless of content — this
+     * produced a real bug where the app called almost everything "Healthy" at ~75-80% confidence
+     * no matter what was actually in the photo (confirmed via ml/diagnose_field_report.py against
+     * real disease photos, comparing this path's output to the known-correct Keras reference).
+     */
     private fun preprocess(bitmap: Bitmap): ByteBuffer {
         val buffer = ByteBuffer.allocateDirect(4 * INPUT_SIZE * INPUT_SIZE * CHANNELS)
         buffer.order(ByteOrder.nativeOrder())
@@ -89,9 +101,9 @@ class TfliteCornLeafClassifier(context: Context) : CornLeafClassifier {
             val r = (pixel shr 16) and 0xFF
             val g = (pixel shr 8) and 0xFF
             val b = pixel and 0xFF
-            buffer.putFloat((r / 127.5f) - 1f)
-            buffer.putFloat((g / 127.5f) - 1f)
-            buffer.putFloat((b / 127.5f) - 1f)
+            buffer.putFloat(r.toFloat())
+            buffer.putFloat(g.toFloat())
+            buffer.putFloat(b.toFloat())
         }
         buffer.rewind()
         return buffer
