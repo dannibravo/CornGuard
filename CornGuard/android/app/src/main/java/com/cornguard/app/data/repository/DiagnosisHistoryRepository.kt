@@ -14,5 +14,13 @@ interface DiagnosisHistoryRepository {
     suspend fun getById(localId: Long): DiagnosisRecordEntity?
     suspend fun saveScan(record: DiagnosisRecordEntity): Long
     suspend fun markShared(localId: Long, cloudRecordId: String)
+    suspend fun updateLocation(
+        localId: Long,
+        barangay: String,
+        municipality: String,
+        province: String,
+        latitude: Double,
+        longitude: Double
+    )
     suspend fun delete(record: DiagnosisRecordEntity)
 }

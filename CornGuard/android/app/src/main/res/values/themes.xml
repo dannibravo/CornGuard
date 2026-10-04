@@ -1,11 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+        App theme: Material3 DayNight, so every screen follows the phone's light/dark setting.
+        Colours come from the cg_* tokens (values/ and values-night/colors.xml).
+    -->
     <style name="Theme.CornGuard" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/corn_green_700</item>
-        <item name="colorPrimaryVariant">@color/corn_green_500</item>
-        <item name="colorOnPrimary">@color/surface_light</item>
-        <item name="colorSecondary">@color/corn_gold_500</item>
-        <item name="colorError">@color/alert_red_600</item>
-        <item name="android:statusBarColor" tools:targetApi="l">@color/corn_green_700</item>
+        <item name="colorPrimary">@color/cg_primary</item>
+        <item name="colorOnPrimary">@color/cg_on_primary</item>
+        <item name="colorPrimaryContainer">@color/cg_green_tint</item>
+        <item name="colorSecondary">@color/cg_accent_green</item>
+        <item name="colorError">@color/cg_danger</item>
+        <item name="colorSurface">@color/cg_surface</item>
+        <item name="colorOnSurface">@color/cg_text_primary</item>
+        <item name="colorOnSurfaceVariant">@color/cg_text_secondary</item>
+        <item name="colorOutline">@color/cg_input_border</item>
+        <item name="android:colorBackground">@color/cg_bg</item>
+        <item name="android:windowBackground">@color/cg_bg</item>
+        <item name="android:textColorPrimary">@color/cg_text_primary</item>
+        <item name="android:textColorSecondary">@color/cg_text_secondary</item>
+        <item name="android:textColorHint">@color/cg_text_tertiary</item>
+        <item name="android:statusBarColor">@color/cg_bg</item>
+        <item name="android:navigationBarColor">@color/cg_nav_bg</item>
+        <item name="android:windowLightStatusBar">@bool/cg_light_system_bars</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">@bool/cg_light_system_bars</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.CornGuard.BottomSheet</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.CornGuard.Dialog</item>
+        <item name="colorControlActivated">@color/cg_primary</item>
+    </style>
+
+    <!-- Bottom sheets: surface colour, 24dp top corners, dimmed background. -->
+    <style name="ThemeOverlay.CornGuard.BottomSheet" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.CornGuard.BottomSheet</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:navigationBarColor">@color/cg_surface</item>
+        <item name="android:backgroundDimAmount">0.5</item>
+    </style>
+
+    <style name="Widget.CornGuard.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="backgroundTint">@color/cg_surface</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.CornGuard.SheetTop</item>
+    </style>
+
+    <style name="ShapeAppearance.CornGuard.SheetTop" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">24dp</item>
+        <item name="cornerSizeTopRight">24dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+    <style name="ThemeOverlay.CornGuard.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/cg_accent_green</item>
+        <item name="colorSurface">@color/cg_surface</item>
     </style>
 </resources>

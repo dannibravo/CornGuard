@@ -5,8 +5,10 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.cornguard.app.R
 import com.cornguard.app.data.model.Comment
 import com.cornguard.app.databinding.ItemCommentBinding
+import com.cornguard.app.ui.common.TimeFormat
 
 class CommentsAdapter : ListAdapter<Comment, CommentsAdapter.ViewHolder>(DIFF) {
 
@@ -16,7 +18,12 @@ class CommentsAdapter : ListAdapter<Comment, CommentsAdapter.ViewHolder>(DIFF) {
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.binding.root.text = getItem(position).body
+        val comment = getItem(position)
+        val context = holder.binding.root.context
+        holder.binding.commentAuthor.text =
+            comment.authorName.ifBlank { context.getString(R.string.default_farmer_name) }
+        holder.binding.commentTime.text = TimeFormat.relative(context, comment.createdAt)
+        holder.binding.commentBody.text = comment.body
     }
 
     class ViewHolder(val binding: ItemCommentBinding) : RecyclerView.ViewHolder(binding.root)

@@ -18,5 +18,14 @@ class LocalDiagnosisHistoryRepository(
     override suspend fun markShared(localId: Long, cloudRecordId: String) =
         dao.markShared(localId, cloudRecordId)
 
+    override suspend fun updateLocation(
+        localId: Long,
+        barangay: String,
+        municipality: String,
+        province: String,
+        latitude: Double,
+        longitude: Double
+    ) = dao.updateLocation(localId, barangay, municipality, province, latitude, longitude)
+
     override suspend fun delete(record: DiagnosisRecordEntity) = dao.delete(record)
 }

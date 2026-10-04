@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Design's "Post" pill: grey until there is something to post, then brand green. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="@color/cg_button_secondary" android:state_enabled="false" />
+    <item android:color="@color/cg_primary" />
+</selector>

@@ -1,8 +1,11 @@
 package com.cornguard.app.data.repository
 
+import com.cornguard.app.data.model.BarangayStat
 import com.cornguard.app.data.model.HeatmapAggregate
 import com.cornguard.app.data.model.MapOccurrence
+import com.cornguard.app.data.model.MapReport
 import com.cornguard.app.data.model.NearbyReportSummary
+import kotlinx.coroutines.flow.Flow
 
 /**
  * GIS data layer: nearby-report queries, heatmap aggregation, and FCM device-token/topic
@@ -51,6 +54,12 @@ interface GisRepository {
         diseaseFilter: String?,
         limit: Int = 200
     ): List<MapOccurrence>
+
+    /** Live severity rows for the Outbreak Heatmap (signed-in users; empty when signed out). */
+    fun observeBarangayStats(): Flow<List<BarangayStat>>
+
+    /** Live heatmap dots: verified shared scans that have coordinates. */
+    fun observeMapReports(): Flow<List<MapReport>>
 
     /**
      * Registers or refreshes this device's FCM token. Uses a deterministic document id

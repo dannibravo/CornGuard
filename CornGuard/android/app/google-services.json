@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "798900627864",
+    "project_id": "cornguard-app",
+    "storage_bucket": "cornguard-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:798900627864:android:b75c4ccbe66dce8d79e3ed",
+        "android_client_info": {
+          "package_name": "com.cornguard.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhWr1R04Q7XQScudv-wiC6E51brN8dIKQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:798900627864:android:9c74d9ee4730649879e3ed",
+        "android_client_info": {
+          "package_name": "com.cornguard.app.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhWr1R04Q7XQScudv-wiC6E51brN8dIKQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

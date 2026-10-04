@@ -1,91 +1,115 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Scanner idle state (caps 3 design) + full-screen "Analyzing Leaf…" overlay. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="@dimen/spacing_lg">
+    android:background="@color/cg_surface">
 
-    <TextView
-        android:id="@+id/scanTitle"
-        android:layout_width="0dp"
+    <ImageButton
+        android:id="@+id/scanBackButton"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/action_back"
+        android:src="@drawable/ic_arrow_back"
+        app:tint="@color/cg_text_primary" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/scan_title"
-        android:textSize="@dimen/text_title"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_gravity="center"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp">
 
-    <ImageView
-        android:id="@+id/scanPreviewImage"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="@dimen/spacing_md"
-        android:background="@color/offline_banner_bg"
-        android:contentDescription="@null"
-        android:scaleType="centerCrop"
-        android:visibility="gone"
-        app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/scanTitle" />
+        <ImageView
+            android:layout_width="104dp"
+            android:layout_height="104dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_leaf"
+            app:tint="@color/cg_accent_green" />
 
-    <TextView
-        android:id="@+id/scanError"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/spacing_md"
-        android:textColor="@color/alert_red_600"
-        android:textSize="@dimen/text_body"
-        android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/scanPreviewImage"
-        tools:text="@string/scan_model_not_ready" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/scan_ready_title"
+            android:textColor="@color/cg_text_secondary"
+            android:textSize="24sp"
+            android:textStyle="bold" />
 
-    <ProgressBar
-        android:id="@+id/scanProgress"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/spacing_md"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/scanError" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:text="@string/scan_ready_subtitle"
+            android:textColor="@color/cg_text_tertiary"
+            android:textSize="17sp" />
 
-    <TextView
-        android:id="@+id/scanProcessingLabel"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/spacing_sm"
-        android:text="@string/scan_processing"
-        android:textSize="@dimen/text_body"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="@id/scanProgress"
-        app:layout_constraintStart_toEndOf="@id/scanProgress"
-        app:layout_constraintTop_toTopOf="@id/scanProgress" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/scanCameraButton"
+            style="@style/Widget.CornGuard.Button.Primary"
+            android:layout_width="264dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="56dp"
+            android:text="@string/scan_open_camera"
+            app:cornerRadius="10dp"
+            app:icon="@drawable/ic_camera" />
 
-    <Button
-        android:id="@+id/scanCameraButton"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/spacing_lg"
-        android:minHeight="@dimen/primary_cta_min_height"
-        android:text="@string/scan_take_photo_action"
-        android:textSize="@dimen/text_cta"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/scanProgress" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/scanGalleryButton"
+            style="@style/Widget.CornGuard.Button.Secondary"
+            android:layout_width="264dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/scan_pick_gallery"
+            app:cornerRadius="10dp"
+            app:icon="@drawable/ic_images" />
 
-    <Button
-        android:id="@+id/scanGalleryButton"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/spacing_md"
-        android:minHeight="@dimen/touch_target_min"
-        android:text="@string/scan_choose_gallery_action"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/scanCameraButton" />
+        <TextView
+            android:id="@+id/scanError"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:gravity="center"
+            android:textColor="@color/cg_danger"
+            android:textSize="15sp"
+            android:visibility="gone"
+            tools:text="That photo couldn't be read. Please try another one."
+            tools:visibility="visible" />
+    </LinearLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <LinearLayout
+        android:id="@+id/scanProcessingOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#B3000000"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminate="true"
+            app:indicatorColor="#FFFFFF"
+            app:indicatorSize="48dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/scan_processing"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</FrameLayout>

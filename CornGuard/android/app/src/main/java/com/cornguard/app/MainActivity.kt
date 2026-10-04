@@ -1,5 +1,6 @@
 package com.cornguard.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
@@ -12,8 +13,9 @@ import com.cornguard.app.di.ServiceLocator
 import kotlinx.coroutines.launch
 
 /**
- * Single-activity shell hosting the bottom-nav destinations declared in
- * res/navigation/nav_graph.xml (claude/05_DEVELOPMENT_PLAN.md Sprint 0: "base navigation").
+ * Single-activity shell hosting res/navigation/nav_graph.xml. The bottom bar has the design's
+ * three tabs (Dashboard / History / Settings); Scan, Community and Map are opened from the
+ * Dashboard cards and keep the Dashboard tab highlighted.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -26,9 +28,30 @@ class MainActivity : AppCompatActivity() {
 
         val navHostFragment =
             supportFragmentManager.findFragmentById(binding.navHostFragment.id) as NavHostFragment
-        binding.bottomNavigationView.setupWithNavController(navHostFragment.navController)
+        val navController = navHostFragment.navController
+        binding.bottomNavigationView.setupWithNavController(navController)
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            if (destination.id in DASHBOARD_CHILDREN) {
+                binding.bottomNavigationView.menu.findItem(R.id.homeFragment).isChecked = true
+            }
+        }
 
         observeConnectivity()
+        if (savedInstanceState == null) handleNotificationIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleNotificationIntent(intent)
+    }
+
+    /** An outbreak alert opens the Outbreak Map (see CornGuardMessagingService). */
+    private fun handleNotificationIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra(EXTRA_OPEN_MAP, false) != true) return
+        intent.removeExtra(EXTRA_OPEN_MAP)
+        val navController = (supportFragmentManager.findFragmentById(binding.navHostFragment.id) as NavHostFragment)
+            .navController
+        if (navController.currentDestination?.id != R.id.mapFragment) navController.navigate(R.id.mapFragment)
     }
 
     private fun observeConnectivity() {
@@ -39,5 +62,10 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_OPEN_MAP = "com.cornguard.app.OPEN_MAP"
+        private val DASHBOARD_CHILDREN = setOf(R.id.scanFragment, R.id.communityFragment, R.id.mapFragment)
     }
 }

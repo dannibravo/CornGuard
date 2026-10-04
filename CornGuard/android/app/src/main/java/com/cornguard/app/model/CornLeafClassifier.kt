@@ -3,17 +3,16 @@ package com.cornguard.app.model
 import android.graphics.Bitmap
 
 /**
- * Boundary between the Android app and the TFLite model produced by Acenas
- * (claude/09_ML_MODEL_CONTRACT.md). Sprint 0 ships only this interface and
- * [PlaceholderCornLeafClassifier] — the real implementation is added in Sprint 2
- * (feature/tflite-integration) once the preprocessing contract (D-04) and class order are frozen.
+ * Boundary between the Android app and the trained TFLite model (claude/09_ML_MODEL_CONTRACT.md).
+ * [TfliteCornLeafClassifier] is the real implementation; [PlaceholderCornLeafClassifier] is the
+ * fallback when the model assets are missing.
  *
  * Implementations MUST run entirely on-device. Nothing behind this interface may call Firebase
  * or require network connectivity (claude/15_CLAUDE.md Project Principle / claude/04_DEVELOPMENT_RULES.md #2).
  */
 interface CornLeafClassifier {
 
-    /** The `.tflite` release this classifier was built from, e.g. `cornguard_mobilenetv2_v1`. */
+    /** The `.tflite` release this classifier was built from, e.g. `cornguard_mobilenetv2_v3`. */
     val modelVersion: String
 
     /**

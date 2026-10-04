@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "Edit Profile" sheet (caps 3 design): Cancel / title / Save, avatar, labelled filled inputs. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/editProfileRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:paddingHorizontal="12dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/editProfileCancel"
+            style="@style/Widget.CornGuard.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start|center_vertical"
+            android:text="@string/action_cancel"
+            android:textColor="@color/cg_text_secondary"
+            android:textSize="18sp"
+            android:textStyle="normal" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/edit_profile_title"
+            android:textColor="@color/cg_text_primary"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/editProfileSave"
+            style="@style/Widget.CornGuard.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|center_vertical"
+            android:text="@string/action_save"
+            android:textSize="18sp" />
+    </FrameLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/cg_divider" />
+
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/editProfileProgress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:indeterminate="true"
+        android:visibility="gone" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp"
+            android:paddingBottom="32dp">
+
+            <TextView
+                android:id="@+id/editProfileAvatar"
+                android:layout_width="104dp"
+                android:layout_height="104dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="28dp"
+                android:background="@drawable/bg_circle"
+                android:backgroundTint="@color/cg_primary"
+                android:gravity="center"
+                android:textColor="#FFFFFF"
+                android:textSize="44sp"
+                android:textStyle="bold"
+                tools:text="R" />
+
+            <TextView
+                android:id="@+id/editProfileError"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center"
+                android:textColor="@color/cg_danger"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+            <TextView
+                style="@style/TextAppearance.CornGuard.Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/edit_profile_name" />
+
+            <EditText
+                android:id="@+id/editProfileName"
+                style="@style/Widget.CornGuard.Input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:importantForAutofill="no"
+                android:inputType="textPersonName|textCapWords" />
+
+            <TextView
+                style="@style/TextAppearance.CornGuard.Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="@string/edit_profile_barangay" />
+
+            <EditText
+                android:id="@+id/editProfileBarangay"
+                style="@style/Widget.CornGuard.Input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:importantForAutofill="no"
+                android:inputType="textCapWords" />
+
+            <TextView
+                style="@style/TextAppearance.CornGuard.Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="@string/edit_profile_municipality" />
+
+            <EditText
+                android:id="@+id/editProfileMunicipality"
+                style="@style/Widget.CornGuard.Input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:importantForAutofill="no"
+                android:inputType="textCapWords" />
+
+            <TextView
+                style="@style/TextAppearance.CornGuard.Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="@string/edit_profile_province" />
+
+            <EditText
+                android:id="@+id/editProfileProvince"
+                style="@style/Widget.CornGuard.Input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:importantForAutofill="no"
+                android:inputType="textCapWords" />
+
+            <TextView
+                style="@style/TextAppearance.CornGuard.Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="@string/edit_profile_mobile" />
+
+            <EditText
+                android:id="@+id/editProfileMobile"
+                style="@style/Widget.CornGuard.Input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:importantForAutofill="no"
+                android:inputType="phone" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

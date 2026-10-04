@@ -1,115 +1,349 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Profile & Settings (caps 3 design): profile card, My Farms, Other (About / Log Out). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:background="@color/cg_bg"
+    android:orientation="vertical">
 
-    <LinearLayout
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="@dimen/spacing_lg">
+        android:background="@color/cg_surface"
+        android:paddingHorizontal="24dp"
+        android:paddingTop="28dp"
+        android:paddingBottom="24dp"
+        android:text="@string/profile_title"
+        android:textAppearance="@style/TextAppearance.CornGuard.ScreenTitle"
+        android:textSize="30sp" />
 
-        <TextView
-            android:id="@+id/profileTitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/profile_title"
-            android:textSize="@dimen/text_title"
-            android:textStyle="bold" />
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/cg_divider" />
 
-        <!-- Shown when signed out -->
-        <TextView
-            android:id="@+id/profileNotSignedIn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_lg"
-            android:text="@string/profile_not_signed_in"
-            android:textSize="@dimen/text_body" />
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
 
-        <Button
-            android:id="@+id/profileSignInButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_md"
-            android:minHeight="@dimen/touch_target_min"
-            android:text="@string/auth_required_signin_cta" />
-
-        <!-- Shown when signed in -->
         <LinearLayout
-            android:id="@+id/profileContent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:visibility="gone">
+            android:padding="16dp">
 
-            <TextView
-                android:id="@+id/profileSignedInAs"
+            <!-- Signed out -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/profileSignedOutCard"
+                style="@style/Widget.CornGuard.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_lg"
-                android:textSize="@dimen/text_body" />
+                android:visibility="gone"
+                app:cardCornerRadius="20dp"
+                tools:visibility="visible">
 
-            <Button
-                android:id="@+id/profileSignOutButton"
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:padding="24dp">
+
+                    <ImageView
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:background="@drawable/bg_circle"
+                        android:backgroundTint="@color/cg_avatar_bg"
+                        android:importantForAccessibility="no"
+                        android:padding="16dp"
+                        android:src="@drawable/ic_person"
+                        app:tint="@color/cg_avatar_icon" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/profile_signed_out_title"
+                        android:textAppearance="@style/TextAppearance.CornGuard.CardTitle" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:text="@string/profile_signed_out_body"
+                        android:textAppearance="@style/TextAppearance.CornGuard.Secondary" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/profileSignInButton"
+                        style="@style/Widget.CornGuard.Button.Primary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:text="@string/auth_required_signin_cta" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Signed in -->
+            <LinearLayout
+                android:id="@+id/profileContent"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_sm"
-                android:minHeight="@dimen/touch_target_min"
-                android:text="@string/auth_sign_out_action" />
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/profileFarmsTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_lg"
-                android:text="@string/profile_farms_title"
-                android:textSize="@dimen/text_body"
-                android:textStyle="bold" />
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.CornGuard.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="20dp">
 
-            <TextView
-                android:id="@+id/profileFarmsEmpty"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_xs"
-                android:text="@string/profile_farms_empty"
-                android:textSize="@dimen/text_body"
-                android:visibility="gone" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="20dp">
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/profileFarmsRecyclerView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false" />
+                        <TextView
+                            android:id="@+id/profileAvatar"
+                            android:layout_width="76dp"
+                            android:layout_height="76dp"
+                            android:background="@drawable/bg_circle"
+                            android:backgroundTint="@color/cg_primary"
+                            android:gravity="center"
+                            android:textColor="#FFFFFF"
+                            android:textSize="34sp"
+                            android:textStyle="bold"
+                            tools:text="R" />
 
-            <EditText
-                android:id="@+id/profileFarmNameInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_md"
-                android:autofillHints=""
-                android:hint="@string/profile_farm_name_hint"
-                android:inputType="text"
-                android:minHeight="@dimen/input_min_height" />
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="18dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/profileFarmAddressNote"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_xs"
-                android:text="@string/profile_farm_added_from_profile_address"
-                android:textSize="@dimen/text_body" />
+                            <TextView
+                                android:id="@+id/profileName"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/cg_text_primary"
+                                android:textSize="24sp"
+                                android:textStyle="bold"
+                                tools:text="RenRen" />
 
-            <Button
-                android:id="@+id/profileAddFarmButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_sm"
-                android:minHeight="@dimen/touch_target_min"
-                android:text="@string/profile_add_farm_action" />
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
 
+                                <ImageView
+                                    android:layout_width="18dp"
+                                    android:layout_height="18dp"
+                                    android:importantForAccessibility="no"
+                                    android:src="@drawable/ic_location"
+                                    app:tint="@color/cg_text_secondary" />
+
+                                <TextView
+                                    android:id="@+id/profileLocation"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="6dp"
+                                    android:textColor="@color/cg_text_secondary"
+                                    android:textSize="16sp"
+                                    tools:text="Poblacion, Valencia" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/profileEmail"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/cg_accent_green"
+                                android:textSize="15sp"
+                                tools:text="renren@example.com" />
+                        </LinearLayout>
+
+                        <ImageButton
+                            android:id="@+id/profileEditButton"
+                            android:layout_width="52dp"
+                            android:layout_height="52dp"
+                            android:background="@drawable/bg_circle"
+                            android:backgroundTint="@color/cg_icon_button_bg"
+                            android:contentDescription="@string/profile_edit"
+                            android:padding="14dp"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/ic_pencil"
+                            app:tint="@color/cg_accent_green" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="28dp"
+                    android:text="@string/profile_farms_title"
+                    android:textAppearance="@style/TextAppearance.CornGuard.SectionHeader"
+                    android:textSize="16sp" />
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.CornGuard.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    app:cardCornerRadius="20dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/profileFarmsRecyclerView"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:nestedScrollingEnabled="false"
+                            tools:itemCount="2"
+                            tools:listitem="@layout/item_farm" />
+
+                        <TextView
+                            android:id="@+id/profileFarmsEmpty"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:paddingHorizontal="20dp"
+                            android:paddingTop="20dp"
+                            android:text="@string/profile_farms_empty"
+                            android:textColor="@color/cg_text_tertiary"
+                            android:textSize="15sp"
+                            android:visibility="gone" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="16dp">
+
+                            <EditText
+                                android:id="@+id/profileFarmNameInput"
+                                style="@style/Widget.CornGuard.Input"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:hint="@string/profile_farm_name_hint"
+                                android:importantForAutofill="no"
+                                android:inputType="textCapWords" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/profileAddFarmButton"
+                                style="@style/Widget.CornGuard.Button.Primary"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="10dp"
+                                android:text="@string/profile_add_farm_action" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="28dp"
+                    android:text="@string/profile_other_title"
+                    android:textAppearance="@style/TextAppearance.CornGuard.SectionHeader"
+                    android:textSize="16sp" />
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.CornGuard.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="20dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:id="@+id/profileAboutRow"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="?attr/selectableItemBackground"
+                            android:gravity="center_vertical"
+                            android:minHeight="72dp"
+                            android:orientation="horizontal"
+                            android:paddingHorizontal="20dp">
+
+                            <ImageView
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:importantForAccessibility="no"
+                                android:src="@drawable/ic_info"
+                                app:tint="@color/cg_text_secondary" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="20dp"
+                                android:layout_weight="1"
+                                android:text="@string/profile_about"
+                                android:textColor="@color/cg_text_primary"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
+
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:importantForAccessibility="no"
+                                android:src="@drawable/ic_chevron_right"
+                                app:tint="@color/cg_text_tertiary" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginHorizontal="20dp"
+                            android:background="@color/cg_divider" />
+
+                        <LinearLayout
+                            android:id="@+id/profileLogOutRow"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="?attr/selectableItemBackground"
+                            android:gravity="center_vertical"
+                            android:minHeight="72dp"
+                            android:orientation="horizontal"
+                            android:paddingHorizontal="20dp">
+
+                            <ImageView
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:importantForAccessibility="no"
+                                android:src="@drawable/ic_logout"
+                                app:tint="@color/cg_danger" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="20dp"
+                                android:layout_weight="1"
+                                android:text="@string/profile_log_out"
+                                android:textColor="@color/cg_danger"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
         </LinearLayout>
-
-    </LinearLayout>
-</ScrollView>
+    </ScrollView>
+</LinearLayout>

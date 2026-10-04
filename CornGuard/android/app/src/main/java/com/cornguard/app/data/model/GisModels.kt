@@ -26,6 +26,34 @@ data class NearbyReportSummary(
 )
 
 /**
+ * Outbreak severity for one barangay + municipality + disease over the last 14 days (caps 3
+ * severity engine, backend/convex/barangayStats.ts). Colours the heatmap's dots.
+ */
+data class BarangayStat(
+    val barangay: String,
+    val municipality: String,
+    val diseaseCode: String,
+    /** "mild", "moderate" or "severe". */
+    val severityTier: String,
+    val weightedScore: Double,
+    val distinctFarms: Int,
+    val rawReportCount: Int,
+    val isActiveOutbreak: Boolean
+)
+
+/** One verified shared scan with coordinates — one dot on the heatmap. */
+data class MapReport(
+    val recordId: String,
+    val diseaseCode: String,
+    val confidence: Double,
+    val capturedAt: Long,
+    val latitude: Double,
+    val longitude: Double,
+    val barangay: String,
+    val municipality: String
+)
+
+/**
  * One area's worth of aggregated occurrence counts. Mirrors
  * firebase/gis/gis-service-interface.md's getHeatmapAggregates return shape.
  */

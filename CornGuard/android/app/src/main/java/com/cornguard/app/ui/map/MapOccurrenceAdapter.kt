@@ -7,8 +7,6 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.cornguard.app.data.model.MapOccurrence
 import com.cornguard.app.databinding.ItemGisEntryBinding
-import java.text.DateFormat
-import java.util.Date
 
 class MapOccurrenceAdapter : ListAdapter<MapOccurrence, MapOccurrenceAdapter.ViewHolder>(DIFF) {
 
@@ -19,9 +17,10 @@ class MapOccurrenceAdapter : ListAdapter<MapOccurrence, MapOccurrenceAdapter.Vie
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = getItem(position)
-        holder.binding.gisEntryDisease.text = item.diseaseCode
-        val dateText = DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(item.occurredAt))
-        holder.binding.gisEntryMeta.text = "${item.barangay} • $dateText"
+        GisEntryBinder.bind(
+            holder.binding, item.diseaseCode, item.barangay, item.municipality,
+            item.occurredAt, item.verificationStatus, isLast = position == itemCount - 1
+        )
     }
 
     class ViewHolder(val binding: ItemGisEntryBinding) : RecyclerView.ViewHolder(binding.root)

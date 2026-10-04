@@ -18,7 +18,12 @@ data class CommunityPost(
     val verificationStatus: String,
     val moderationStatus: String,
     val upvoteCount: Int,
-    val createdAt: Long
+    val createdAt: Long,
+    /** Display fields for the feed; filled by the backend, defaults keep older callers working. */
+    val authorName: String = "",
+    val commentCount: Int = 0,
+    val likedByMe: Boolean = false,
+    val recentComments: List<Comment> = emptyList()
 )
 
 /** Mirrors communityPosts/{postId}/comments/{commentId}. Single-level nesting only. */
@@ -28,7 +33,8 @@ data class Comment(
     val userId: String,
     val body: String,
     val moderationStatus: String,
-    val createdAt: Long
+    val createdAt: Long,
+    val authorName: String = ""
 )
 
 /**
