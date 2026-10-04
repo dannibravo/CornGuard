@@ -1,0 +1,27 @@
+# Repository-wide safety net. android/, backend/ and admin-web/ have their own .gitignore files too.
+
+# Dependencies and build output
+**/node_modules/
+**/dist/
+
+# Local configuration and secrets (deployment URLs, SDK paths)
+**/.env
+**/.env.local
+**/.env.*.local
+**/local.properties
+
+# Never commit a Firebase/Google service-account private key (used only for FCM in Convex)
+*firebase-adminsdk*.json
+*service-account*.json
+
+# Built apps — the APK is published as a GitHub Release instead (see README.md)
+*.apk
+*.aab
+
+# Training checkpoints — kept on Google Drive (see ml/README.md)
+*.keras
+*.h5
+
+# OS files
+.DS_Store
+Thumbs.db
