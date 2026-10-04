@@ -19,7 +19,7 @@ Third-party data and libraries (barangay boundaries, Leaflet, OpenStreetMap) are
 ## Download the app (APK)
 
 The installable app is published on this repository's **Releases** page, not in the code
-(**Releases → v0.1.0 → `CornGuard-0.1.0-debug.apk`**).
+(latest: **Releases → [v0.2.0-debug](https://github.com/dannibravo/CornGuard/releases/tag/v0.2.0-debug) → `CornGuard-0.2.0-debug.apk`**).
 
 To install on a phone (Android 8.0 or newer):
 
@@ -34,9 +34,9 @@ sign-in, Community, the Outbreak Map and notifications need internet. Test accou
 ### Publishing a new APK (maintainers)
 
 1. Build it: in `android/`, run `./gradlew assembleDebug` (output: `android/app/build/outputs/apk/debug/app-debug.apk`).
-2. On GitHub: **Releases → Draft a new release**, choose a tag such as `v0.1.0`, attach the APK
+2. On GitHub: **Releases → Draft a new release**, choose a tag in the team's `vX.Y.Z-debug` style (e.g. `v0.2.1-debug`), attach the APK
    (renamed to `CornGuard-<version>-debug.apk`) and click **Publish release**.
    With the GitHub CLI instead:
-   `gh release create v0.1.0 CornGuard-0.1.0-debug.apk --title "CornGuard 0.1.0 (debug)" --notes "Debug build for testing"`
+   `gh release create v0.2.1-debug CornGuard-0.2.1-debug.apk --title "CornGuard v0.2.1 (debug)" --notes "Debug build for testing"`
 
 APK files are git-ignored on purpose: committing a ~46 MB binary for every build would make the repository huge.
