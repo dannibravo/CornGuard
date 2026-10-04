@@ -28,17 +28,131 @@ git-ignored per `claude/10_ENV_GUIDE.md`.
 - Local SQLite abstraction: Room database (`data.local.db`) implementing the
   `LocalDiagnosisRecord` and `LocalDiseaseReference` contracts from
   `claude/08_DATA_AND_INTEGRATION_CONTRACT.md`, behind repository interfaces
-  (`data.repository`) so the offline scan/history/treatment path never depends on Firebase.
+  (`data.repository`) so the offline scan/history/treatment path never depends on the cloud backend.
 - Camera/gallery/location/notification permission **strategy** (`permissions.AppPermission`,
   `permissions.PermissionManager`) — state checks only; per-screen request UX/rationale flows are
   built with the feature that needs them, starting Sprint 1/2.
-- A placeholder model-service interface (`model.CornLeafClassifier`,
-  `model.PlaceholderCornLeafClassifier`) that intentionally throws `ModelNotReadyException`
-  rather than fabricate a disease label, until Acenas freezes the preprocessing contract and class
-  order (D-04). Real TFLite integration is Sprint 2 (`feature/tflite-integration`).
+- The model-service interface (`model.CornLeafClassifier`), implemented by
+  `model.TfliteCornLeafClassifier` running the trained model bundled in `app/src/main/assets/`
+  (see "Disease model" below). `model.PlaceholderCornLeafClassifier` remains the fallback if those
+  assets are missing — it throws `ModelNotReadyException` rather than fabricate a disease label.
 - `debug`/`release` build types (`app/build.gradle.kts`). No signing config is wired — a release
   keystore must never be committed (`claude/10_ENV_GUIDE.md`); it is injected from a controlled
   location when Sprint 7 actually produces a release build.
+
+## Disease model
+
+The app bundles four files in `app/src/main/assets/`, read by `TfliteCornLeafClassifier`:
+
+| File | Contents |
+|---|---|
+| `model.tflite` | `cornguard_mobilenetv2_v3`: MobileNetV2 transfer model, dynamic-range quantised |
+| `labels.json` | Output index → disease code: 0 `northern_leaf_blight`, 1 `common_rust`, 2 `gray_leaf_spot`, 3 `healthy` |
+| `model_config.json` | `input_size` 224, `normalization` `minus_one_to_one` |
+| `model_version.txt` | Version string saved with every scan |
+
+- **Training:** done in Colab with `CORNGUARD_EDA_&_TRAINING_v2.ipynb`, which is kept outside this
+  repo. The notebook's final step writes these four files to `Acenas_Dataset/models/android_assets/`
+  in Google Drive.
+- **Updating the model:** copy those four files over the ones here, then rebuild. Also update
+  `EXPECTED_MODEL_SHA256` in `EmulatorLeafImagesTest` and the version in `TfliteCornLeafClassifierTest`.
+- **Input:** `[1, 224, 224, 3]` float32 RGB. The app crops the centre square and resizes bilinearly,
+  the same way the notebook does.
+- **Scaling:** the model has no scaling layer inside it. Training used
+  `mobilenet_v2.preprocess_input` (`x / 127.5 − 1`), so `model_config.json` must stay `minus_one_to_one`.
+- **Output:** `[1, 4]` softmax probabilities. The model's "Blight" class is shown in the app as
+  Northern Leaf Blight.
+- **Runtime:** the model was converted with TensorFlow 2.20 and needs TFLite 2.17 or newer. Older
+  runtimes fail with "Didn't find op for builtin opcode".
+- **Tests:**
+  - `TfliteCornLeafClassifierTest` checks that the model loads and returns four probabilities.
+  - `EmulatorLeafImagesTest` checks that the installed app runs the expected model file, then
+    classifies the photos in the device's `Pictures/CornGuard/` folder and logs the results
+    (`adb logcat -s LeafImageTest`).
+
+## Outbreak Heatmap and map data
+
+The Map screen is caps 3's Outbreak Heatmap: a Leaflet map in a WebView (`ui/map/MapFragment`)
+showing Bukidnon's barangay boundaries over OpenStreetMap, with one dot per verified report.
+
+- **Assets** (`app/src/main/assets/`), served to the WebView by `WebViewAssetLoader` at
+  `https://appassets.androidplatform.net/assets/...`:
+
+  | Path | Contents |
+  |---|---|
+  | `map/outbreak-map.html` | The map page, ported from caps 3's `my-app/assets/map/outbreak-map.html` |
+  | `map/leaflet/` | Leaflet 1.9.4 (`leaflet.js`, `leaflet.css`, marker images) |
+  | `geo/bukidnon-barangays.json` | 464 barangay polygons, 22 municipalities (433 KB) |
+
+  Boundaries and dots draw without internet; only the OpenStreetMap basemap tiles need it.
+- **Dots and colours:** fill = the barangay's severity tier for that disease (red severe, amber
+  moderate, green mild); ring = disease (blue Northern Leaf Blight, pink Common Rust, violet Gray Leaf
+  Spot). Tapping a barangay shows its active diseases, severity, farms affected and report count.
+- **Data:** `MapFragment` collects two live Convex queries and pushes them into the page with
+  `window.updateMapData({stats, detections})`:
+  - `barangayStats:getAllStats`: the severity engine (`backend/convex/barangayStats.ts`, ported from
+    caps 3). It covers the last 14 days. Each report is weighted by confidence (1, 0.6 or 0.3).
+    Severe is a score of at least 4 from at least 3 farms; moderate is a score of at least 2, or 2 farms.
+  - `diagnosisRecords:mapReports`: verified shared scans that have coordinates.
+
+  Shares at 85% confidence or higher are auto-verified, as in caps 3. The rest wait for an admin.
+  Both queries require sign-in.
+- **Barangay on scans:** `location/BarangayResolver` runs a point-in-polygon check of the scan's GPS
+  fix against the same GeoJSON, so reports use the polygon's exact names. If there's no fix, or it's
+  outside Bukidnon, the result sheet offers "Set location manually". Picking a barangay uses its
+  centroid as the coordinates.
+- **Outbreak alerts:** when a barangay and disease first turn Severe, `backend/convex/outbreakAlerts.ts`
+  pushes an alert through FCM (`push.ts`, which needs `FCM_SERVICE_ACCOUNT_JSON` set in Convex).
+  - **Who gets it:** every farmer with a signed-in device whose profile barangay is that one or a
+    neighbouring one. Profile names are matched loosely, so "Valencia" matches "City of Valencia".
+  - **Neighbours:** `convex/barangayNeighbors.ts` is generated from the boundary file by
+    `backend/scripts/build-barangay-neighbors.mjs`.
+  - **On the phone:** the alert arrives on the high-importance "Outbreak Alerts" channel, and tapping
+    it opens the map.
+- **Demo data:** `node backend/scripts/seed-map-demo.mjs` shares seven demo reports (one severe,
+  one moderate and one mild barangay) through the real `share` mutation; `--clear` removes them.
+
+### Where `bukidnon-barangays.json` comes from
+
+It is caps 3's `my-app/assets/geo/bukidnon-barangays.json`, copied unchanged. Of the whole
+`barangay-boundaries-repository` (about 400 MB), this is the only data the heatmap needs:
+
+1. **Source:** the repository's 2023-10-24 snapshot, `2023-10-24/enriched_t0p005/adm4.geojson`
+   (42,048 barangays nationwide, simplified at 0.005°).
+2. **Filter:** only features with `ADM2_EN == "Bukidnon"`, which gives 464 polygons. The geometry is
+   identical to the repository's.
+3. **Trim:** the properties are cut down to `barangay` and `municipality`. 44 names were cleaned
+   up, for example "Imbatug (Pob.)" → "Imbatug". Municipality names stay official, for example
+   "City of Valencia".
+
+The rest of the repository isn't used: the RDF/PSGC history, the other administrative levels, and
+the Python toolchain. So it isn't copied into this repo. Licences and credits are in
+`THIRD_PARTY_NOTICES.md` at the repo root:
+- MIT for the repository
+- PSA and NAMRIA for the boundary data, also shown in the map's attribution
+- BSD-2 for Leaflet
+- ODbL for the OpenStreetMap tiles
+
+## Cloud backend: Convex (migrated from Firebase)
+
+The online features (accounts, profiles and farms, scan sharing, community, map data, admin) now
+run on Convex (`backend/`, see `backend/README.md`). Firebase remains only for push delivery (FCM).
+
+- The repository interfaces in `data.repository` are unchanged. The implementations are in
+  `data.repository.convex`, and the connection, auth handshake, image uploader and DTOs are in
+  `data.remote.convex`.
+- **Setup:**
+  - Add `convex.url=https://<deployment>.convex.cloud` to `android/local.properties`. It becomes
+    `BuildConfig.CONVEX_URL`. Without it the app still builds and works offline; online screens
+    fail with a message saying Convex isn't configured.
+  - `app/google-services.json` (FCM client config for the `cornguard-app` Firebase project) is
+    committed; the old `firebase/` folder was removed.
+- **Sessions:** a user stays signed in across restarts via Convex Auth's refresh token, stored in
+  private SharedPreferences. `ConvexAuthProvider` refreshes the one-hour JWT in the background.
+- **Password rules:** passwords need at least 8 characters. Password reset isn't available yet.
+- **History:** the Sprint 1–5 sections below describe the original Firebase implementation. The
+  `data.repository.firebase` package and the whole `firebase/` folder they mention (rules,
+  functions, scripts, docs) were removed in the migration; the same logic lives in `backend/convex/`.
 
 ## Sprint 1 addition (`feature/auth-service`) — Firebase Auth + cloud repositories
 
@@ -159,13 +273,13 @@ code: `data.repository.GisRepository` has zero map-SDK dependency, only Firestor
 
 Per `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`, none of the following are resolved here:
 
-- **D-04 (model preprocessing / class order)** — no preprocessing code exists yet;
-  `PlaceholderCornLeafClassifier` refuses to run rather than guess.
+- **D-04 (model preprocessing)** — resolved: the class order comes from the trained model's labels,
+  and the training notebook confirms [-1, 1] pixel scaling (see "Disease model" above).
 - **D-03 (Farm ownership cardinality)** — `DiagnosisRecordEntity.farmId` is a nullable string FK
   only; `UserFarmRepository.createFarm` supports 1-to-many without deciding it either.
-- **D-01 (cloud database choice)** — Firestore is one illustrative binding (matching the dev
-  project Panes provisioned), not a resolved team decision; see the dev-provisioning note under
-  D-01 in `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`.
+- **D-01 (cloud database choice)** — the project moved from Firestore to Convex because
+  Firebase's free plan lacks the image storage and server functions the app needs. The
+  repository interfaces stay backend-agnostic, so this can change again behind them.
 - **D-10 (GIS/map SDK provider)** — the Map screen is a placeholder with no map dependency.
 - **D-02 (Agricultural Technician role)** — no `technician` path exists anywhere in this module.
 
@@ -191,8 +305,6 @@ client config exactly — do not rename without updating `firebase/config/` too)
 - `src/test` — pure JVM unit test for the `DetectionResult` contract (confidence range,
   probabilities length).
 - `src/androidTest` — instrumented tests: the placeholder classifier's refusal-to-guess behavior,
-  and Room DAO CRUD round-trips for both entities, per
-  `claude/12_TESTING_AND_ACCEPTANCE_PLAN.md` #2.
-
-Full offline-with-airplane-mode testing and Android/TFLite parity testing apply once Sprint 2
-lands real scan behavior; there is no scan flow to exercise yet in this drop.
+  Room DAO CRUD round-trips for both entities (per `claude/12_TESTING_AND_ACCEPTANCE_PLAN.md` #2),
+  the Room v1→v2 migration, and `ModelNormalizationCalibrationTest`, which runs the real model on
+  labelled images placed in `src/androidTest/assets/calibration/<disease_code>/`.

@@ -1,10 +1,22 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.ksp)
-    // Reads app/google-services.json (currently the dev Firebase project only — see
-    // firebase/README.md and this file's dependencies comment below for the D-01/flavor note).
+    // @Serializable DTOs for Convex query results (data/remote/convex).
+    alias(libs.plugins.kotlin.serialization)
+    // Reads app/google-services.json. Firebase is used for push delivery (FCM) only — the
+    // database, auth and file storage are Convex (see backend/README.md).
     alias(libs.plugins.google.services)
+}
+
+// Convex deployment URL, per developer: set `convex.url=https://<name>.convex.cloud` in
+// android/local.properties (or the CONVEX_URL env var). Left blank, the app still builds and the
+// offline scan/history/treatment path works; online features report that it's not configured.
+val convexUrl: String = Properties().run {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+    getProperty("convex.url") ?: System.getenv("CONVEX_URL") ?: ""
 }
 
 android {
@@ -26,6 +38,8 @@ android {
         versionName = "0.1.0-sprint0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "CONVEX_URL", "\"$convexUrl\"")
     }
 
     buildTypes {
@@ -48,14 +62,8 @@ android {
         }
     }
 
-    // Firebase wiring lands here (feature/auth-service, Sprint 1) as planned in the Sprint 0
-    // comment this replaces. Still only debug/release, no dev/prod product flavor dimension yet:
-    // a "prod" flavor needs a prod Firebase project to point it at, and per
-    // claude/10_ENV_GUIDE.md's Production Configuration Freeze, that's Sprint 7 work, not now.
-    // Adding an empty prod flavor today would just be structure with nothing real behind it.
-    // app/google-services.json is the dev project only (package com.cornguard.app, matching
-    // firebase/config/google-services.dev.json) — add the flavor split when a prod project
-    // actually exists, not before.
+    // Only debug/release, no dev/prod product flavor dimension yet. app/google-services.json is
+    // the dev Firebase project (used for FCM push only); the Convex URL comes from local.properties above.
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -68,6 +76,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 
     testOptions {
@@ -86,6 +95,11 @@ android {
     // uncompressed or that fails at load time.
     androidResources {
         noCompress += "tflite"
+    }
+
+    // Exported Room schemas, read by MigrationTestHelper in AppDatabaseMigrationTest.
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
     }
 }
 
@@ -115,19 +129,28 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
-    // Sprint 2 (feature/tflite-integration). Real on-device inference —
-    // TfliteCornLeafClassifier. See ml/README.md for the training/export pipeline that produces
-    // the .tflite file this loads from assets/.
+    // Real on-device inference — TfliteCornLeafClassifier. The bundled assets/model.tflite needs
+    // TFLite 2.17+; see "Disease model" in android/README.md.
     implementation(libs.tensorflow.lite)
+    // Reads camera photo EXIF orientation so scans are classified upright (ScanImageDecoder).
+    implementation(libs.androidx.exifinterface)
 
-    // Firebase BoM controls Firebase library versions — do not add version numbers to the
-    // individual firebase-* dependencies below, they're resolved through this platform.
+    // Convex: database, auth and file storage. The AAR must be pulled with its transitive
+    // dependencies (JNA for the native client core).
+    implementation("dev.convex:android-convexmobile:${libs.versions.convexMobile.get()}@aar") {
+        isTransitive = true
+    }
+    implementation(libs.kotlinx.serialization.json)
+
+    // Image loading: community post photos (Convex storage URLs) and scan thumbnails (local files).
+    implementation(libs.coil)
+
+    // Outbreak Heatmap: serves the bundled Leaflet page and boundary GeoJSON to the WebView.
+    implementation(libs.androidx.webkit)
+
+    // Firebase is kept for push delivery only (FCM). The BoM pins its version.
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth.ktx)
-    implementation(libs.firebase.firestore.ktx)
-    implementation(libs.firebase.storage.ktx)
     implementation(libs.firebase.messaging.ktx)
-    implementation(libs.firebase.functions.ktx)
     implementation(libs.kotlinx.coroutines.play.services)
 
     testImplementation(libs.junit)

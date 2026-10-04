@@ -41,10 +41,8 @@ captures/
 *.jks
 *.keystore
 
-# Per-environment Firebase config placed inside the app module (kept only in firebase/config
-# per Panes's ownership; do not duplicate secrets into the Android module without review)
-app/google-services.json
-app/src/*/google-services.json
+# app/google-services.json (FCM client config) is committed on purpose: it holds public app
+# identifiers, not secrets, and is the only copy since the firebase/ folder was removed.
 
 # Freeze reports
 lint-results*.html

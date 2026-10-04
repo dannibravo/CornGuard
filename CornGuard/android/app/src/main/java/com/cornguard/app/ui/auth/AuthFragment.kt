@@ -1,6 +1,7 @@
 package com.cornguard.app.ui.auth
 
 import android.os.Bundle
+import android.text.method.PasswordTransformationMethod
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -43,6 +44,8 @@ class AuthFragment : Fragment() {
             viewModel.setMode(newMode)
         }
 
+        binding.passwordToggle.setOnClickListener { setPasswordVisible(!passwordVisible) }
+
         binding.authSkipButton.setOnClickListener {
             findNavController().popBackStack()
         }
@@ -65,6 +68,21 @@ class AuthFragment : Fragment() {
         }
 
         observeUiState()
+    }
+
+    private var passwordVisible = false
+
+    /** Shows or hides the typed password (eye button), keeping the cursor where it was. */
+    private fun setPasswordVisible(visible: Boolean) {
+        passwordVisible = visible
+        val input = binding.passwordInput
+        val cursor = input.selectionEnd
+        // Toggle only the dot masking (not the input type) so the font stays the same.
+        input.transformationMethod = if (visible) null else PasswordTransformationMethod.getInstance()
+        input.setSelection(cursor.coerceIn(0, input.length()))
+        binding.passwordToggle.setImageResource(if (visible) R.drawable.ic_visibility_off else R.drawable.ic_visibility)
+        binding.passwordToggle.contentDescription =
+            getString(if (visible) R.string.auth_hide_password else R.string.auth_show_password)
     }
 
     private fun observeUiState() {

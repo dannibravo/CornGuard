@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- DARK theme values for the tokens in values/colors.xml (caps 3 dark screens). -->
+    <color name="cg_bg">#000000</color>
+    <color name="cg_surface">#111111</color>
+    <color name="cg_surface_raised">#1A1A1A</color>
+    <color name="cg_input">#1A1A1A</color>
+    <color name="cg_input_border">#333333</color>
+    <color name="cg_divider">#222222</color>
+    <color name="cg_card_border">#222222</color>
+    <color name="cg_text_primary">#FFFFFF</color>
+    <color name="cg_text_secondary">#AAAAAA</color>
+    <color name="cg_text_tertiary">#666666</color>
+    <color name="cg_accent_green">#4ADE80</color>
+    <color name="cg_accent_blue">#60A5FA</color>
+    <color name="cg_accent_amber">#F59E0B</color>
+    <color name="cg_border_green">#404ADE80</color>
+    <color name="cg_border_blue">#4060A5FA</color>
+    <color name="cg_border_amber">#40F59E0B</color>
+    <color name="cg_nav_bg">#000000</color>
+    <color name="cg_nav_indicator">#212225</color>
+    <color name="cg_avatar_bg">#222222</color>
+    <color name="cg_avatar_icon">#AAAAAA</color>
+    <color name="cg_button_secondary">#333333</color>
+    <color name="cg_on_button_secondary">#FFFFFF</color>
+    <color name="cg_green_tint">#1A2E1A</color>
+    <color name="cg_icon_button_bg">#1A2E1A</color>
+
+    <color name="offline_banner_bg">#3A2E00</color>
+    <color name="offline_banner_text">#FDE68A</color>
+</resources>

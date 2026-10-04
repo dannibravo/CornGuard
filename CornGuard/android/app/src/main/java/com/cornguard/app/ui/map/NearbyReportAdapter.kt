@@ -7,8 +7,6 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.cornguard.app.data.model.NearbyReportSummary
 import com.cornguard.app.databinding.ItemGisEntryBinding
-import java.text.DateFormat
-import java.util.Date
 
 class NearbyReportAdapter : ListAdapter<NearbyReportSummary, NearbyReportAdapter.ViewHolder>(DIFF) {
 
@@ -19,9 +17,10 @@ class NearbyReportAdapter : ListAdapter<NearbyReportSummary, NearbyReportAdapter
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = getItem(position)
-        holder.binding.gisEntryDisease.text = item.diseaseTag
-        val dateText = DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(item.createdAt))
-        holder.binding.gisEntryMeta.text = "${item.barangay} • $dateText"
+        GisEntryBinder.bind(
+            holder.binding, item.diseaseTag, item.barangay, item.municipality,
+            item.createdAt, item.verificationStatus, isLast = position == itemCount - 1
+        )
     }
 
     class ViewHolder(val binding: ItemGisEntryBinding) : RecyclerView.ViewHolder(binding.root)

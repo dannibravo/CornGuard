@@ -4,10 +4,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/surface_light">
+    android:background="@color/cg_bg">
 
-    <!-- Reusable connectivity-state indicator (claude/04_DEVELOPMENT_RULES.md #11: clear
-         online/offline status). Hidden by default; MainActivity toggles it via ConnectivityObserver. -->
+    <!-- Connectivity indicator; MainActivity toggles it via ConnectivityObserver. -->
     <com.cornguard.app.ui.common.OfflineStatusBanner
         android:id="@+id/offlineStatusBanner"
         android:layout_width="0dp"
@@ -32,6 +31,7 @@
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigationView"
+        style="@style/Widget.CornGuard.BottomNavigation"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"

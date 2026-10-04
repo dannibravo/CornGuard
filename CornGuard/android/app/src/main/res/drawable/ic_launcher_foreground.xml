@@ -1,15 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Placeholder mark only (a stylized leaf) — not an approved final app icon. -->
+<!--
+    CornGuard app icon, concept A "Cob Shield": a corn cob held inside a guard shield.
+    Drawn on the 108dp adaptive-icon grid and scaled to 0.78 about the centre so every part
+    stays inside the 66dp safe zone that launchers may crop to (circle, squircle, square).
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#F9A825"
-        android:pathData="M54,27 C74,27 81,44 81,58 C81,76 68,86 54,86 C40,86 27,76 27,58 C27,44 34,27 54,27 Z" />
-    <path
-        android:strokeColor="#2E7D32"
-        android:strokeWidth="4"
-        android:pathData="M54,34 L54,82" />
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.78"
+        android:scaleY="0.78">
+        <!-- Shield -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,22 L82,31.5 V53 C82,70.5 70.5,82 54,88 C37.5,82 26,70.5 26,53 V31.5 Z" />
+        <!-- Corn cob -->
+        <path
+            android:fillColor="#F9A825"
+            android:pathData="M54,33 C61.5,33 65,43.5 65,54 C65,64.5 61,72.5 54,75 C47,72.5 43,64.5 43,54 C43,43.5 46.5,33 54,33 Z" />
+        <!-- Kernel rows -->
+        <path
+            android:strokeColor="#B26A00"
+            android:strokeWidth="1.4"
+            android:strokeLineCap="round"
+            android:pathData="M47.5,40 H60.5 M44.6,46 H63.4 M43.3,52 H64.7 M43.5,58 H64.5 M45,64 H63 M48.5,70 H59.5 M54,34 V74 M48.5,39 V70 M59.5,39 V70" />
+        <!-- Husk leaves -->
+        <path
+            android:fillColor="#2E7D32"
+            android:pathData="M54,82 C43,79 36,69 37.5,54 C42,63 47.5,69 54,72 Z" />
+        <path
+            android:fillColor="#388E3C"
+            android:pathData="M54,82 C65,79 72,69 70.5,54 C66,63 60.5,69 54,72 Z" />
+    </group>
 </vector>

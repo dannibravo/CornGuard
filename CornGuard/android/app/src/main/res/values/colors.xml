@@ -1,19 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-        Placeholder palette only — CORNGUARD has no approved final UI/UX per
-        claude/16_UI_UX_AND_DIAGRAM_REVISION_GUIDE.md (not yet present in this doc pack) and
-        claude/15_CLAUDE.md's UI/UX rule. Ligue/Panes/Acenas have final authority to replace this.
-        Chosen for high contrast and quick recognition for low digital-literacy / outdoor use.
+        CornGuard design tokens, taken from the caps 3 app design. This file is the LIGHT theme;
+        values-night/colors.xml redefines the same names for dark mode. Layouts use only the cg_*
+        tokens so every screen follows the system light/dark setting.
     -->
-    <color name="corn_green_700">#2E7D32</color>
-    <color name="corn_green_500">#4CAF50</color>
-    <color name="corn_gold_500">#F9A825</color>
-    <color name="alert_red_600">#D32F2F</color>
-    <color name="surface_light">#FFFFFF</color>
-    <color name="surface_dark">#121212</color>
-    <color name="on_surface_light">#1B1B1B</color>
-    <color name="on_surface_dark">#F2F2F2</color>
+    <color name="cg_bg">#F5F5F5</color>
+    <color name="cg_surface">#FFFFFF</color>
+    <color name="cg_surface_raised">#F5F5F5</color>
+    <color name="cg_input">#F5F5F5</color>
+    <color name="cg_input_border">#E5E5E5</color>
+    <color name="cg_divider">#EEEEEE</color>
+    <color name="cg_card_border">#00000000</color>
+    <color name="cg_text_primary">#111111</color>
+    <color name="cg_text_secondary">#666666</color>
+    <color name="cg_text_tertiary">#999999</color>
+    <color name="cg_accent_green">#2E7D32</color>
+    <color name="cg_accent_blue">#2563EB</color>
+    <color name="cg_accent_amber">#D97706</color>
+    <color name="cg_border_green">#402E7D32</color>
+    <color name="cg_border_blue">#402563EB</color>
+    <color name="cg_border_amber">#40D97706</color>
+    <color name="cg_nav_bg">#FFFFFF</color>
+    <color name="cg_nav_indicator">#F0F0F3</color>
+    <color name="cg_avatar_bg">#E5E7EB</color>
+    <color name="cg_avatar_icon">#9CA3AF</color>
+    <color name="cg_button_secondary">#E5E5E5</color>
+    <color name="cg_on_button_secondary">#111111</color>
+    <color name="cg_green_tint">#E8F5E9</color>
+    <color name="cg_icon_button_bg">#F0FDF4</color>
+
+    <!-- Same in both themes -->
+    <color name="cg_primary">#2E7D32</color>
+    <color name="cg_primary_disabled">#A5D6A7</color>
+    <color name="cg_on_primary">#FFFFFF</color>
+    <color name="cg_danger">#DC2626</color>
+    <color name="cg_warning">#E65100</color>
+    <color name="cg_like">#F43F5E</color>
+    <color name="cg_scrim">#99000000</color>
+
+    <!-- Disease badges (DiseaseStyle.kt) -->
+    <color name="disease_healthy">#2E7D32</color>
+    <color name="disease_blight">#C62828</color>
+    <color name="disease_rust">#E65100</color>
+    <color name="disease_gray_leaf_spot">#F9A825</color>
+    <color name="disease_unknown">#6B7280</color>
+
+    <!-- Offline banner -->
     <color name="offline_banner_bg">#FFF3CD</color>
     <color name="offline_banner_text">#5C4400</color>
 </resources>

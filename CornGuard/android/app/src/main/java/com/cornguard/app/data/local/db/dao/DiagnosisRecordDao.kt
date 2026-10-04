@@ -23,6 +23,20 @@ interface DiagnosisRecordDao {
     @Query("UPDATE diagnosis_records SET sharedToCloud = 1, cloudRecordId = :cloudRecordId WHERE localId = :localId")
     suspend fun markShared(localId: Long, cloudRecordId: String)
 
+    /** Manual barangay pick on the result sheet (coordinates = the barangay's centroid). */
+    @Query(
+        "UPDATE diagnosis_records SET barangay = :barangay, municipality = :municipality, " +
+            "province = :province, latitude = :latitude, longitude = :longitude WHERE localId = :localId"
+    )
+    suspend fun updateLocation(
+        localId: Long,
+        barangay: String,
+        municipality: String,
+        province: String,
+        latitude: Double,
+        longitude: Double
+    )
+
     @Delete
     suspend fun delete(record: DiagnosisRecordEntity)
 }

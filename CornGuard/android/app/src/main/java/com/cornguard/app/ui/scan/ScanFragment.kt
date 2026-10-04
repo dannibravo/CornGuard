@@ -1,7 +1,6 @@
 package com.cornguard.app.ui.scan
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -9,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
-import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -20,6 +18,7 @@ import com.cornguard.app.di.ServiceLocator
 import com.cornguard.app.model.DetectionResult
 import com.cornguard.app.model.ModelNotReadyException
 import com.cornguard.app.permissions.AppPermission
+import com.cornguard.app.ui.result.ResultBottomSheet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -28,14 +27,16 @@ import java.io.File
 /**
  * Camera capture / gallery selection, classification, and local save. Entirely offline — never
  * touches Firebase (claude/01_MASTER_DEVELOPMENT_CONTEXT.md Project Principle). Classification
- * goes through [ServiceLocator.cornLeafClassifier], which is [com.cornguard.app.model.PlaceholderCornLeafClassifier]
- * until Sprint 2's real TFLite model lands — [ModelNotReadyException] must be surfaced honestly,
- * never papered over with a fabricated result (claude/15_CLAUDE.md Model Rule).
+ * goes through [ServiceLocator.cornLeafClassifier] — the bundled trained TFLite model, or
+ * [com.cornguard.app.model.PlaceholderCornLeafClassifier] if its assets are missing, in which case
+ * [ModelNotReadyException] must be surfaced honestly, never papered over with a fabricated result
+ * (claude/15_CLAUDE.md Model Rule). Images are decoded via [ScanImageDecoder] (downsampled, EXIF-upright).
  *
  * Attaches an approximate location to the saved record via [ServiceLocator.locationHelper] when
  * [AppPermission.LOCATION] is already granted — best-effort, never requested synchronously in the
  * save path, so a denial or missing fix never blocks or delays the scan itself
- * (claude/04_DEVELOPMENT_RULES.md #9).
+ * (claude/04_DEVELOPMENT_RULES.md #9). Every scan is saved to history, then shown in
+ * [ResultBottomSheet] (caps 3 design's result sheet).
  */
 class ScanFragment : Fragment() {
 
@@ -80,6 +81,7 @@ class ScanFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        binding.scanBackButton.setOnClickListener { findNavController().popBackStack() }
         binding.scanCameraButton.setOnClickListener { onCameraClicked() }
         binding.scanGalleryButton.setOnClickListener { onGalleryClicked() }
     }
@@ -123,20 +125,13 @@ class ScanFragment : Fragment() {
         setProcessing(true)
         viewLifecycleOwner.lifecycleScope.launch {
             val bitmap = withContext(Dispatchers.IO) {
-                runCatching {
-                    requireContext().contentResolver.openInputStream(uri)?.use { stream ->
-                        BitmapFactory.decodeStream(stream)
-                    }
-                }.getOrNull()
+                runCatching { ScanImageDecoder.decode(requireContext().contentResolver, uri) }.getOrNull()
             }
             if (bitmap == null) {
                 setProcessing(false)
                 showError(getString(R.string.scan_invalid_image))
                 return@launch
             }
-            binding.scanPreviewImage.setImageBitmap(bitmap)
-            binding.scanPreviewImage.visibility = View.VISIBLE
-
             val detection = withContext(Dispatchers.Default) {
                 runCatching { ServiceLocator.cornLeafClassifier.classify(bitmap) }
             }
@@ -160,6 +155,13 @@ class ScanFragment : Fragment() {
             val imagePath = withContext(Dispatchers.IO) { persistImage(bitmap) }
             val capturedAt = System.currentTimeMillis()
             val location = captureLocationBestEffort()
+            // Which Bukidnon barangay the scan was taken in (null outside the province); feeds
+            // the Outbreak Heatmap's per-barangay severity once the scan is shared.
+            val area = location?.let {
+                withContext(Dispatchers.Default) {
+                    runCatching { ServiceLocator.barangayResolver.resolve(it.latitude, it.longitude) }.getOrNull()
+                }
+            }
 
             val record = DiagnosisRecordEntity(
                 userId = null,
@@ -171,25 +173,13 @@ class ScanFragment : Fragment() {
                 capturedAt = capturedAt,
                 latitude = location?.latitude,
                 longitude = location?.longitude,
-                barangay = null,
-                municipality = null,
-                province = null,
+                barangay = area?.name,
+                municipality = area?.municipality,
+                province = area?.province,
                 modelVersion = result.modelVersion
             )
             val localId = ServiceLocator.diagnosisHistoryRepository.saveScan(record)
-            findNavController().navigate(
-                R.id.action_scan_to_result,
-                bundleOf(
-                    "localId" to localId,
-                    "diseaseCode" to result.diseaseCode,
-                    "displayLabel" to result.displayLabel,
-                    "confidence" to result.confidence,
-                    "capturedAt" to capturedAt,
-                    "modelVersion" to result.modelVersion,
-                    "sharedToCloud" to false,
-                    "hasLocation" to (location != null)
-                )
-            )
+            ResultBottomSheet.newInstance(localId).show(childFragmentManager, ResultBottomSheet.TAG)
         }
     }
 
@@ -214,8 +204,7 @@ class ScanFragment : Fragment() {
     }
 
     private fun setProcessing(processing: Boolean) {
-        binding.scanProgress.visibility = if (processing) View.VISIBLE else View.GONE
-        binding.scanProcessingLabel.visibility = if (processing) View.VISIBLE else View.GONE
+        binding.scanProcessingOverlay.visibility = if (processing) View.VISIBLE else View.GONE
         binding.scanCameraButton.isEnabled = !processing
         binding.scanGalleryButton.isEnabled = !processing
     }

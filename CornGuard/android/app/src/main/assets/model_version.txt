@@ -1,1 +1,1 @@
-﻿cornguard_mobilenetv2_v1
+cornguard_mobilenetv2_v3

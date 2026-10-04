@@ -4,28 +4,29 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.cornguard.app.R
+import com.cornguard.app.data.local.db.entity.DiagnosisRecordEntity
 import com.cornguard.app.databinding.FragmentHistoryBinding
 import com.cornguard.app.di.ServiceLocator
+import com.cornguard.app.ui.result.ResultBottomSheet
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
 /**
- * Reads local scan history via [ServiceLocator.diagnosisHistoryRepository]. Must work with the
- * network disabled (claude/12_TESTING_AND_ACCEPTANCE_PLAN.md offline functionality testing) — the
- * repository is backed by Room only, never Firebase.
+ * Detection History (caps 3 design). Reads local scan history via
+ * [ServiceLocator.diagnosisHistoryRepository] — Room only, so it works with the network disabled
+ * (claude/12_TESTING_AND_ACCEPTANCE_PLAN.md offline functionality testing).
  */
 class HistoryFragment : Fragment() {
 
     private var _binding: FragmentHistoryBinding? = null
     private val binding get() = _binding!!
-    private val adapter = DiagnosisHistoryAdapter(onClick = ::openRecord)
+    private val adapter = DiagnosisHistoryAdapter(onClick = ::openRecord, onDelete = ::confirmDelete)
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -41,6 +42,7 @@ class HistoryFragment : Fragment() {
         binding.historyRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.historyRecyclerView.adapter = adapter
         observeHistory()
+        observeTreatments()
     }
 
     private fun observeHistory() {
@@ -55,20 +57,31 @@ class HistoryFragment : Fragment() {
         }
     }
 
-    private fun openRecord(record: com.cornguard.app.data.local.db.entity.DiagnosisRecordEntity) {
-        findNavController().navigate(
-            R.id.action_history_to_result,
-            bundleOf(
-                "localId" to record.localId,
-                "diseaseCode" to record.diseaseCode,
-                "displayLabel" to record.displayLabel,
-                "confidence" to record.confidence,
-                "capturedAt" to record.capturedAt,
-                "modelVersion" to record.modelVersion,
-                "sharedToCloud" to record.sharedToCloud,
-                "hasLocation" to (record.latitude != null && record.longitude != null)
-            )
-        )
+    private fun observeTreatments() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                ServiceLocator.diseaseReferenceRepository.observeAll().collect { references ->
+                    adapter.treatmentByCode = references.associate { it.diseaseCode to it.treatmentSteps }
+                }
+            }
+        }
+    }
+
+    private fun openRecord(record: DiagnosisRecordEntity) {
+        ResultBottomSheet.newInstance(record.localId).show(childFragmentManager, ResultBottomSheet.TAG)
+    }
+
+    private fun confirmDelete(record: DiagnosisRecordEntity) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.history_delete_title)
+            .setMessage(R.string.history_delete_message)
+            .setNegativeButton(R.string.action_cancel, null)
+            .setPositiveButton(R.string.action_delete) { _, _ ->
+                viewLifecycleOwner.lifecycleScope.launch {
+                    ServiceLocator.diagnosisHistoryRepository.delete(record)
+                }
+            }
+            .show()
     }
 
     override fun onDestroyView() {

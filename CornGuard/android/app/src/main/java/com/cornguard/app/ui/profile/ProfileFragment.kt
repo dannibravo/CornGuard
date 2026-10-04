@@ -10,17 +10,19 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.cornguard.app.BuildConfig
 import com.cornguard.app.R
+import com.cornguard.app.data.model.AuthUser
 import com.cornguard.app.databinding.FragmentProfileBinding
 import com.cornguard.app.di.ServiceLocator
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
 /**
- * Profile + farm list, against [com.cornguard.app.data.repository.UserFarmRepository]. Online-only
- * with the same sign-in-prompt pattern as Community/Map. A new farm reuses the signed-in user's
- * profile barangay/municipality/province rather than collecting a second address — D-03 (one farm
- * per farmer vs. many) is unresolved, so this deliberately doesn't assume a farm-specific address
- * form is even the right shape yet (claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md).
+ * Profile & Settings (caps 3 design): profile card with an Edit Profile sheet, the farm list from
+ * [com.cornguard.app.data.repository.UserFarmRepository], About, and Log Out. Online-only for the
+ * profile parts, with a sign-in card when signed out. A new farm reuses the profile's
+ * barangay/municipality/province (D-03 is unresolved, so no farm-specific address form).
  */
 class ProfileFragment : Fragment() {
 
@@ -42,12 +44,17 @@ class ProfileFragment : Fragment() {
         binding.profileFarmsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.profileFarmsRecyclerView.adapter = farmAdapter
 
-        binding.profileSignInButton.setOnClickListener {
-            findNavController().navigate(R.id.authFragment)
+        binding.profileSignInButton.setOnClickListener { findNavController().navigate(R.id.authFragment) }
+        binding.profileEditButton.setOnClickListener {
+            EditProfileBottomSheet().show(childFragmentManager, EditProfileBottomSheet.TAG)
         }
-        binding.profileSignOutButton.setOnClickListener { signOut() }
         binding.profileAddFarmButton.setOnClickListener { addFarm() }
+        binding.profileAboutRow.setOnClickListener { showAbout() }
+        binding.profileLogOutRow.setOnClickListener { signOut() }
 
+        childFragmentManager.setFragmentResultListener(RESULT_PROFILE_CHANGED, viewLifecycleOwner) { _, _ ->
+            ServiceLocator.authRepository.getCurrentUser()?.let { loadProfile(it) }
+        }
         observeAuthState()
     }
 
@@ -56,12 +63,10 @@ class ProfileFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 ServiceLocator.authRepository.observeAuthState().collect { user ->
                     val signedIn = user != null
-                    binding.profileNotSignedIn.visibility = if (signedIn) View.GONE else View.VISIBLE
-                    binding.profileSignInButton.visibility = if (signedIn) View.GONE else View.VISIBLE
+                    binding.profileSignedOutCard.visibility = if (signedIn) View.GONE else View.VISIBLE
                     binding.profileContent.visibility = if (signedIn) View.VISIBLE else View.GONE
-                    if (signedIn) {
-                        binding.profileSignedInAs.text =
-                            getString(R.string.auth_signed_in_as, user!!.email ?: user.uid)
+                    if (user != null) {
+                        loadProfile(user)
                         loadFarms(user.uid)
                     }
                 }
@@ -69,14 +74,16 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun signOut() {
-        val uid = ServiceLocator.authRepository.getCurrentUser()?.uid
+    private fun loadProfile(user: AuthUser) {
+        binding.profileEmail.text = user.email.orEmpty()
         viewLifecycleOwner.lifecycleScope.launch {
-            if (uid != null) {
-                // Best-effort — a failure here must never block sign-out itself.
-                runCatching { ServiceLocator.gisRepository.deactivateDeviceToken(uid, ServiceLocator.deviceId) }
-            }
-            ServiceLocator.authRepository.signOut()
+            val profile = runCatching { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }.getOrNull()
+            val name = profile?.displayName?.takeIf { it.isNotBlank() } ?: getString(R.string.default_farmer_name)
+            binding.profileName.text = name
+            binding.profileAvatar.text = name.first().uppercase()
+            val location = listOfNotNull(profile?.barangay, profile?.municipality).filter { it.isNotBlank() }
+            binding.profileLocation.text =
+                if (location.isEmpty()) getString(R.string.profile_location_not_set) else location.joinToString(", ")
         }
     }
 
@@ -115,8 +122,32 @@ class ProfileFragment : Fragment() {
         }
     }
 
+    private fun showAbout() {
+        val modelVersion = runCatching { ServiceLocator.cornLeafClassifier.modelVersion }.getOrDefault("—")
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.profile_about)
+            .setMessage(getString(R.string.profile_about_message, BuildConfig.VERSION_NAME, modelVersion))
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun signOut() {
+        val uid = ServiceLocator.authRepository.getCurrentUser()?.uid
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (uid != null) {
+                // Best-effort — a failure here must never block sign-out itself.
+                runCatching { ServiceLocator.gisRepository.deactivateDeviceToken(uid, ServiceLocator.deviceId) }
+            }
+            ServiceLocator.authRepository.signOut()
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        const val RESULT_PROFILE_CHANGED = "profile_changed"
     }
 }

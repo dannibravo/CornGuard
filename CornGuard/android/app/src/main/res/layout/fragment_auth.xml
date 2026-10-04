@@ -1,173 +1,169 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Sign in / Create account, styled like the caps 3 Edit Profile form. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/cg_surface"
     android:fillViewport="true">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="@dimen/spacing_lg">
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingTop="40dp"
+        android:paddingBottom="32dp">
+
+        <ImageView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_leaf"
+            app:tint="@color/cg_accent_green" />
 
         <TextView
             android:id="@+id/authTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_xl"
+            android:layout_marginTop="16dp"
             android:text="@string/auth_title_signin"
-            android:textSize="@dimen/text_title"
-            android:textStyle="bold"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:textAppearance="@style/TextAppearance.CornGuard.ScreenTitle"
+            android:textSize="32sp" />
 
         <TextView
-            android:id="@+id/authSubtitle"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_sm"
+            android:layout_marginTop="8dp"
+            android:lineSpacingMultiplier="1.2"
             android:text="@string/auth_subtitle"
-            android:textSize="@dimen/text_body"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/authTitle" />
+            android:textAppearance="@style/TextAppearance.CornGuard.Secondary"
+            android:textSize="16sp" />
 
-        <!-- Registration-only field, hidden in sign-in mode -->
         <EditText
             android:id="@+id/displayNameInput"
-            android:layout_width="0dp"
+            style="@style/Widget.CornGuard.Input"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_lg"
-            android:autofillHints="name"
+            android:layout_marginTop="28dp"
             android:hint="@string/auth_display_name_hint"
-            android:inputType="textPersonName"
-            android:minHeight="@dimen/input_min_height"
-            android:visibility="gone"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/authSubtitle" />
+            android:importantForAutofill="no"
+            android:inputType="textPersonName|textCapWords"
+            android:visibility="gone" />
 
         <EditText
             android:id="@+id/emailInput"
-            android:layout_width="0dp"
+            style="@style/Widget.CornGuard.Input"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_md"
+            android:layout_marginTop="14dp"
             android:autofillHints="emailAddress"
             android:hint="@string/auth_email_hint"
-            android:inputType="textEmailAddress"
-            android:minHeight="@dimen/input_min_height"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/displayNameInput" />
+            android:inputType="textEmailAddress" />
 
-        <EditText
-            android:id="@+id/passwordInput"
-            android:layout_width="0dp"
+        <!-- Password with a show/hide (eye) button inside the field, for sign-in and sign-up. -->
+        <FrameLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_md"
-            android:autofillHints="password"
-            android:hint="@string/auth_password_hint"
-            android:inputType="textPassword"
-            android:minHeight="@dimen/input_min_height"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/emailInput" />
+            android:layout_marginTop="14dp">
 
-        <!-- Registration-only fields, hidden in sign-in mode -->
+            <EditText
+                android:id="@+id/passwordInput"
+                style="@style/Widget.CornGuard.Input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:autofillHints="password"
+                android:hint="@string/auth_password_hint"
+                android:inputType="textPassword"
+                android:paddingEnd="56dp" />
+
+            <ImageButton
+                android:id="@+id/passwordToggle"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/auth_show_password"
+                android:src="@drawable/ic_visibility"
+                app:tint="@color/cg_text_secondary" />
+        </FrameLayout>
+
         <EditText
             android:id="@+id/barangayInput"
-            android:layout_width="0dp"
+            style="@style/Widget.CornGuard.Input"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_md"
+            android:layout_marginTop="14dp"
             android:hint="@string/auth_barangay_hint"
-            android:inputType="text"
-            android:minHeight="@dimen/input_min_height"
-            android:visibility="gone"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/passwordInput" />
+            android:importantForAutofill="no"
+            android:inputType="textCapWords"
+            android:visibility="gone" />
 
         <EditText
             android:id="@+id/municipalityInput"
-            android:layout_width="0dp"
+            style="@style/Widget.CornGuard.Input"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_sm"
+            android:layout_marginTop="14dp"
             android:hint="@string/auth_municipality_hint"
-            android:inputType="text"
-            android:minHeight="@dimen/input_min_height"
-            android:visibility="gone"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/barangayInput" />
+            android:importantForAutofill="no"
+            android:inputType="textCapWords"
+            android:visibility="gone" />
 
         <EditText
             android:id="@+id/provinceInput"
-            android:layout_width="0dp"
+            style="@style/Widget.CornGuard.Input"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_sm"
+            android:layout_marginTop="14dp"
             android:hint="@string/auth_province_hint"
-            android:inputType="text"
-            android:minHeight="@dimen/input_min_height"
-            android:visibility="gone"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/municipalityInput" />
+            android:importantForAutofill="no"
+            android:inputType="textCapWords"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/authError"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_sm"
-            android:textColor="#B3261E"
-            android:visibility="gone"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/provinceInput"
-            tools:text="Something went wrong." />
+            android:layout_marginTop="14dp"
+            android:textColor="@color/cg_danger"
+            android:textSize="15sp"
+            android:visibility="gone" />
 
-        <ProgressBar
-            android:id="@+id/authProgress"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_sm"
-            android:visibility="gone"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/authError" />
-
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/authSubmitButton"
-            android:layout_width="0dp"
+            style="@style/Widget.CornGuard.Button.Primary"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_md"
-            android:minHeight="@dimen/primary_cta_min_height"
-            android:text="@string/auth_signin_action"
-            android:textSize="@dimen/text_cta"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/authProgress" />
+            android:layout_marginTop="24dp"
+            android:minHeight="60dp"
+            android:text="@string/auth_signin_action" />
 
-        <Button
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/authProgress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:indeterminate="true"
+            android:visibility="gone"
+            app:indicatorColor="@color/cg_primary" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/authToggleModeButton"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="0dp"
+            style="@style/Widget.CornGuard.Button.Text"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_sm"
-            android:text="@string/auth_toggle_to_register"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/authSubmitButton" />
+            android:layout_marginTop="12dp"
+            android:text="@string/auth_toggle_to_register" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/authSkipButton"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="0dp"
+            style="@style/Widget.CornGuard.Button.Text"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/auth_skip_action"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/authToggleModeButton" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            android:textColor="@color/cg_text_secondary"
+            android:textStyle="normal" />
+    </LinearLayout>
 </ScrollView>

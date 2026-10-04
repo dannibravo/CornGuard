@@ -1,5 +1,6 @@
 package com.cornguard.app.data.local.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -18,6 +19,12 @@ data class DiseaseReferenceEntity(
     val symptoms: String,
     val treatmentSteps: String,
     val preventionSteps: String,
+
+    /** Added in DB version 2 (caps 3 knowledge base); empty for content that lacks it. */
+    @ColumnInfo(defaultValue = "")
+    val causes: String = "",
+    @ColumnInfo(defaultValue = "")
+    val duration: String = "",
 
     /** Traceable agricultural source, per claude/04_DEVELOPMENT_RULES.md #12. */
     val sourceReference: String,

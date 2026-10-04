@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Back arrow + title header used by Scan, Community and Map (caps 3 design). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/cg_surface"
+    android:gravity="center_vertical"
+    android:minHeight="72dp"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingEnd="24dp">
+
+    <ImageButton
+        android:id="@+id/headerBackButton"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/action_back"
+        android:src="@drawable/ic_arrow_back"
+        android:tint="@color/cg_text_primary" />
+
+    <TextView
+        android:id="@+id/headerTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_weight="1"
+        android:textAppearance="@style/TextAppearance.CornGuard.ScreenTitle"
+        tools:text="Community" />
+
+</LinearLayout>
