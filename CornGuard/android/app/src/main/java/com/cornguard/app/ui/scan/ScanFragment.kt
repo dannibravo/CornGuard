@@ -164,7 +164,8 @@ class ScanFragment : Fragment() {
             }
 
             val record = DiagnosisRecordEntity(
-                userId = null,
+                // Owner = whoever is signed in (null = guest scan, claimed by the next sign-in).
+                userId = ServiceLocator.authRepository.getCurrentUser()?.uid,
                 farmId = null,
                 diseaseCode = result.diseaseCode,
                 displayLabel = result.displayLabel,

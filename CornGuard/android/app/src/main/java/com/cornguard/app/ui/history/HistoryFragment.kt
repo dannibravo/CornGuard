@@ -15,6 +15,10 @@ import com.cornguard.app.databinding.FragmentHistoryBinding
 import com.cornguard.app.di.ServiceLocator
 import com.cornguard.app.ui.result.ResultBottomSheet
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -45,10 +49,15 @@ class HistoryFragment : Fragment() {
         observeTreatments()
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private fun observeHistory() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                ServiceLocator.diagnosisHistoryRepository.observeHistory().collect { records ->
+                ServiceLocator.authRepository.observeAuthState()
+                    .map { it?.uid }
+                    .distinctUntilChanged()
+                    .flatMapLatest { uid -> ServiceLocator.diagnosisHistoryRepository.observeHistory(uid) }
+                    .collect { records ->
                     adapter.submitList(records)
                     binding.historyEmptyState.visibility =
                         if (records.isEmpty()) View.VISIBLE else View.GONE

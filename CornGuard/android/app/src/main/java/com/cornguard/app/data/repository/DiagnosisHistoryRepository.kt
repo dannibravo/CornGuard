@@ -10,7 +10,15 @@ import kotlinx.coroutines.flow.Flow
  * scan path may depend on (claude/04_DEVELOPMENT_RULES.md #2).
  */
 interface DiagnosisHistoryRepository {
-    fun observeHistory(): Flow<List<DiagnosisRecordEntity>>
+    /** Scans owned by [userId] on this phone; `null` = guest scans taken while signed out. */
+    fun observeHistory(userId: String?): Flow<List<DiagnosisRecordEntity>>
+
+    /**
+     * Called when [userId] signs in: unshared guest scans become theirs, and so do ownerless scans
+     * they already shared ([ownCloudRecordIds], from the server). Returns how many were claimed.
+     */
+    suspend fun claimGuestScans(userId: String, ownCloudRecordIds: List<String>): Int
+    suspend fun assignOwner(localId: Long, userId: String)
     suspend fun getById(localId: Long): DiagnosisRecordEntity?
     suspend fun saveScan(record: DiagnosisRecordEntity): Long
     suspend fun markShared(localId: Long, cloudRecordId: String)

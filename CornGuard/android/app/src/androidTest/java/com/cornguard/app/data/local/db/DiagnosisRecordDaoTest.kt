@@ -97,4 +97,44 @@ class DiagnosisRecordDaoTest {
 
         assertNull(dao.getById(id))
     }
+
+    // --- Per-account history on a shared phone ---------------------------------------------
+
+    @Test
+    fun observeForUser_showsOnlyThatAccountsScans_andNullMeansGuest() = runTest {
+        val guest = dao.insert(sampleRecord(1_000L))
+        val alice = dao.insert(sampleRecord(2_000L).copy(userId = "alice"))
+        val bob = dao.insert(sampleRecord(3_000L).copy(userId = "bob"))
+
+        assertEquals(listOf(alice), dao.observeForUser("alice").first().map { it.localId })
+        assertEquals(listOf(bob), dao.observeForUser("bob").first().map { it.localId })
+        assertEquals(listOf(guest), dao.observeForUser(null).first().map { it.localId })
+    }
+
+    @Test
+    fun claim_unsharedGuestScansGoToTheNextAccount_othersKeepTheirs() = runTest {
+        val guestUnshared = dao.insert(sampleRecord(1_000L))
+        val guestShared = dao.insert(sampleRecord(2_000L))
+        dao.markShared(guestShared, "cloud-of-someone-else")
+        val bobs = dao.insert(sampleRecord(3_000L).copy(userId = "bob"))
+
+        assertEquals(1, dao.claimUnsharedGuestScans("alice"))
+
+        assertEquals(listOf(guestUnshared), dao.observeForUser("alice").first().map { it.localId })
+        // A scan someone else already shared stays ownerless (its owner claims it on sign-in) ...
+        assertEquals(listOf(guestShared), dao.observeForUser(null).first().map { it.localId })
+        // ... and another account's scan is never taken over.
+        assertEquals(listOf(bobs), dao.observeForUser("bob").first().map { it.localId })
+    }
+
+    @Test
+    fun claimSharedScans_matchesOnlyThisAccountsCloudRecords() = runTest {
+        val mine = dao.insert(sampleRecord(1_000L)).also { dao.markShared(it, "cloud-alice-1") }
+        val theirs = dao.insert(sampleRecord(2_000L)).also { dao.markShared(it, "cloud-bob-1") }
+
+        assertEquals(1, dao.claimSharedScans("alice", listOf("cloud-alice-1", "cloud-alice-unknown")))
+
+        assertEquals(listOf(mine), dao.observeForUser("alice").first().map { it.localId })
+        assertEquals(listOf(theirs), dao.observeForUser(null).first().map { it.localId })
+    }
 }

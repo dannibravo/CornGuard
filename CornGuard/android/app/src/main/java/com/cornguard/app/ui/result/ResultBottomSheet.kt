@@ -147,6 +147,13 @@ class ResultBottomSheet : CornGuardBottomSheet() {
                 showShareError(R.string.result_share_requires_location)
                 return@launch
             }
+            // A scan counts for one farm only: another account on this phone can't share it as theirs.
+            if (record.userId != null && record.userId != user.uid) {
+                setSharing(false)
+                showShareError(R.string.result_share_not_owner)
+                return@launch
+            }
+            if (record.userId == null) ServiceLocator.diagnosisHistoryRepository.assignOwner(localId, user.uid)
             val result = runCatching {
                 val cloudRecordId = ServiceLocator.diagnosisSharingRepository.shareScan(
                     record = record,
