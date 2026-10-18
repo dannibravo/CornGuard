@@ -504,6 +504,19 @@ The result sheet slides up after every scan, and when a History item is tapped.
 **Error/edge cases:** Deleting a "Shared" scan removes it from the phone only; the shared copy (and its map dot) stays.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
+#### M-HIST-05 · Each account has its own history (shared phone)
+**Platform:** 📱 Mobile app
+**Steps:**
+1. Sign in as `demo@cornguard.app` and scan two leaves. Open History.
+2. Sign out (Settings → Log out). Scan one leaf while signed out. Open History.
+3. Sign in as `demo3@cornguard.app`. Open History.
+4. Sign out, sign in as `demo@cornguard.app` again. Open History.
+5. Sign out, sign in as `demo3@cornguard.app`, and share the guest scan from step 2 (with a location set).
+**Expected result:** 1: demo sees its two scans. 2: signed out, History shows only the guest scan, not demo's. 3: demo3 sees only the guest scan (taken over on sign-in), none of demo's. 4: demo sees only its own two scans again. 5: the scan shares normally as demo3, and it never appears in demo's History.
+**Explanation:** Several farmers can share one phone. Each sees and shares only their own scans, so one scan can't be counted as several farms. Scans taken while signed out go to whoever signs in next.
+**Error/edge cases:** Already-shared scans saved by an older app version go back to their owner when that owner signs in (matched with the server).
+**Result:** ☐ Pass ☐ Fail — Notes: ____________
+
 ---
 
 ### 3.7 Community
@@ -1049,7 +1062,7 @@ An outbreak alert is only ever sent after an admin approves a pending outbreak �
 | 3.3 Sign in / sign up (M-AUTH) | 10 | | | | |
 | 3.4 Scanning (M-SCAN) | 8 | | | | |
 | 3.5 Result sheet (M-RES) | 9 | | | | |
-| 3.6 History (M-HIST) | 4 | | | | |
+| 3.6 History (M-HIST) | 5 | | | | |
 | 3.7 Community (M-COM) | 7 | | | | |
 | 3.8 Outbreak Map (M-MAP) | 11 | | | | |
 | 3.9 Settings (M-SET) | 7 | | | | |
@@ -1061,4 +1074,4 @@ An outbreak alert is only ever sent after an admin approves a pending outbreak �
 | 4.5 Users (W-USR) | 4 | | | | |
 | 4.6 Web map & general (W-MAP, W-GEN) | 3 | | | | |
 | 5 End-to-end (E) | 4 | | | | |
-| **Total** | **101** | | | | |
+| **Total** | **102** | | | | |

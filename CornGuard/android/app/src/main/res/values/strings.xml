@@ -60,6 +60,7 @@
     <string name="result_shared_action_done">Shared to Community</string>
     <string name="result_share_requires_sign_in">Sign in to share this result with the community.</string>
     <string name="result_share_requires_location">Set the location (barangay) first, so this report can appear on the Outbreak Map.</string>
+    <string name="result_share_not_owner">This scan belongs to another account on this phone, so it can\'t be shared from this one.</string>
     <string name="result_share_failed">Couldn\'t share this result. Check your connection and try again.</string>
     <string name="result_no_treatment">No reference content is available for this disease on this device yet.</string>
 

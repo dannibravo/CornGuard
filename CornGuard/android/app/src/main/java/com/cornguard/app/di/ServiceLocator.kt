@@ -31,6 +31,8 @@ import com.cornguard.app.permissions.PermissionManager
 import com.cornguard.app.util.ConnectivityObserver
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -122,6 +124,24 @@ object ServiceLocator {
         Settings.Secure.getString(appContext.contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown-device"
     }
 
+    /**
+     * Each account sees only its own scans. When someone signs in, scans taken while signed out
+     * become theirs, plus any ownerless scans the server says they already shared (scans saved
+     * before per-account history existed). Offline, only the unshared guest scans are claimed.
+     */
+    private suspend fun claimGuestScansOnSignIn() {
+        authRepository.observeAuthState()
+            .map { it?.uid }
+            .distinctUntilChanged()
+            .collect { uid ->
+                if (uid == null) return@collect
+                val ownShared = runCatching {
+                    diagnosisSharingRepository.getSharedRecordsForUser(uid).map { it.recordId }
+                }.getOrDefault(emptyList())
+                runCatching { diagnosisHistoryRepository.claimGuestScans(uid, ownShared) }
+            }
+    }
+
     fun init(context: Context) {
         appContext = context.applicationContext
         appScope.launch {
@@ -132,6 +152,7 @@ object ServiceLocator {
         if (BuildConfig.CONVEX_URL.isNotBlank()) {
             // Keeps a signed-in user signed in across restarts (refresh-token exchange).
             appScope.launch { runCatching { convexAuthRepository.restoreSession() } }
+            appScope.launch { claimGuestScansOnSignIn() }
         }
     }
 }
