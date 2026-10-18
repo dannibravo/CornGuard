@@ -52,6 +52,9 @@ You do not need to know how the app works. Follow the steps exactly, compare wha
 4. Open **CornGuard** from the app list. The icon is a **white shield with a yellow corn cob** on a green background.
 
 **On the Android emulator (computer)**
+
+Setting up an emulator from scratch, and fixing a frozen one: see [ANDROID_EMULATOR_SETUP.md](ANDROID_EMULATOR_SETUP.md).
+
 1. Start the emulator (Android Studio → Device Manager → ▶ Play).
 2. In a terminal, run (use the downloaded APK, or the one you built):
    `adb install -r --abi armeabi-v7a CornGuard-0.2.1-debug.apk`
