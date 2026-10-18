@@ -739,22 +739,22 @@ tr:hover td {
   white-space: nowrap;
   line-height: 20px;
 }
-.map-legend i {
-  width: 14px;
-  height: 14px;
+.map-legend .swatch {
+  width: 16px;
+  height: 16px;
   flex: none;
-  border-radius: 50%;
+  display: block;
 }
-/* Severity swatch: filled circle, matching the dot fill */
-.map-legend i.dot {
-  opacity: 0.85;
-}
-/* Disease swatch: ring only, matching the dot stroke */
-.map-legend i.ring {
-  border: 2px solid;
-  background: transparent;
-  box-sizing: border-box;
-}
+
+/* Report markers (MapPage): fill = severity, shape + letter = disease. White outline + shadow keep
+   them visible on any map background. Same design as the app's map. */
+.cg-marker { background: none; border: none; }
+.cg-marker svg { display: block; overflow: visible; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55)); }
+.cg-marker .halo { transform-origin: center; transform-box: fill-box; animation: cg-pulse 1.8s ease-out infinite; }
+@keyframes cg-pulse { from { opacity: 0.55; transform: scale(0.75); } to { opacity: 0; transform: scale(1.5); } }
+@media (prefers-reduced-motion: reduce) { .cg-marker .halo { animation: none; opacity: 0.3; } }
+/* Reports 14-28 days old: still shown, but faded — they no longer count toward the level. */
+.cg-marker-recent { opacity: 0.8; }
 
 /* ---- CornGuard: sidebar classes used by Sidebar.tsx (missing from caps 3's stylesheet) ---- */
 .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 20px 20px 16px; font-size: 18px; font-weight: 700; color: var(--text-primary); }

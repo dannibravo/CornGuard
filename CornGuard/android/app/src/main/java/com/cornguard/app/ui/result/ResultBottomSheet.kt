@@ -142,6 +142,11 @@ class ResultBottomSheet : CornGuardBottomSheet() {
                 showShareError(R.string.result_share_failed)
                 return@launch
             }
+            if (record.barangay.isNullOrBlank() || record.municipality.isNullOrBlank()) {
+                setSharing(false)
+                showShareError(R.string.result_share_requires_location)
+                return@launch
+            }
             val result = runCatching {
                 val cloudRecordId = ServiceLocator.diagnosisSharingRepository.shareScan(
                     record = record,

@@ -8,7 +8,8 @@ import { BARANGAY_NEIGHBORS } from "./barangayNeighbors";
  * Outbreak push alerts, ported from caps 3 (my-app/convex/notifications.sendOutbreakAlert), with an
  * admin in the loop: when a barangay + disease first turns "severe" (barangayStats.recompute) the
  * outbreak is queued as "pending" (queueOutbreak). Nothing is sent until an admin approves it in the
- * admin website (admin.approveOutbreak -> sendOutbreak); admins can also raise one manually.
+ * admin website (admin.approveOutbreak -> sendOutbreak). There is no manual alert: every alert starts
+ * from verified reports (panel requirement D-07: validation before public alerts).
  *
  * Recipients: every active farmer whose profile is in that barangay or a bordering one. Profiles
  * hold free-typed names ("Valencia") while outbreaks use the boundary file's official ones
@@ -101,7 +102,7 @@ export const deleteOutbreaks = internalMutation({
   },
 });
 
-/** Sends an approved outbreak to the farmers nearby. Scheduled by admin.approveOutbreak / admin.raiseAlert. */
+/** Sends an approved outbreak to the farmers nearby. Scheduled by admin.approveOutbreak (and devAccounts.sendTestAlert for testing). */
 export const sendOutbreak = internalMutation({
   args: { outbreakId: v.id("outbreaks") },
   handler: async (ctx, { outbreakId }) => {

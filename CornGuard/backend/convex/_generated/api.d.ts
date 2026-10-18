@@ -13,6 +13,7 @@ import type * as auth from "../auth.js";
 import type * as barangayNeighbors from "../barangayNeighbors.js";
 import type * as barangayStats from "../barangayStats.js";
 import type * as crons from "../crons.js";
+import type * as devAccounts from "../devAccounts.js";
 import type * as devices from "../devices.js";
 import type * as diagnosisRecords from "../diagnosisRecords.js";
 import type * as http from "../http.js";
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   barangayNeighbors: typeof barangayNeighbors;
   barangayStats: typeof barangayStats;
   crons: typeof crons;
+  devAccounts: typeof devAccounts;
   devices: typeof devices;
   diagnosisRecords: typeof diagnosisRecords;
   http: typeof http;

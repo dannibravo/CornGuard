@@ -4,7 +4,7 @@ import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx, internalMutation, mutation, query } from "./_generated/server";
 import { scheduleRecompute } from "./barangayStats";
 import { requireAdmin } from "./lib/access";
-import { DISEASE_LABEL, isKnownBarangay, recipientsFor } from "./outbreakAlerts";
+import { recipientsFor } from "./outbreakAlerts";
 import { moderationStatus, verificationStatus } from "./schema";
 
 const reviewStatus = v.union(v.literal("verified"), v.literal("rejected"));
@@ -16,6 +16,9 @@ export const setRecordVerification = mutation({
     const id = ctx.db.normalizeId("diagnosisRecords", recordId);
     const record = id ? await ctx.db.get(id) : null;
     if (!id || !record) throw new ConvexError("Record not found.");
+    if (status === "verified" && (!record.barangay.trim() || !record.municipality.trim())) {
+      throw new ConvexError("This scan has no location, so it can't be placed on the map. Reject it instead.");
+    }
     await ctx.db.patch(id, { verificationStatus: status, verifiedBy: admin._id, verifiedAt: Date.now() });
     await scheduleRecompute(ctx, record); // heatmap severity changes with verification
   },
@@ -330,27 +333,6 @@ export const dismissOutbreak = mutation({
     if (!id || !o) throw new ConvexError("Outbreak not found.");
     if (o.status !== "pending") throw new ConvexError(`This outbreak was already ${o.status}.`);
     await ctx.db.patch(id, { status: "dismissed", reviewedBy: admin._id, reviewedAt: Date.now(), note });
-  },
-});
-
-/** Manually raise an outbreak alert for a barangay (replaces caps 3's "Raise Alert"); sent immediately. */
-export const raiseAlert = mutation({
-  args: {
-    barangay: v.string(), municipality: v.string(),
-    diseaseCodes: v.array(v.string()), message: v.optional(v.string()),
-  },
-  handler: async (ctx, { barangay, municipality, diseaseCodes, message }) => {
-    const admin = await requireAdmin(ctx);
-    if (!isKnownBarangay(barangay, municipality)) throw new ConvexError("Unknown barangay / municipality.");
-    const codes = diseaseCodes.filter((c) => c in DISEASE_LABEL);
-    if (codes.length === 0) throw new ConvexError("Choose at least one disease.");
-    const now = Date.now();
-    const id = await ctx.db.insert("outbreaks", {
-      barangay, municipality, diseaseCodes: codes, status: "approved", source: "manual",
-      declaredAt: now, message: message?.trim() || undefined, reviewedBy: admin._id, reviewedAt: now,
-    });
-    await ctx.scheduler.runAfter(0, internal.outbreakAlerts.sendOutbreak, { outbreakId: id });
-    return id;
   },
 });
 

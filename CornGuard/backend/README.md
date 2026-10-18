@@ -36,6 +36,8 @@ Requires Node 18+.
    Without it, everything else works and notifications are recorded with status `failed`.
    To rotate the key later, generate a new one, run the same command, then delete the old key
    in the console. Device tokens that FCM rejects as dead are switched off automatically.
+   To check delivery, send a test push to the farmers in and around a barangay (CLI only):
+   `npx convex run devAccounts:sendTestAlert "{barangay:'Poblacion', municipality:'City of Valencia', diseaseCode:'northern_leaf_blight'}"`.
 5. Point the app at the deployment: add `convex.url=https://<name>.convex.cloud` to
    `android/local.properties`.
 6. After registering your own account in the app, make it the first admin:

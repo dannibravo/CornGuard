@@ -4,7 +4,7 @@ import { api } from '../convex';
 import { DataTable } from '../components/DataTable';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Tabs } from '../components/Tabs';
-import { ALERT_DISEASES, BARANGAYS_BY_MUNICIPALITY, MUNICIPALITIES, date, diseaseLabel, statusBadge } from '../labels';
+import { date, diseaseLabel, statusBadge } from '../labels';
 
 /**
  * caps 3's Alerts page, reworked for CornGuard's review flow: Severe outbreaks wait here as
@@ -108,7 +108,6 @@ export default function OutbreaksPage() {
         </div>
       </div>
 
-      <RaiseAlert />
 
       {/* ---------- History ---------- */}
       <div className="card" style={{ marginBottom: 24 }}>
@@ -165,79 +164,6 @@ export default function OutbreaksPage() {
         confirmText={confirm?.action === 'approve' ? 'Send alert' : 'Dismiss'}
         variant={confirm?.action === 'approve' ? 'primary' : 'danger'}
       />
-    </div>
-  );
-}
-
-function RaiseAlert() {
-  const raise = useMutation(api.admin.raiseAlert);
-  const [municipality, setMunicipality] = useState('');
-  const [barangay, setBarangay] = useState('');
-  const [diseases, setDiseases] = useState<string[]>([]);
-  const [message, setMessage] = useState('');
-  const [status, setStatus] = useState('');
-  const [confirmOpen, setConfirmOpen] = useState(false);
-
-  const valid = municipality && barangay && diseases.length > 0;
-  const send = async () => {
-    setStatus('');
-    try {
-      await raise({ barangay, municipality, diseaseCodes: diseases, message: message.trim() || undefined });
-      setStatus(`Alert sent for ${barangay}, ${municipality}.`);
-      setBarangay(''); setDiseases([]); setMessage('');
-    } catch (e: any) {
-      setStatus(`Failed: ${e?.data ?? e?.message ?? 'unknown error'}`);
-    }
-  };
-
-  return (
-    <div className="card" style={{ marginBottom: 24 }}>
-      <div className="card-header"><h2 className="card-title">Raise an alert manually</h2></div>
-      <div className="card-body">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-          <div className="form-group">
-            <label className="form-label" htmlFor="alert-municipality">Municipality *</label>
-            <select id="alert-municipality" className="form-input" value={municipality}
-              onChange={(e) => { setMunicipality(e.target.value); setBarangay(''); }}>
-              <option value="">Select municipality…</option>
-              {MUNICIPALITIES.map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label" htmlFor="alert-barangay">Barangay *</label>
-            <select id="alert-barangay" className="form-input" value={barangay} disabled={!municipality}
-              onChange={(e) => setBarangay(e.target.value)}>
-              <option value="">{municipality ? 'Select barangay…' : 'Select municipality first'}</option>
-              {(BARANGAYS_BY_MUNICIPALITY[municipality] ?? []).map((b) => <option key={b} value={b}>{b}</option>)}
-            </select>
-          </div>
-          <div className="form-group">
-            <span className="form-label">Disease(s) *</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {ALERT_DISEASES.map((d) => (
-                <label key={d} style={{ fontSize: 14 }}>
-                  <input type="checkbox" checked={diseases.includes(d)}
-                    onChange={(e) => setDiseases(e.target.checked ? [...diseases, d] : diseases.filter((x) => x !== d))} />{' '}
-                  {diseaseLabel(d)}
-                </label>
-              ))}
-            </div>
-          </div>
-          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-            <label className="form-label" htmlFor="alert-message">Message (optional — a standard message is used if empty)</label>
-            <textarea id="alert-message" className="form-input" rows={2} value={message}
-              placeholder="What should farmers in this area do?" onChange={(e) => setMessage(e.target.value)} />
-          </div>
-        </div>
-        {status && <div role="status" style={{ marginTop: 8, fontSize: 14 }}>{status}</div>}
-        <button className="btn btn-primary" style={{ marginTop: 12 }} disabled={!valid} onClick={() => setConfirmOpen(true)}>
-          Send alert
-        </button>
-      </div>
-      <ConfirmDialog isOpen={confirmOpen} onClose={() => setConfirmOpen(false)} onConfirm={send}
-        title="Send this alert now?"
-        message={`Farmers in ${barangay}, ${municipality} and bordering barangays will be notified immediately.`}
-        confirmText="Send alert" variant="primary" />
     </div>
   );
 }

@@ -35,12 +35,14 @@ class ConvexGisRepository(
     override suspend fun getNearbyReports(
         areaFilter: Pair<String, String>,
         diseaseFilter: String?,
-        limit: Int
+        limit: Int,
+        municipality: String?
     ): List<NearbyReportSummary> = client.queryOnce<List<NearbyReportDto>>(
         "posts:nearbyReports",
         convexArgs(
             "areaField" to areaFilter.first,
             "areaValue" to areaFilter.second,
+            "municipality" to municipality,
             "diseaseTag" to diseaseFilter,
             "limit" to limit
         )
@@ -70,12 +72,14 @@ class ConvexGisRepository(
     override suspend fun getVerifiedOccurrences(
         areaFilter: Pair<String, String>,
         diseaseFilter: String?,
-        limit: Int
+        limit: Int,
+        municipality: String?
     ): List<MapOccurrence> = client.queryOnce<List<OccurrenceDto>>(
         "diagnosisRecords:verifiedOccurrences",
         convexArgs(
             "areaField" to areaFilter.first,
             "areaValue" to areaFilter.second,
+            "municipality" to municipality,
             "diseaseCode" to diseaseFilter,
             "limit" to limit
         )
@@ -119,7 +123,8 @@ class ConvexGisRepository(
                         latitude = it.latitude,
                         longitude = it.longitude,
                         barangay = it.barangay,
-                        municipality = it.municipality
+                        municipality = it.municipality,
+                        stage = it.stage
                     )
                 }
             }

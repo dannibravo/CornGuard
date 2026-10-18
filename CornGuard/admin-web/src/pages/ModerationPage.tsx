@@ -61,7 +61,7 @@ function ScansTab() {
   return (
     <>
       <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-        Shared scans count toward outbreaks only when <strong>verified</strong>. Scans ≥ 85 % with a photo are verified
+        Shared scans count toward outbreaks only when <strong>verified</strong>. Scans ≥ 60 % with a photo are verified
         automatically; check the photo and reject anything that isn't a corn leaf or shows a different disease.
       </p>
       <Tabs value={status} onChange={(v) => setStatus(v as typeof status)} tabs={[
@@ -78,12 +78,16 @@ function ScansTab() {
           { key: 'diseaseCode', header: 'Model says', sortable: true, render: (r) => <strong>{diseaseLabel(r.diseaseCode)}</strong> },
           { key: 'confidence', header: 'Confidence', sortable: true, width: '100px', render: (r) => pct(r.confidence) },
           { key: 'userName', header: 'Farmer', sortable: true, render: (r) => <>{r.userName}{r.userSuspended && <> <span className="badge badge-red">suspended</span></>}</> },
-          { key: 'barangay', header: 'Area', sortable: true, render: (r) => `${r.barangay || '—'}${r.municipality ? `, ${r.municipality}` : ''}${r.hasLocation ? '' : ' (no GPS)'}` },
+          { key: 'barangay', header: 'Area', sortable: true, render: (r) => r.barangay
+            ? `${r.barangay}${r.municipality ? `, ${r.municipality}` : ''}${r.hasLocation ? '' : ' (no GPS)'}`
+            : <span className="badge badge-red" title="Can't be placed on the map, so it can't be verified">No location</span> },
           { key: 'capturedAt', header: 'Scanned', sortable: true, width: '170px', render: (r) => date(r.capturedAt) },
           { key: 'status', header: 'Status', width: '110px', render: (r) => <span className={`badge ${statusBadge(r.status)}`} title={r.verifiedBy ? `by ${r.verifiedBy}` : 'automatic / not reviewed'}>{r.status.toUpperCase()}</span> },
           { key: 'actions', header: 'Actions', width: '170px', render: (r) => (
             <div style={{ display: 'flex', gap: 8 }}>
-              {r.status !== 'verified' && <button className="btn btn-sm btn-primary" onClick={wrap(() => setVerification({ recordId: r.recordId, status: 'verified' }))}>Verify</button>}
+              {r.status !== 'verified' && <button className="btn btn-sm btn-primary" disabled={!r.barangay}
+                title={r.barangay ? undefined : "No location: this scan can't be placed on the map"}
+                onClick={wrap(() => setVerification({ recordId: r.recordId, status: 'verified' }))}>Verify</button>}
               {r.status !== 'rejected' && <button className="btn btn-sm btn-danger" onClick={wrap(() => setVerification({ recordId: r.recordId, status: 'rejected' }))}>Reject</button>}
             </div>
           ) },

@@ -30,7 +30,9 @@ interface GisRepository {
     suspend fun getNearbyReports(
         areaFilter: Pair<String, String>,
         diseaseFilter: String?,
-        limit: Int = 50
+        limit: Int = 50,
+        /** With a barangay filter: that town only (many towns have a "Poblacion"). */
+        municipality: String? = null
     ): List<NearbyReportSummary>
 
     /**
@@ -52,7 +54,9 @@ interface GisRepository {
     suspend fun getVerifiedOccurrences(
         areaFilter: Pair<String, String>,
         diseaseFilter: String?,
-        limit: Int = 200
+        limit: Int = 200,
+        /** With a barangay filter: that town only (many towns have a "Poblacion"). */
+        municipality: String? = null
     ): List<MapOccurrence>
 
     /** Live severity rows for the Outbreak Heatmap (signed-in users; empty when signed out). */

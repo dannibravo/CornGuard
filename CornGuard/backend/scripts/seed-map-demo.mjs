@@ -40,7 +40,7 @@ async function upload(client, bytes) {
   return (await res.json()).storageId;
 }
 
-const PASSWORD = "CornGuard-Demo-2026";
+const PASSWORD = "demo1234";
 const ACCOUNTS = [
   { email: "demo@cornguard.app", name: "Demo Farmer" },
   { email: "demo2@cornguard.app", name: "Demo Farmer 2" },

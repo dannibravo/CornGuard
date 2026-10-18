@@ -158,10 +158,10 @@ const recordId = await share(a.client);
 check("share is idempotent per localId", (await share(a.client)) === recordId);
 
 const mine = await a.client.query(api.diagnosisRecords.listForUser, { userId: viewerA.userId });
-check("share at >= 85% is auto-verified", mine.find((r) => r.recordId === recordId)?.verificationStatus === "verified");
-const lowId = await shareScan(a.client, "43", 0.6);
+check("share at >= 60% is auto-verified", mine.find((r) => r.recordId === recordId)?.verificationStatus === "verified");
+const lowId = await shareScan(a.client, "43", 0.5);
 const mine2 = await a.client.query(api.diagnosisRecords.listForUser, { userId: viewerA.userId });
-check("share below 85% waits for an admin", mine2.find((r) => r.recordId === lowId)?.verificationStatus === "unverified");
+check("share below 60% waits for an admin", mine2.find((r) => r.recordId === lowId)?.verificationStatus === "unverified");
 
 const statFor = async (client) => {
   await new Promise((r) => setTimeout(r, 2500)); // recompute runs as a scheduled mutation
@@ -218,6 +218,23 @@ const occurrences = await b.client.query(api.diagnosisRecords.verifiedOccurrence
 check("verified record shows as occurrence", occurrences.some((o) => o.occurrenceId === recordId));
 const heat = await b.client.query(api.diagnosisRecords.heatmapAggregates, { areaField: "municipality" });
 check("heatmap aggregates", (heat.find((h) => h.areaLabel === "Valencia")?.diseaseBreakdown.northern_leaf_blight ?? 0) >= 1);
+const nearSameTown = await b.client.query(api.diagnosisRecords.verifiedOccurrences, {
+  areaField: "barangay", areaValue: TEST_BRGY, municipality: "City of Valencia",
+});
+check("'Reports near you' matches the town by normalised name", nearSameTown.some((o) => o.occurrenceId === recordId));
+const nearOtherTown = await b.client.query(api.diagnosisRecords.verifiedOccurrences, {
+  areaField: "barangay", areaValue: TEST_BRGY, municipality: "Maramag",
+});
+check("'Reports near you' ignores the same barangay name in another town", !nearOtherTown.some((o) => o.occurrenceId === recordId));
+const healthyId = await a.client.mutation(api.diagnosisRecords.share, {
+  localId: "healthy-map", diseaseCode: "healthy", confidence: 0.95, capturedAt: Date.now(), imageId: await upload(a.client),
+  barangay: TEST_BRGY, municipality: "Valencia", province: "Bukidnon", latitude: 7.9, longitude: 125.09,
+  modelVersion: "cornguard_mobilenetv2_v3",
+});
+created.push([a.client, healthyId]);
+const markers = await b.client.query(api.diagnosisRecords.mapReports, {});
+check("Healthy scans never appear on the map", !markers.some((m) => m.recordId === healthyId));
+check("map markers are tagged active / recent", markers.every((m) => m.stage === "active" || m.stage === "recent"));
 
 // --- Outbreak review (admin confirms before farmers are notified) ------------------------------
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -231,8 +248,6 @@ const outbreakPushes = async () => (await admin.query(api.admin.recentNotificati
 check("no outbreak push is sent before approval", (await outbreakPushes()) === 0);
 await expectError("non-admin cannot list outbreaks", () => b.client.query(api.admin.listOutbreaks, {}));
 await expectError("non-admin cannot approve an outbreak", () => b.client.mutation(api.admin.approveOutbreak, { outbreakId: pending.outbreakId }));
-await expectError("non-admin cannot raise an alert", () => b.client.mutation(api.admin.raiseAlert, {
-  barangay: "Barangay 1", municipality: "City of Malaybalay (Capital)", diseaseCodes: ["common_rust"] }));
 await expectError("non-admin cannot read admin lists", () => b.client.query(api.admin.listRecords, {}));
 await admin.mutation(api.admin.approveOutbreak, { outbreakId: pending.outbreakId, note: "smoke test" });
 await sleep(2500);
@@ -240,15 +255,8 @@ const approved = (await admin.query(api.admin.listOutbreaks, { status: "approved
 check("approval sends the alert (recipients recorded)", approved?.recipientsNotified !== null && approved?.reviewedBy !== null,
   approved && `notified ${approved.recipientsNotified}`);
 await expectError("an outbreak can't be approved twice", () => admin.mutation(api.admin.approveOutbreak, { outbreakId: pending.outbreakId }));
-await expectError("manual alert for an unknown barangay rejected", () => admin.mutation(api.admin.raiseAlert, {
-  barangay: "Nowhere", municipality: "Atlantis", diseaseCodes: ["common_rust"] }));
-const manualId = await admin.mutation(api.admin.raiseAlert, {
-  barangay: "Barangay 1", municipality: "City of Malaybalay (Capital)", diseaseCodes: ["common_rust", "gray_leaf_spot"],
-  message: "Smoke test alert - please ignore." });
-testOutbreakIds.push(manualId);
-await sleep(2500);
-const manual = (await admin.query(api.admin.listOutbreaks, {})).find((o) => o.outbreakId === manualId);
-check("manual alert is approved and sent at once", manual?.status === "approved" && manual.source === "manual" && manual.recipientsNotified !== null);
+await expectError("admins can no longer raise alerts by hand (no admin.raiseAlert)",
+  () => admin.mutation(api.admin.raiseAlert, {}));
 const st = await admin.query(api.admin.stats, {});
 const recs = await admin.query(api.admin.listRecords, { status: "unverified" });
 const usersList = await admin.query(api.admin.listUsers, {});

@@ -2,13 +2,16 @@ import { ConvexError, v } from "convex/values";
 import { Doc } from "./_generated/dataModel";
 import { mutation, query, QueryCtx } from "./_generated/server";
 import { assertOwnerOrAdmin, currentUserId, requireActiveUser } from "./lib/access";
-import { scheduleRecompute } from "./barangayStats";
+import { HEALTHY, RECENT_MS, WINDOW_MS, scheduleRecompute } from "./barangayStats";
+import { areaKey } from "./outbreakAlerts";
 import { areaField } from "./schema";
 
 /** Cap for server-side aggregation — capstone scale, same bound the Firestore version used. */
 const MAX_SCAN = 1000;
 /** Shares at or above this confidence (with a photo) are verified automatically (caps 3 rule). */
-const AUTO_VERIFY_CONFIDENCE = 0.85;
+// The model is trained with label smoothing 0.1, so its top score is about 92.5% (field photos lower).
+// At 60% the emulator test set had 110/126 scans pass with ~5% wrong; below that it is close to guessing.
+const AUTO_VERIFY_CONFIDENCE = 0.6;
 /** Anti-spam: at most this many shares per user per rolling 24 h. */
 export const MAX_SHARES_PER_DAY = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -68,6 +71,10 @@ export const share = mutation({
     const now = Date.now();
     if (args.capturedAt > now + CLOCK_SKEW_MS) throw new ConvexError("The scan's date is in the future.");
     if (!(args.confidence >= 0 && args.confidence <= 1)) throw new ConvexError("Invalid confidence.");
+    // The heatmap places reports by barangay, so a scan without one can't count anywhere.
+    if (!args.barangay.trim() || !args.municipality.trim()) {
+      throw new ConvexError("Set the scan's location (barangay) before sharing.");
+    }
     const sharedToday = (
       await ctx.db.query("diagnosisRecords").withIndex("by_user", (q) => q.eq("userId", user._id)).collect()
     ).filter((r) => r._creationTime > now - DAY_MS).length;
@@ -122,17 +129,47 @@ export const remove = mutation({
 });
 
 /**
- * One heatmap dot per verified report that has coordinates (signed-in users only: dots are
- * farm locations). Severity comes from barangayStats.getAllStats.
+ * Verified disease reports from the last RECENT_MS (28 days) — what the map and "Reports near you"
+ * show. Never Healthy scans, never scans from suspended accounts (they don't count toward severity
+ * either).
+ */
+async function recentDiseaseReports(ctx: QueryCtx, diseaseCode: string | undefined) {
+  const since = Date.now() - RECENT_MS;
+  const records = (await verifiedRecords(ctx, diseaseCode))
+    .filter((r) => r.capturedAt >= since && r.diseaseCode !== HEALTHY);
+  const suspended = new Map<string, boolean>();
+  const out: Doc<"diagnosisRecords">[] = [];
+  for (const r of records) {
+    let isSuspended = suspended.get(r.userId);
+    if (isSuspended === undefined) {
+      isSuspended = (await ctx.db.get(r.userId))?.accountStatus === "suspended";
+      suspended.set(r.userId, isSuspended);
+    }
+    if (!isSuspended) out.push(r);
+  }
+  return out;
+}
+
+/** "active" reports count toward severity (last 14 days); "recent" ones are shown faded (14-28 days). */
+const stageOf = (capturedAt: number) => (capturedAt >= Date.now() - WINDOW_MS ? "active" : "recent");
+
+/**
+ * One heatmap marker per verified disease report with coordinates from the last 28 days
+ * (signed-in users only: markers are farm locations). Severity comes from barangayStats.getAllStats.
  */
 export const mapReports = query({
   args: {},
   handler: async (ctx) => {
     if (!(await currentUserId(ctx))) return [];
-    const records = await verifiedRecords(ctx, undefined);
+    // The age filter uses the clock, but Convex re-runs a query only when data it read changes. Reading
+    // the severity rows ties this query to the daily decay cron (which rewrites every row), so open maps
+    // drop expired markers at least once a day — the same schedule on which the levels decay.
+    await ctx.db.query("barangayDiseaseStats").collect();
+    const records = await recentDiseaseReports(ctx, undefined);
     return records
       .filter((r) => r.latitude !== undefined && r.longitude !== undefined)
       .map((r) => ({
+        stage: stageOf(r.capturedAt),
         recordId: r._id,
         diseaseCode: r.diseaseCode,
         confidence: r.confidence,
@@ -153,18 +190,25 @@ async function verifiedRecords(ctx: QueryCtx, diseaseCode: string | undefined) {
   return await q.order("desc").take(MAX_SCAN);
 }
 
+/**
+ * "Reports near you": verified disease reports from the last 28 days in one area. Pass `municipality`
+ * with a barangay — many towns have a "Poblacion" — and names are compared normalised ("Valencia"
+ * matches "City of Valencia"), since profiles hold free-typed names.
+ */
 export const verifiedOccurrences = query({
   args: {
     areaField,
     areaValue: v.string(),
+    municipality: v.optional(v.string()),
     diseaseCode: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, { areaField, areaValue, diseaseCode, limit }) => {
+  handler: async (ctx, { areaField, areaValue, municipality, diseaseCode, limit }) => {
     if (!(await currentUserId(ctx))) return [];
-    const records = await verifiedRecords(ctx, diseaseCode);
+    const wanted = areaField === "barangay" && municipality ? areaKey(areaValue, municipality) : null;
+    const records = await recentDiseaseReports(ctx, diseaseCode);
     return records
-      .filter((r) => r[areaField] === areaValue)
+      .filter((r) => (wanted ? areaKey(r.barangay, r.municipality) === wanted : r[areaField] === areaValue))
       .slice(0, limit ?? 200)
       .map((r) => ({
         occurrenceId: r._id,
