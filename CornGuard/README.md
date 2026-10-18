@@ -10,7 +10,7 @@ outbreak alerts on a website.
 | `backend/` | Convex backend: accounts, scans, community, outbreak severity, push notifications | [backend/README.md](backend/README.md) |
 | `admin-web/` | CornGuard Admin website (React + Convex) | [admin-web/README.md](admin-web/README.md) |
 | `ml/` | Model training notebook | [ml/README.md](ml/README.md) |
-| `docs/` | Testing guide and project documents | [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) |
+| `docs/` | Testing guide, emulator setup and project documents | [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md), [docs/ANDROID_EMULATOR_SETUP.md](docs/ANDROID_EMULATOR_SETUP.md) |
 | `claude/` | Team process and planning docs | |
 
 Third-party data and libraries (barangay boundaries, Leaflet, OpenStreetMap) are credited in
