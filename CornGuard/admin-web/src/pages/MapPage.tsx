@@ -1,6 +1,6 @@
 import { useQuery } from 'convex/react';
 import { useEffect } from 'react';
-import { MapContainer, TileLayer, GeoJSON, CircleMarker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, Marker, Popup, useMap } from 'react-leaflet';
 import { api } from '../convex';
 // @ts-ignore
 import barangays from '../assets/bukidnon-barangays.json';
@@ -9,26 +9,58 @@ import L from 'leaflet';
 import { diseaseLabel } from '../labels';
 
 // KEEP IN SYNC with the app's android/app/src/main/assets/map/outbreak-map.html — the two maps must agree on
-// what a colour means. Update both or neither.
+// what a marker means. Update both or neither.
+// Marker fill = severity tier of that barangay+disease (deep enough for a white letter).
 const TIER_COLOR: Record<string, string> = {
-  mild: '#10b981',      // Emerald Green
-  moderate: '#f59e0b',  // Amber/Yellow
-  severe: '#ef4444',    // Red
+  mild: '#059669',      // Emerald Green
+  moderate: '#d97706',  // Amber
+  severe: '#dc2626',    // Red
 };
 
-// Dot fill = severity tier of that barangay+disease; ring = which disease it is.
-const DISEASE_RING: Record<string, string> = {
-  northern_leaf_blight: '#60a5fa', // Blue
-  common_rust: '#f472b6',          // Pink
-  gray_leaf_spot: '#a78bfa',       // Violet
+// Marker shape + letter = which disease. Replaces caps 3's coloured rings, which were hard to
+// tell apart against the fill colour.
+type Mark = { shape: 'circle' | 'square' | 'diamond'; letter: string };
+const DISEASE_MARK: Record<string, Mark> = {
+  northern_leaf_blight: { shape: 'circle', letter: 'B' },
+  common_rust: { shape: 'square', letter: 'R' },
+  gray_leaf_spot: { shape: 'diamond', letter: 'G' },
 };
-const UNKNOWN_RING = '#e5e7eb';
+const UNKNOWN_MARK: Mark = { shape: 'circle', letter: '?' };
+const NEUTRAL = '#4b5563';
+// Reports 14-28 days old (stage "recent"): grey, small, no longer counted. Older ones aren't sent.
+const RECENT_COLOR = '#6b7280';
+const RECENT_SIZE = 18;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-// Radius also tracks severity, so the map stays readable for red-green colourblind
-// viewers instead of relying on hue alone.
-const TIER_RADIUS: Record<string, number> = { severe: 8, moderate: 6.5, mild: 5 };
+// Size also tracks severity, so the map stays readable for red-green colourblind viewers
+// instead of relying on hue alone.
+const TIER_SIZE: Record<string, number> = { severe: 28, moderate: 24, mild: 20 };
 
-const ringColor = (diseaseCode: string) => DISEASE_RING[diseaseCode] || UNKNOWN_RING;
+/** One marker as inline SVG (24x24 box): severity-coloured shape, white outline, white letter. */
+function markerSvg(mark: Mark, fill: string, size: number, halo: boolean) {
+  const outline = 'stroke="#ffffff" stroke-width="2"';
+  const shape = {
+    circle: `<circle cx="12" cy="12" r="10" fill="${fill}" ${outline}/>`,
+    square: `<rect x="2.5" y="2.5" width="19" height="19" rx="4" fill="${fill}" ${outline}/>`,
+    diamond: `<rect x="4.4" y="4.4" width="15.2" height="15.2" rx="2.5" fill="${fill}" ${outline} transform="rotate(45 12 12)"/>`,
+  }[mark.shape];
+  const haloSvg = halo ? `<circle class="halo" cx="12" cy="12" r="12" fill="${fill}"/>` : '';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true">${haloSvg}${shape}` +
+    `<text x="12" y="16" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="11" ` +
+    `font-weight="800" fill="#ffffff">${mark.letter}</text></svg>`;
+}
+
+function markerIcon(diseaseCode: string, tier: string, recent: boolean) {
+  const size = recent ? RECENT_SIZE : (TIER_SIZE[tier] ?? TIER_SIZE.mild);
+  const fill = recent ? RECENT_COLOR : (TIER_COLOR[tier] ?? NEUTRAL);
+  return L.divIcon({
+    className: recent ? 'cg-marker cg-marker-recent' : 'cg-marker',
+    html: markerSvg(DISEASE_MARK[diseaseCode] ?? UNKNOWN_MARK, fill, size, !recent && tier === 'severe'),
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
+  });
+}
 
 /**
  * Compact legend overlaid on the map itself, mirroring the mobile map's.
@@ -42,21 +74,20 @@ function Legend() {
 
     control.onAdd = () => {
       const div = L.DomUtil.create('div', 'map-legend');
-      const diseaseRows = Object.keys(DISEASE_RING)
-        .map(
-          (name) => `
-            <div class="legend-row">
-              <i class="ring" style="border-color: ${DISEASE_RING[name]}"></i>${diseaseLabel(name)}
-            </div>`
-        )
+      const swatch = (mark: Mark, fill: string) => `<span class="swatch">${markerSvg(mark, fill, 16, false)}</span>`;
+      const tierRow = (tier: string, label: string) =>
+        `<div class="legend-row">${swatch({ shape: 'circle', letter: '' }, TIER_COLOR[tier])}${label}</div>`;
+      const diseaseRows = Object.keys(DISEASE_MARK)
+        .map((name) => `<div class="legend-row">${swatch(DISEASE_MARK[name], NEUTRAL)}${diseaseLabel(name)}</div>`)
         .join('');
 
       div.innerHTML = `
         <h4>Severity</h4>
-        <div class="legend-row"><i class="dot" style="background: ${TIER_COLOR.severe}"></i>Severe Outbreak</div>
-        <div class="legend-row"><i class="dot" style="background: ${TIER_COLOR.moderate}"></i>Moderate Threat</div>
-        <div class="legend-row"><i class="dot" style="background: ${TIER_COLOR.mild}"></i>Mild Detection</div>
-        <h4 class="legend-sub">Disease (ring)</h4>
+        ${tierRow('severe', 'Severe Outbreak')}
+        ${tierRow('moderate', 'Moderate Threat')}
+        ${tierRow('mild', 'Mild Detection')}
+        <div class="legend-row" style="opacity:0.75">${swatch({ shape: 'circle', letter: '' }, RECENT_COLOR)}Reported 2–4 weeks ago</div>
+        <h4 class="legend-sub">Disease (shape)</h4>
         ${diseaseRows}
       `;
 
@@ -186,19 +217,16 @@ export default function MapPage() {
 
           {/* Report dots, after the polygons so they stack above them */}
           {(detections ?? []).map((d: any) => {
+            const recent = d.stage === 'recent';
             const tier = tierByBarangayDisease.get(`${d.barangay}||${d.municipality}||${d.diseaseCode}`) || 'mild';
+            const daysAgo = Math.max(0, Math.round((Date.now() - d.capturedAt) / DAY_MS));
             return (
-              <CircleMarker
+              <Marker
                 key={d.recordId}
-                center={[d.latitude, d.longitude]}
-                radius={TIER_RADIUS[tier] ?? 5}
-                pathOptions={{
-                  fillColor: TIER_COLOR[tier],
-                  fillOpacity: 0.85,
-                  color: ringColor(d.diseaseCode),
-                  weight: 2,
-                  opacity: 0.95,
-                }}
+                position={[d.latitude, d.longitude]}
+                icon={markerIcon(d.diseaseCode, tier, recent)}
+                // Severe on top, then moderate, then mild; faded past reports always underneath
+                zIndexOffset={recent ? -1000 : tier === 'severe' ? 2000 : tier === 'moderate' ? 1000 : 0}
               >
                 <Popup>
                   <div style={{ fontFamily: 'sans-serif', minWidth: '180px' }}>
@@ -208,16 +236,22 @@ export default function MapPage() {
                     </span>
                     <hr style={{ borderColor: '#333', margin: '8px 0' }} />
                     <span style={{ fontSize: '13px' }}>
-                      <strong>Severity:</strong>{' '}
-                      <span style={{ color: TIER_COLOR[tier], textTransform: 'uppercase', fontWeight: 'bold' }}>
-                        {tier}
-                      </span><br />
+                      {recent ? (
+                        <><span style={{ color: '#6b7280' }}>
+                          Reported {daysAgo} days ago · no longer counted in the outbreak level
+                        </span><br /></>
+                      ) : (
+                        <><strong>Severity:</strong>{' '}
+                        <span style={{ color: TIER_COLOR[tier], textTransform: 'uppercase', fontWeight: 'bold' }}>
+                          {tier}
+                        </span><br /></>
+                      )}
                       <strong>Confidence:</strong> {Math.round(d.confidence * 100)}%<br />
                       <strong>Reported:</strong> {new Date(d.capturedAt).toLocaleDateString()}
                     </span>
                   </div>
                 </Popup>
-              </CircleMarker>
+              </Marker>
             );
           })}
         </MapContainer>
@@ -231,10 +265,12 @@ export default function MapPage() {
         </div>
         <div className="card-body">
           <p style={{ margin: '0 0 12px 0', color: 'var(--text-secondary)', fontSize: '13px' }}>
-            Each dot is one verified report at its recorded coordinates. Its fill shows the
-            outbreak tier of that barangay <em>for that disease</em>; its ring shows which
-            disease. Tiers are recomputed over a rolling 14-day window, weighting each report
-            by its model confidence.
+            Each marker is one verified report at its recorded coordinates. Its colour shows the
+            outbreak tier of that barangay <em>for that disease</em>; its shape and letter show
+            which disease (circle B = Northern Leaf Blight, square R = Common Rust, diamond G = Gray
+            Leaf Spot). Tiers are recomputed over a rolling 14-day window, weighting each report
+            by its model confidence. After 14 days a report turns into a faded grey marker (no longer
+            counted); after 28 days it disappears. Healthy scans and suspended accounts are never shown.
           </p>
           <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', lineHeight: 1.7 }}>
             <li>

@@ -59,6 +59,7 @@
     <string name="result_share_action">Share to Community</string>
     <string name="result_shared_action_done">Shared to Community</string>
     <string name="result_share_requires_sign_in">Sign in to share this result with the community.</string>
+    <string name="result_share_requires_location">Set the location (barangay) first, so this report can appear on the Outbreak Map.</string>
     <string name="result_share_failed">Couldn\'t share this result. Check your connection and try again.</string>
     <string name="result_no_treatment">No reference content is available for this disease on this device yet.</string>
 
@@ -92,7 +93,7 @@
     <string name="map_sign_in_prompt">Sign in to see verified outbreaks and community reports for your barangay.</string>
     <string name="map_no_area_profile">Add your barangay to your profile to see nearby reports.</string>
     <string name="map_verified_title">Verified Outbreaks</string>
-    <string name="map_verified_empty">No verified outbreaks near you yet. Only scans an admin has confirmed appear here.</string>
+    <string name="map_verified_empty">No disease reports near you in the last 4 weeks.</string>
     <string name="map_nearby_title">Nearby Reports</string>
     <string name="map_nearby_empty">No community reports in your area yet.</string>
     <string name="map_area_format">Showing %1$s</string>

@@ -50,7 +50,9 @@ data class MapReport(
     val latitude: Double,
     val longitude: Double,
     val barangay: String,
-    val municipality: String
+    val municipality: String,
+    /** "active" (last 14 days, counted in the level) or "recent" (14-28 days, drawn faded). */
+    val stage: String = "active"
 )
 
 /**

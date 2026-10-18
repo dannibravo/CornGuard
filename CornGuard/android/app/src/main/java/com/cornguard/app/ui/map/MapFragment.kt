@@ -6,7 +6,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.util.Log
 import android.view.ViewGroup
+import android.os.SystemClock
 import android.webkit.ConsoleMessage
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -18,9 +20,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import androidx.navigation.navOptions
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
+import com.cornguard.app.BuildConfig
 import com.cornguard.app.R
 import com.cornguard.app.data.model.BarangayStat
 import com.cornguard.app.data.model.MapReport
@@ -90,6 +94,8 @@ class MapFragment : Fragment() {
         val assetLoader = WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(requireContext()))
             .build()
+        // Debug builds only: lets the map be inspected from Chrome (chrome://inspect).
+        WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
         binding.mapWebView.apply {
             settings.javaScriptEnabled = true
             settings.allowFileAccess = false
@@ -97,6 +103,16 @@ class MapFragment : Fragment() {
             webViewClient = object : WebViewClientCompat() {
                 override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
                     assetLoader.shouldInterceptRequest(request.url)
+
+                // The map page's renderer can be killed (low memory, renderer crash). Without this the
+                // WebView stays blank — or the whole app is killed. A dead WebView can't be reused, so
+                // reopen this screen with a fresh one.
+                override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                    Log.w(BRIDGE_NAME, "Map renderer gone (crashed=${detail.didCrash()}), reloading the map screen")
+                    pageReady = false
+                    view.post { reopenAfterRendererLoss() }
+                    return true
+                }
             }
             webChromeClient = object : WebChromeClient() {
                 override fun onConsoleMessage(message: ConsoleMessage): Boolean {
@@ -107,6 +123,19 @@ class MapFragment : Fragment() {
             addJavascriptInterface(Bridge(), BRIDGE_NAME)
             loadUrl(MAP_URL)
         }
+    }
+
+    private fun reopenAfterRendererLoss() {
+        if (_binding == null || !isAdded) return
+        val now = SystemClock.elapsedRealtime()
+        val nav = findNavController()
+        if (now - lastRendererRecoveryAt < RECOVERY_COOLDOWN_MS) {
+            // It died again right after reopening — don't loop; go back instead.
+            nav.popBackStack()
+            return
+        }
+        lastRendererRecoveryAt = now
+        nav.navigate(R.id.mapFragment, arguments, navOptions { popUpTo(R.id.mapFragment) { inclusive = true } })
     }
 
     /** Called from the page once Leaflet and the boundaries are loaded (on a WebView thread). */
@@ -204,10 +233,14 @@ class MapFragment : Fragment() {
 
             val areaFilter = "barangay" to profile.barangay
             val occurrences = runCatching {
-                ServiceLocator.gisRepository.getVerifiedOccurrences(areaFilter, diseaseFilter = null)
+                ServiceLocator.gisRepository.getVerifiedOccurrences(
+                    areaFilter, diseaseFilter = null, municipality = profile.municipality.ifBlank { null }
+                )
             }.getOrDefault(emptyList())
             val nearbyReports = runCatching {
-                ServiceLocator.gisRepository.getNearbyReports(areaFilter, diseaseFilter = null)
+                ServiceLocator.gisRepository.getNearbyReports(
+                    areaFilter, diseaseFilter = null, municipality = profile.municipality.ifBlank { null }
+                )
             }.getOrDefault(emptyList())
             if (_binding == null) return@launch
 
@@ -231,6 +264,8 @@ class MapFragment : Fragment() {
 
     companion object {
         private const val BRIDGE_NAME = "CornGuardMap"
+        private const val RECOVERY_COOLDOWN_MS = 15_000L
+        private var lastRendererRecoveryAt = 0L
         private const val MAP_URL = "https://appassets.androidplatform.net/assets/map/outbreak-map.html"
 
         private fun statsJson(stats: List<BarangayStat>) = JSONArray().apply {
@@ -252,6 +287,7 @@ class MapFragment : Fragment() {
             reports.forEach { r ->
                 put(JSONObject().apply {
                     put("recordId", r.recordId)
+                    put("stage", r.stage)
                     put("diseaseCode", r.diseaseCode)
                     put("confidence", r.confidence)
                     put("capturedAt", r.capturedAt)

@@ -3,6 +3,7 @@ import { internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, QueryCtx } from "./_generated/server";
 import { assertOwnerOrAdmin, currentUserId, isAdmin, requireActiveUser } from "./lib/access";
+import { areaKey } from "./outbreakAlerts";
 import { areaField } from "./schema";
 
 async function authorName(ctx: QueryCtx, userId: Id<"users">) {
@@ -254,14 +255,19 @@ export const nearbyReports = query({
   args: {
     areaField,
     areaValue: v.string(),
+    // With a barangay: only that town's barangay (many towns have a "Poblacion"), compared normalised.
+    municipality: v.optional(v.string()),
     diseaseTag: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, { areaField, areaValue, diseaseTag, limit }) => {
+  handler: async (ctx, { areaField, areaValue, municipality, diseaseTag, limit }) => {
     if (!(await currentUserId(ctx))) return [];
     let q = visiblePosts(ctx, { field: areaField, value: areaValue });
     if (diseaseTag) q = q.filter((f) => f.eq(f.field("diseaseTag"), diseaseTag));
-    const posts = await q.order("desc").take(limit ?? 50);
+    const wanted = areaField === "barangay" && municipality ? areaKey(areaValue, municipality) : null;
+    const posts = (await q.order("desc").take(500))
+      .filter((p) => !wanted || areaKey(p.barangay, p.municipality) === wanted)
+      .slice(0, limit ?? 50);
     return posts.map((p) => ({
       postId: p._id,
       diseaseTag: p.diseaseTag,

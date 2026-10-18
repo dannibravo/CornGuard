@@ -8,7 +8,9 @@ import { queueOutbreak } from "./outbreakAlerts";
  * Barangay-level outbreak severity for the heatmap — ported from caps 3
  * (my-app/convex/barangayStats.ts) with the same rules. Only verified reports count.
  */
-const WINDOW_MS = 14 * 24 * 60 * 60 * 1000; // 14-day rolling window
+export const WINDOW_MS = 14 * 24 * 60 * 60 * 1000; // 14-day rolling window
+/** Map markers stay visible (faded, not counted) for this long, then disappear. */
+export const RECENT_MS = 2 * WINDOW_MS;
 const MODERATE_SCORE = 2.0;
 const SEVERE_SCORE = 4.0;
 const SEVERE_MIN_FARMS = 3;
@@ -16,9 +18,10 @@ const MODERATE_MIN_FARMS = 2;
 
 export const HEALTHY = "healthy";
 
+// Scaled to the model's real range (label smoothing caps its top score near 92.5%).
 function weightOf(confidence: number) {
-  if (confidence >= 0.9) return 1.0;
-  if (confidence >= 0.7) return 0.6;
+  if (confidence >= 0.8) return 1.0;
+  if (confidence >= 0.6) return 0.6;
   return 0.3;
 }
 

@@ -19,7 +19,7 @@ Third-party data and libraries (barangay boundaries, Leaflet, OpenStreetMap) are
 ## Download the app (APK)
 
 The installable app is published on this repository's **Releases** page, not in the code
-(latest: **Releases → [v0.2.0-debug](https://github.com/dannibravo/CornGuard/releases/tag/v0.2.0-debug) → `CornGuard-0.2.0-debug.apk`**).
+(latest: **Releases → [v0.2.1-debug](https://github.com/dannibravo/CornGuard/releases/tag/v0.2.1-debug) → `CornGuard-0.2.1-debug.apk`**).
 
 To install on a phone (Android 8.0 or newer):
 

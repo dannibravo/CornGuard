@@ -118,6 +118,8 @@ data class BarangayStatDto(
 
 @Serializable
 data class MapReportDto(
+    /** "active" (last 14 days, counted in the level) or "recent" (14-28 days, drawn faded). */
+    val stage: String = "active",
     val recordId: String,
     val diseaseCode: String,
     val confidence: Double,

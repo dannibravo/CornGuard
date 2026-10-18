@@ -114,9 +114,10 @@ export default defineSchema({
     municipality: v.string(),
     diseaseCodes: v.array(v.string()),
     status: v.union(v.literal("pending"), v.literal("approved"), v.literal("dismissed")),
+    // "manual" = a CLI test alert (devAccounts.sendTestAlert); admins can no longer raise alerts by hand.
     source: v.union(v.literal("automatic"), v.literal("manual")),
     declaredAt: v.number(),
-    message: v.optional(v.string()),   // custom text for a manual alert
+    message: v.optional(v.string()),   // custom text (test alerts)
     reviewedBy: v.optional(v.id("users")),
     reviewedAt: v.optional(v.number()),
     note: v.optional(v.string()),

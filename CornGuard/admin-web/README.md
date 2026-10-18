@@ -7,7 +7,7 @@ styles, and connected to CornGuard's Convex backend (`../backend`).
 | Page | What it's for | Backend functions (`backend/convex/admin.ts` unless noted) |
 |---|---|---|
 | **Dashboard** | Counts of what needs attention | `stats` |
-| **Outbreaks** | Severe barangays wait here as *pending*. **Approve** notifies farmers in that barangay and the ones bordering it; **Dismiss** notifies nobody. Also: raise an alert manually, see history and the push delivery log. | `listOutbreaks`, `approveOutbreak`, `dismissOutbreak`, `raiseAlert`, `recentNotifications` |
+| **Outbreaks** | Severe barangays wait here as *pending*. **Approve** notifies farmers in that barangay and the ones bordering it; **Dismiss** notifies nobody. Also: history and the push delivery log. There is no manual alert: every alert starts from verified reports. | `listOutbreaks`, `approveOutbreak`, `dismissOutbreak`, `recentNotifications` |
 | **Review → Leaf scans** | Check shared scans' photos; Verify or Reject. Only verified scans count toward outbreaks. | `listRecords`, `setRecordVerification` |
 | **Review → Posts** | Authenticity signals: photo, linked scan (and whether it matches the disease tag), author's history, upvotes and comments. Verify or reject; hide, remove or restore. | `listPosts`, `setPostVerification`, `setPostModeration` |
 | **Review → Comments** | Hide, remove or restore | `listComments`, `setCommentModeration` |

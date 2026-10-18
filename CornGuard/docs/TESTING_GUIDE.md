@@ -45,18 +45,22 @@ You do not need to know how the app works. Follow the steps exactly, compare wha
 ### 2.2 Install the mobile app 📱
 
 **On a real phone**
-1. Ask the project owner for the file `app-debug.apk` (found in `android/app/build/outputs/apk/debug/`).
-2. Copy it to the phone and tap it.
+1. Download **`CornGuard-0.2.1-debug.apk`** from the GitHub release:
+   https://github.com/dannibravo/CornGuard/releases/tag/v0.2.1-debug (or ask the project owner for the file).
+2. Copy it to the phone (or download it on the phone) and tap it.
 3. If Android asks, allow "Install unknown apps" for the file manager you used, then tap **Install**.
 4. Open **CornGuard** from the app list. The icon is a **white shield with a yellow corn cob** on a green background.
 
 **On the Android emulator (computer)**
 1. Start the emulator (Android Studio → Device Manager → ▶ Play).
-2. In a terminal, run:
-   `adb install -r --abi armeabi-v7a android/app/build/outputs/apk/debug/app-debug.apk`
+2. In a terminal, run (use the downloaded APK, or the one you built):
+   `adb install -r --abi armeabi-v7a CornGuard-0.2.1-debug.apk`
 3. Open **CornGuard** from the app list.
 
-> Note: the emulator cold-boots each time but keeps installed apps. If CornGuard ever disappears or shows an old icon, install it again with step 2.
+> Notes for the emulator:
+> - It cold-boots each time but keeps installed apps. If CornGuard ever disappears or shows an old icon, install it again with step 2.
+> - After it boots, wait **30–60 seconds** on the home screen before opening CornGuard. Opening apps while Android is still starting can freeze the status bar and Home button; if that happens, run `adb reboot`.
+> - To give the emulator a GPS position: emulator toolbar **⋯ → Location**, type latitude and longitude, click **Set Location** ("Save point" alone does not move it). Or run `adb emu geo fix <longitude> <latitude>`, e.g. `adb emu geo fix 125.09 7.91` for Valencia. A cold boot resets the position.
 
 ### 2.3 Run the admin website 💻
 
@@ -69,9 +73,9 @@ You do not need to know how the app works. Follow the steps exactly, compare wha
 
 | Account | Email | Password | Used for |
 |---|---|---|---|
-| Demo farmer | `demo@cornguard.app` | `CornGuard-Demo-2026` | Main mobile app account (profile: Poblacion, Valencia, Bukidnon) |
-| Helper farmer 2 | `demo2@cornguard.app` | `CornGuard-Demo-2026` | Second farmer for outbreak/comment tests |
-| Helper farmer 3 | `demo3@cornguard.app` | `CornGuard-Demo-2026` | Third farmer for outbreak tests |
+| Demo farmer | `demo@cornguard.app` | `demo1234` | Main mobile app account (profile: Poblacion, Valencia, Bukidnon) |
+| Helper farmer 2 | `demo2@cornguard.app` | `demo1234` | Second farmer for outbreak/comment tests |
+| Helper farmer 3 | `demo3@cornguard.app` | `demo1234` | Third farmer for outbreak tests |
 | Admin | `admin@cornguard.app` | **Ask the project owner** (not written here for security) | Admin website |
 
 You may also create new accounts during testing (see M-AUTH tests). Use made-up emails such as `tester1@example.com`.
@@ -267,7 +271,7 @@ The sign-in screen opens from any "Sign In" button (Settings, Community, Outbrea
 #### M-AUTH-06 · Sign in with a correct account
 **Platform:** 📱 Mobile app
 **Steps:**
-1. Email: `demo@cornguard.app`. Password: `CornGuard-Demo-2026`.
+1. Email: `demo@cornguard.app`. Password: `demo1234`.
 2. Tap "Sign In".
 **Expected result:** A loading spinner shows briefly, then the sign-in screen closes. Settings shows "Demo Farmer", "Poblacion, Valencia" and "demo@cornguard.app".
 **Explanation:** Signing in unlocks sharing, Community and the Outbreak Map, and registers the phone for alerts.
@@ -378,7 +382,7 @@ The sign-in screen opens from any "Sign In" button (Settings, Community, Outbrea
 1. Make sure location permission for CornGuard is not yet granted.
 2. Scan a leaf.
 **Expected result:** The result appears right away. Android also asks for location permission. Since location was not available for this scan, its location line shows "GPS unavailable" (see M-RES-03). After allowing, later scans include the location.
-**Explanation:** Location is optional; the app never makes the farmer wait for a GPS fix.
+**Explanation:** Location is optional. With permission, the app uses a recent position if the phone has one, otherwise it asks for a fresh GPS fix and waits at most about 8 seconds (GPS works without internet). It never asks for permission in the middle of a scan.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 ---
@@ -403,10 +407,11 @@ The result sheet slides up after every scan, and when a History item is tapped.
 
 #### M-RES-03 · Location line
 **Platform:** 📱 Mobile app
-**Steps:** Scan leaves in these situations (on the emulator, set location with `adb emu geo fix 125.09 7.91` for Valencia):
-1. GPS inside Bukidnon. 2. GPS outside Bukidnon. 3. No location permission / GPS off.
-**Expected result:** 1: a green pin with "Barangay, Municipality" (for example "Poblacion, City of Valencia"). 2: an orange warning "Outside Bukidnon". 3: an orange warning "GPS unavailable". In cases 2 and 3 an underlined "Set location manually" link appears.
-**Explanation:** The barangay decides where a shared scan appears on the Outbreak Map.
+**Steps:** Scan leaves in these situations (on the emulator, set the position as in section 2.2 — e.g. `adb emu geo fix 125.09 7.91` for Valencia):
+1. GPS inside Bukidnon. 2. GPS outside Bukidnon. 3. No location permission / GPS off. 4. Set two different points in the same barangay and scan once at each.
+**Expected result:** 1: a green pin with "Barangay, Municipality" (for example "Poblacion, City of Valencia"). 2: an orange warning "Outside Bukidnon". 3: an orange warning "GPS unavailable". In cases 2 and 3 an underlined "Set location manually" link appears. 4: both show the same barangay; once shared, they appear as two separate markers at their own points.
+**Explanation:** The barangay decides which area a shared scan counts toward; the GPS point decides exactly where its marker is drawn.
+**Error/edge cases:** On a real phone you can test other places with a mock-location app (Developer options → "Select mock location app"); turn it off afterwards.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### M-RES-04 · Set location manually (barangay picker)
@@ -416,7 +421,7 @@ The result sheet slides up after every scan, and when a History item is tapped.
 2. In "Select Barangay", type `lumbo` in the search box.
 3. Tap "Lumbo — City of Valencia".
 **Expected result:** The picker lists all Bukidnon barangays with their municipality. Typing filters the list. After tapping, the picker closes, the location line turns green ("Lumbo, City of Valencia") and the link changes to "Change location".
-**Explanation:** Lets farmers fix the location when GPS fails, so the report lands in the right barangay.
+**Explanation:** Lets farmers fix the location when GPS fails, so the report lands in the right barangay. A manually picked location uses the barangay's centre point, so several manual scans in one barangay sit on top of each other on the map.
 **Error/edge cases:** Typing something that matches nothing (e.g. `zzzz`) shows "No barangay matches your search." Tapping the "X" closes the picker without changing anything. Search also matches municipality names (try `maramag`).
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
@@ -442,7 +447,7 @@ The result sheet slides up after every scan, and when a History item is tapped.
 **Explanation:** Sharing sends the scan (photo, disease, confidence, location) to the server so it can count toward outbreak detection.
 **Error/edge cases:**
 - Tapping the button many times quickly shares only once.
-- A share at **85% confidence or higher** is verified automatically and appears as a dot on the Outbreak Map. Below 85% it waits for an admin to verify it (see W-REV-03).
+- A share at **60% confidence or higher** is verified automatically and appears as a dot on the Outbreak Map. Below 60% it waits for an admin to verify it (see W-REV-03).
 - A farmer can share at most **30 scans per day**; the 31st is refused with an error (hard to trigger by hand).
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
@@ -451,6 +456,13 @@ The result sheet slides up after every scan, and when a History item is tapped.
 **Steps:** 1. Signed in, turn on Airplane mode. 2. Scan a leaf and tap "Share to Community".
 **Expected result:** Message: "Couldn't share this result. Check your connection and try again." The scan stays in History as "On device"; you can share it later from History.
 **Explanation:** Sharing needs internet; nothing is lost when it fails.
+**Result:** ☐ Pass ☐ Fail — Notes: ____________
+
+#### M-RES-09 · Share without a location
+**Platform:** 📱 Mobile app
+**Steps:** 1. Signed in, scan a leaf with location off (the line says "GPS unavailable"). 2. Tap "Share to Community" without setting a location. 3. Tap "Set location manually", pick a barangay, and tap "Share to Community" again.
+**Expected result:** Step 2: message "Set the location (barangay) first, so this report can appear on the Outbreak Map." and nothing is shared. Step 3: the share succeeds as in M-RES-07.
+**Explanation:** Outbreaks are counted per barangay, so a report without one couldn't count anywhere. The server refuses such shares too.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 ---
@@ -573,9 +585,9 @@ The result sheet slides up after every scan, and when a History item is tapped.
 #### M-MAP-02 · Map loads with boundaries and dots
 **Platform:** 📱 Mobile app
 **Steps:** 1. Sign in. 2. Open the Outbreak Map (load demo data first, section 2.5).
-**Expected result:** A dark header "Outbreak Heatmap" with a round back button. A street map of northern Mindanao with Bukidnon's barangay boundaries drawn as outlines. Coloured dots: red (Severe), amber (Moderate), green (Mild), each with a coloured ring (blue = Northern Leaf Blight, pink = Common Rust, violet = Gray Leaf Spot). A legend at the bottom right, zoom "+"/"−" buttons at the bottom left, and a "Reports near you" panel at the bottom.
+**Expected result:** A dark header "Outbreak Heatmap" with a round back button. A street map of northern Mindanao with Bukidnon's barangay boundaries drawn as outlines. Markers coloured by severity — red (Severe), amber (Moderate), green (Mild) — with a white border; the shape and letter show the disease (circle "B" = Northern Leaf Blight, square "R" = Common Rust, diamond "G" = Gray Leaf Spot). Severe markers pulse softly. A legend at the bottom right, zoom "+"/"−" buttons at the bottom left, and a "Reports near you" panel at the bottom.
 **Explanation:** Shows where verified reports are and how serious each area is.
-**Error/edge cases:** Bigger dots = more severe, so the map is readable without relying on colour alone.
+**Error/edge cases:** Bigger markers = more severe, and the disease is shown by shape, so the map is readable without relying on colour alone. Where markers overlap, Severe is drawn on top.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### M-MAP-03 · Zoom, pan and back
@@ -587,14 +599,14 @@ The result sheet slides up after every scan, and when a History item is tapped.
 #### M-MAP-04 · Collapsible legend
 **Platform:** 📱 Mobile app
 **Steps:** 1. Tap the legend box. 2. Tap "Legend ▸".
-**Expected result:** Tap 1 shrinks it to a small "Legend ▸" button (uncovering the map). Tap 2 expands it again ("Severity" and "Disease (ring)" lists).
+**Expected result:** Tap 1 shrinks it to a small "Legend ▸" button (uncovering the map). Tap 2 expands it again: "Severity" (Severe Outbreak, Moderate Threat, Mild Detection, Reported 2–4 weeks ago) and "Disease (shape)".
 **Explanation:** On a phone the full legend can cover dots.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### M-MAP-05 · Dot popup
 **Platform:** 📱 Mobile app
 **Steps:** 1. Tap a dot.
-**Expected result:** A dark popup: disease name, "Barangay, Municipality", "Severity: SEVERE/MODERATE/MILD" in the matching colour, "Confidence: NN%" and "Reported: <date>". Tapping elsewhere or the popup's "×" closes it.
+**Expected result:** A dark popup: disease name, "Barangay, Municipality", "Severity: SEVERE/MODERATE/MILD" in the matching colour, "Confidence: NN%" and "Reported: <date>". For a faded grey marker the severity line reads "Reported N days ago · no longer counted in the outbreak level". Tapping elsewhere or the popup's "×" closes it.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### M-MAP-06 · Barangay popup
@@ -608,8 +620,8 @@ The result sheet slides up after every scan, and when a History item is tapped.
 #### M-MAP-07 · "Reports near you" panel
 **Platform:** 📱 Mobile app
 **Steps:** 1. Tap the "Reports near you" header (or drag it up). 2. Scroll. 3. Tap the header again (or drag it down).
-**Expected result:** The panel rises and shows "Showing <your barangay, municipality>", a "VERIFIED OUTBREAKS" list and a "NEARBY REPORTS" list (or their empty messages: "No verified outbreaks near you yet…" / "No community reports in your area yet."). Tapping again lowers it.
-**Explanation:** A text summary of reports in the farmer's own barangay.
+**Expected result:** The panel rises and shows "Showing <your barangay, municipality>", a "VERIFIED OUTBREAKS" list and a "NEARBY REPORTS" list (or their empty messages: "No disease reports near you in the last 4 weeks." / "No community reports in your area yet."). Tapping again lowers it.
+**Explanation:** A text summary of the last 4 weeks of reports in the farmer's own barangay — in their own town only (many towns have a "Poblacion"). Healthy scans aren't listed.
 **Error/edge cases:** With no barangay in the profile: "Add your barangay to your profile to see nearby reports."
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
@@ -625,6 +637,24 @@ The result sheet slides up after every scan, and when a History item is tapped.
 **Steps:** 1. Keep the map open on the phone. 2. On another device, share a confident scan in Bukidnon (or run the demo script).
 **Expected result:** The new dot appears within a few seconds without leaving the screen.
 **Explanation:** The map receives updates live from the server.
+**Result:** ☐ Pass ☐ Fail — Notes: ____________
+
+#### M-MAP-10 · Old reports fade, then disappear
+**Platform:** 📱 Mobile app (+ 💻 Web, same behaviour)
+**Steps:**
+1. Note a verified report on the map and its record id (website → Review → Leaf scans → Verified; or ask the project owner).
+2. On a computer with the project, in `backend/`, run `npx convex run devAccounts:backdateRecord "{recordId:'<id>', daysAgo:20}"`.
+3. Reopen the map. Then run the command again with `daysAgo:35` and reopen the map.
+**Expected result:** After step 2 the report is a small, faded grey marker (same shape and letter); its popup says "Reported 20 days ago · no longer counted in the outbreak level", and the barangay's severity no longer counts it. After step 3 the marker is gone.
+**Explanation:** Severity counts the last 14 days. Reports 14–28 days old stay visible but faded, so an outbreak doesn't vanish overnight if farmers stop scanning; after 28 days they disappear. During a long outbreak, new reports keep the area coloured.
+**Error/edge cases:** Open maps update when data changes and at least once a day (the nightly recalculation at 2 am).
+**Result:** ☐ Pass ☐ Fail — Notes: ____________
+
+#### M-MAP-11 · Healthy scans aren't shown
+**Platform:** 📱 Mobile app
+**Steps:** 1. Scan a healthy leaf (e.g. `healthy_01.jpg`) with a location in Bukidnon and share it. 2. Open the map.
+**Expected result:** No marker appears for it, and it isn't listed in "Reports near you".
+**Explanation:** The map shows disease reports only.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 ---
@@ -744,7 +774,7 @@ The result sheet slides up after every scan, and when a History item is tapped.
 
 #### W-LOGIN-04 · Non-admin account is refused
 **Platform:** 💻 Web
-**Steps:** 1. Sign in with `demo@cornguard.app` / `CornGuard-Demo-2026`. 2. Click "Sign out".
+**Steps:** 1. Sign in with `demo@cornguard.app` / `demo1234`. 2. Click "Sign out".
 **Expected result:** A lock screen "Admins only" — "demo@cornguard.app is not an admin. Ask an existing admin to promote it in Users." — with a "Sign out" button that returns to the login page.
 **Explanation:** Farmers' accounts work in the app but cannot use admin tools. The server also blocks them, not just the page.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
@@ -818,19 +848,7 @@ The result sheet slides up after every scan, and when a History item is tapped.
 **Explanation:** For false alarms (e.g. wrong photos).
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
-#### W-OUT-04 · Raise an alert manually
-**Platform:** 💻 Web (+ 📱)
-**Steps:**
-1. In "Raise an alert manually", choose Municipality "City of Valencia".
-2. Choose Barangay "Poblacion".
-3. Tick "Common Rust".
-4. Optionally type a message, e.g. `Inspect lower leaves this week.`
-5. Click "Send alert", then "Send alert" in the dialog.
-**Expected result:** The Barangay list is disabled until a municipality is chosen, then lists only that town's barangays. "Send alert" stays disabled until municipality, barangay and at least one disease are chosen. After confirming, "Alert sent for Poblacion, City of Valencia." appears, the form clears, History shows a "manual" "SENT" row, and farmers there get the push (your message if typed, otherwise the standard one).
-**Error/edge cases:** Changing the municipality clears the chosen barangay. Several diseases can be ticked (one combined alert).
-**Result:** ☐ Pass ☐ Fail — Notes: ____________
-
-#### W-OUT-05 · History tabs and delivery log
+#### W-OUT-04 · History tabs and delivery log
 **Platform:** 💻 Web
 **Steps:** 1. In "History", click "All", "Sent", "Dismissed". 2. Scroll to "Push delivery log".
 **Expected result:** Each tab filters the list. With nothing to show: "No Data — No reviewed outbreaks yet." The delivery log lists each push with time, type, title and a badge: green "sent", red "failed" (e.g. the phone had no app installed), orange "pending".
@@ -849,7 +867,7 @@ The result sheet slides up after every scan, and when a History item is tapped.
 #### W-REV-02 · Scan list and photo zoom
 **Platform:** 💻 Web
 **Steps:** 1. In "Leaf scans", click "Awaiting review", "Verified", "Rejected", "All". 2. Click a scan photo. 3. Click outside the big photo.
-**Expected result:** Columns: Photo, Model says, Confidence, Farmer, Area, Scanned, Status, Actions. The photo opens full size and closes when you click outside it. Scans without GPS show "(no GPS)"; farmers who are suspended show a red "suspended" badge.
+**Expected result:** Columns: Photo, Model says, Confidence, Farmer, Area, Scanned, Status, Actions. The photo opens full size and closes when you click outside it. Scans with a barangay but no GPS point show "(no GPS)"; scans with no location at all (older app versions) show a red "No location" badge; farmers who are suspended show a red "suspended" badge.
 **Error/edge cases:** Clicking a column header with an arrow sorts the list (click again to reverse).
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
@@ -858,7 +876,7 @@ The result sheet slides up after every scan, and when a History item is tapped.
 **Steps:** 1. On an "Awaiting review" scan with a Bukidnon location, click "Verify". 2. On a verified scan, click "Reject".
 **Expected result:** The status badge changes immediately (VERIFIED green / REJECTED red) and the scan moves to the matching tab. A verified scan appears as a dot on the Outbreak Map; a rejected one disappears from the map and its barangay's severity is recalculated.
 **Explanation:** Only verified scans count toward outbreaks, so admins remove wrong or fake ones.
-**Error/edge cases:** Clicking "Verify" twice quickly causes no error. If the action fails (e.g. internet lost), a red message appears above the list.
+**Error/edge cases:** Clicking "Verify" twice quickly causes no error. If the action fails (e.g. internet lost), a red message appears above the list. For a scan with a red "No location" badge, "Verify" is greyed out (hover: "No location: this scan can't be placed on the map") — such scans can only be rejected.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### W-REV-04 · Post authenticity signals
@@ -901,7 +919,7 @@ The result sheet slides up after every scan, and when a History item is tapped.
 #### W-USR-03 · Suspend and reactivate
 **Platform:** 💻 Web (+ 📱)
 **Steps:** 1. Click "Suspend" on a test user (e.g. demo3), then "Suspend" in the dialog. 2. In the app, signed in as that user, try to create a post or share a scan. 3. Back on the website, click "Reactivate" and confirm.
-**Expected result:** The dialog warns what suspension does. After suspending, the status becomes "suspended"; in the app the user's post/share fails with an error; their scans stop counting on the map and they get no outbreak alerts. After reactivating, everything works again.
+**Expected result:** The dialog warns what suspension does. After suspending, the status becomes "suspended"; in the app the user's post/share fails with an error; their markers disappear from the Outbreak Map, their scans stop counting toward severity, and they get no outbreak alerts. After reactivating, everything works again.
 **Error/edge cases:** There is no Suspend button on your own row (you cannot suspend yourself). Nothing is permanently deleted.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
@@ -918,7 +936,7 @@ The result sheet slides up after every scan, and when a History item is tapped.
 #### W-MAP-01 · Web map
 **Platform:** 💻 Web
 **Steps:** 1. Open "Outbreak Map". 2. Click a dot and a barangay. 3. Read the card below the map.
-**Expected result:** The same map as the app (boundaries, coloured dots with rings, legend, popups) with "Individual verified reports across Bukidnon — N plotted". Below: "How severity is assigned" explaining Severe, Moderate and Mild.
+**Expected result:** The same map as the app (boundaries, severity-coloured markers with disease shapes, faded grey markers for 2–4-week-old reports, legend, popups) with "Individual verified reports across Bukidnon — N plotted". Below: "How severity is assigned" explaining Severe, Moderate and Mild.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### W-GEN-01 · Loading, empty and error states
@@ -941,8 +959,8 @@ The result sheet slides up after every scan, and when a History item is tapped.
 **Platform:** 📱 Mobile app + 💻 Web
 **Steps:**
 1. Phone: sign in as `demo@cornguard.app`, stay signed in, leave the phone on the home screen.
-2. Using three accounts (demo, demo2, demo3), share confident (85%+) scans of the same disease with a location in Poblacion, City of Valencia — four scans in total, at least one from each account. (Shortcut: run `node scripts/seed-map-demo.mjs`.)
-3. Phone: open the Outbreak Map — a red dot appears in Valencia. No notification has arrived.
+2. Using three accounts (demo, demo2, demo3), share confident (80%+) scans of the same disease with a location in Poblacion, City of Valencia — four scans in total, at least one from each account. (Shortcut: run `node scripts/seed-map-demo.mjs`.)
+3. Phone: open the Outbreak Map — red, softly pulsing "B" markers appear in Valencia. No notification has arrived.
 4. Website: the Dashboard shows "1 Outbreaks awaiting review". Open Outbreaks → Approve & notify farmers → Send alert.
 5. Phone: the outbreak notification arrives; tap it.
 **Expected result:** Each step behaves as described; the notification opens the Outbreak Map.
@@ -958,7 +976,7 @@ The result sheet slides up after every scan, and when a History item is tapped.
 #### E-03 · Rejecting scans lowers severity
 **Platform:** 📱 + 💻
 **Steps:** 1. With the demo Severe outbreak loaded, website: Review → Leaf scans → All → reject two of the Poblacion (Valencia) scans. 2. App: look at the Valencia dot and barangay popup.
-**Expected result:** The severity drops (Severe → Moderate or Mild) and the dot gets smaller and changes colour. A still-pending outbreak card on the website shows the "Severity has dropped…" hint.
+**Expected result:** The severity drops (Severe → Moderate or Mild); the remaining markers get smaller and change colour, and the rejected scans' markers disappear. A still-pending outbreak card on the website shows the "Severity has dropped…" hint.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### E-04 · Suspended user
@@ -984,6 +1002,8 @@ The result sheet slides up after every scan, and when a History item is tapped.
 | "That photo couldn't be read. Please try another one." | 📱 | Scan | Broken/unsupported image |
 | "Sign in to share this result with the community." | 📱 | Result sheet | Sharing while signed out |
 | "Couldn't share this result. Check your connection and try again." | 📱 | Result sheet | Sharing fails |
+| "Set the location (barangay) first, so this report can appear on the Outbreak Map." | 📱 | Result sheet | Sharing a scan that has no location |
+| "No disease reports near you in the last 4 weeks." | 📱 | Map → Reports near you | Nothing reported in your barangay recently |
 | "No barangay matches your search." | 📱 | Select Barangay | Search finds nothing |
 | "Delete this scan?" | 📱 | History | Trash icon tapped |
 | "Write something before posting." | 📱 | Create Post | Empty post |
@@ -991,24 +1011,28 @@ The result sheet slides up after every scan, and when a History item is tapped.
 | "Couldn't save your profile. Check your connection and try again." | 📱 | Edit Profile | Save fails |
 | "You're offline. Scanning and history still work…" | 📱 | Any screen | No internet |
 | "Admins only" | 💻 | After sign in | Account is not an admin, or is suspended |
-| "Send outbreak alert?" / "Dismiss outbreak?" / "Send this alert now?" | 💻 | Outbreaks | Before approving, dismissing or raising an alert |
+| "Send outbreak alert?" / "Dismiss outbreak?" | 💻 | Outbreaks | Before approving or dismissing an outbreak |
+| "No location" (red badge; Verify greyed out) | 💻 | Review → Leaf scans | A scan has no barangay |
+| "This scan has no location, so it can't be placed on the map. Reject it instead." | 💻 | Review → Leaf scans | Verifying a scan with no location (if attempted) |
 
 ### 6.2 Outbreak severity rules
 
-Only **verified** scans from the last **14 days** in the same barangay count. Each scan adds weight by confidence: 90%+ = 1.0, 70–89% = 0.6, below 70% = 0.3.
+Only **verified** scans from the last **14 days** in the same barangay count. Each scan adds weight by confidence: 80%+ = 1.0, 60–79% = 0.6, below 60% = 0.3.
 
 | Level | Rule | Map dot |
 |---|---|---|
-| **Severe** | Weighted score 4 or more **and** 3 or more different farmers | Large red dot — creates a pending outbreak for admin review |
-| **Moderate** | Weighted score 2 or more **or** 2 or more different farmers | Medium amber dot |
-| **Mild** | Any verified report | Small green dot |
+| **Severe** | Weighted score 4 or more **and** 3 or more different farmers | Large red marker, softly pulsing — creates a pending outbreak for admin review |
+| **Moderate** | Weighted score 2 or more **or** 2 or more different farmers | Medium amber marker |
+| **Mild** | Any verified report | Small green marker |
+| *(2–4 weeks old)* | No longer counted | Small faded grey marker; gone after 4 weeks |
 
-Healthy scans never count.
+Marker shape and letter show the disease: circle "B" Northern Leaf Blight, square "R" Common Rust, diamond "G" Gray Leaf Spot. Healthy scans and scans from suspended accounts never count and are never shown.
+An outbreak alert is only ever sent after an admin approves a pending outbreak — there is no manual alert. These thresholds are development values, pending validation by agricultural experts.
 
 ### 6.3 Glossary
 
 - **Barangay** — the smallest local government area in the Philippines (a village or district). Bukidnon has 464.
-- **Verified** — a shared scan accepted as real: automatically at 85%+ confidence with a photo, or by an admin.
+- **Verified** — a shared scan accepted as real: automatically at 60%+ confidence with a photo, or by an admin.
 - **Pending** — a Severe outbreak waiting for an admin to approve or dismiss it.
 - **Push notification** — a message that appears on the phone even when the app is closed.
 - **Admin** — a trusted account (e.g. DA technician) that can use the CornGuard Admin website.
@@ -1021,17 +1045,17 @@ Healthy scans never count.
 | 3.2 Dashboard (M-HOME) | 4 | | | | |
 | 3.3 Sign in / sign up (M-AUTH) | 10 | | | | |
 | 3.4 Scanning (M-SCAN) | 8 | | | | |
-| 3.5 Result sheet (M-RES) | 8 | | | | |
+| 3.5 Result sheet (M-RES) | 9 | | | | |
 | 3.6 History (M-HIST) | 4 | | | | |
 | 3.7 Community (M-COM) | 7 | | | | |
-| 3.8 Outbreak Map (M-MAP) | 9 | | | | |
+| 3.8 Outbreak Map (M-MAP) | 11 | | | | |
 | 3.9 Settings (M-SET) | 7 | | | | |
 | 3.10 Notifications (M-NOTIF) | 3 | | | | |
 | 4.1 Web login (W-LOGIN) | 7 | | | | |
 | 4.2 Layout & Dashboard (W-NAV, W-DASH) | 3 | | | | |
-| 4.3 Outbreaks (W-OUT) | 5 | | | | |
+| 4.3 Outbreaks (W-OUT) | 4 | | | | |
 | 4.4 Review (W-REV) | 6 | | | | |
 | 4.5 Users (W-USR) | 4 | | | | |
 | 4.6 Web map & general (W-MAP, W-GEN) | 3 | | | | |
 | 5 End-to-end (E) | 4 | | | | |
-| **Total** | **99** | | | | |
+| **Total** | **101** | | | | |

@@ -97,14 +97,17 @@
     .legend .legend-toggle { display: none; margin: 0; }
     .legend.collapsed .legend-body { display: none; }
     .legend.collapsed .legend-toggle { display: block; }
-    .legend i { width: 14px; height: 14px; flex: none; }
-    .legend i.dot { border-radius: 50%; opacity: 0.85; }
-    .legend i.ring {
-      border-radius: 50%;
-      border: 2px solid;
-      background: transparent;
-      box-sizing: border-box;
-    }
+    .legend .swatch { width: 16px; height: 16px; flex: none; display: block; }
+
+    /* Report markers: fill = severity, shape + letter = disease (readable without telling
+       two colours apart). White outline + shadow keep them visible on any map background. */
+    .cg-marker { background: none; border: none; }
+    .cg-marker svg { display: block; overflow: visible; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55)); }
+    .cg-marker .halo { transform-origin: center; transform-box: fill-box; animation: cg-pulse 1.8s ease-out infinite; }
+    @keyframes cg-pulse { from { opacity: 0.55; transform: scale(0.75); } to { opacity: 0; transform: scale(1.5); } }
+    @media (prefers-reduced-motion: reduce) { .cg-marker .halo { animation: none; opacity: 0.3; } }
+    /* Reports 14-28 days old: still shown, but faded — they no longer count toward the level. */
+    .cg-marker-recent { opacity: 0.8; }
   </style>
 </head>
 <body>
@@ -154,17 +157,18 @@
       maxZoom: 19
     }).addTo(map);
 
-    // Same meaning as caps 3: dot fill = severity tier of that barangay + disease.
+    // Marker fill = severity tier of that barangay + disease (deep enough for a white letter).
     const TIER_COLORS = {
-      severe: '#ef4444',   // Red
-      moderate: '#f59e0b', // Amber
-      mild: '#10b981'      // Emerald green
+      severe: '#dc2626',   // Red
+      moderate: '#d97706', // Amber
+      mild: '#059669'      // Emerald green
     };
-    // Ring = which disease (caps 3's "Blight" is CornGuard's northern_leaf_blight).
-    const DISEASE_RING = {
-      northern_leaf_blight: '#60a5fa', // Blue
-      common_rust: '#f472b6',          // Pink
-      gray_leaf_spot: '#a78bfa'        // Violet
+    // Marker shape + letter = which disease (caps 3's "Blight" is CornGuard's northern_leaf_blight).
+    // Shapes replace caps 3's coloured rings, which were hard to tell apart against the fill.
+    const DISEASE_MARK = {
+      northern_leaf_blight: { shape: 'circle', letter: 'B' },
+      common_rust: { shape: 'square', letter: 'R' },
+      gray_leaf_spot: { shape: 'diamond', letter: 'G' }
     };
     const DISEASE_LABEL = {
       northern_leaf_blight: 'Northern Leaf Blight',
@@ -172,31 +176,64 @@
       gray_leaf_spot: 'Gray Leaf Spot',
       healthy: 'Healthy'
     };
-    const UNKNOWN_RING = '#e5e7eb';
-    // Radius also tracks severity, so the map reads without relying on hue alone.
-    const TIER_RADIUS = { severe: 8, moderate: 6.5, mild: 5 };
+    const UNKNOWN_MARK = { shape: 'circle', letter: '?' };
+    // Size also tracks severity, so the map reads without relying on hue alone.
+    const TIER_SIZE = { severe: 28, moderate: 24, mild: 20 };
+    const NEUTRAL = '#4b5563';
+    // Reports 14-28 days old (stage "recent"): grey, small, no longer counted. Older ones aren't sent.
+    const RECENT_COLOR = '#6b7280';
+    const RECENT_SIZE = 18;
+    const DAY_MS = 24 * 60 * 60 * 1000;
 
-    function getColor(tier) { return TIER_COLORS[tier] || '#6b7280'; }
-    function ringColor(code) { return DISEASE_RING[code] || UNKNOWN_RING; }
+    function getColor(tier) { return TIER_COLORS[tier] || NEUTRAL; }
+    function diseaseMark(code) { return DISEASE_MARK[code] || UNKNOWN_MARK; }
+
+    // One marker as inline SVG (24x24 box): severity-coloured shape, white outline, white letter.
+    function markerSvg(mark, fill, size, halo) {
+      const outline = 'stroke="#ffffff" stroke-width="2"';
+      const shape = {
+        circle: `<circle cx="12" cy="12" r="10" fill="${fill}" ${outline}/>`,
+        square: `<rect x="2.5" y="2.5" width="19" height="19" rx="4" fill="${fill}" ${outline}/>`,
+        diamond: `<rect x="4.4" y="4.4" width="15.2" height="15.2" rx="2.5" fill="${fill}" ${outline} transform="rotate(45 12 12)"/>`
+      }[mark.shape];
+      const haloSvg = halo ? `<circle class="halo" cx="12" cy="12" r="12" fill="${fill}"/>` : '';
+      return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true">${haloSvg}${shape}` +
+        `<text x="12" y="16" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-size="11" ` +
+        `font-weight="800" fill="#ffffff">${mark.letter}</text></svg>`;
+    }
+
+    function markerIcon(code, tier, recent) {
+      const size = recent ? RECENT_SIZE : (TIER_SIZE[tier] || TIER_SIZE.mild);
+      const fill = recent ? RECENT_COLOR : getColor(tier);
+      return L.divIcon({
+        className: recent ? 'cg-marker cg-marker-recent' : 'cg-marker',
+        html: markerSvg(diseaseMark(code), fill, size, !recent && tier === 'severe'),
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+        popupAnchor: [0, -size / 2]
+      });
+    }
     function diseaseLabel(code) { return DISEASE_LABEL[code] || code; }
     function areaKey(barangay, municipality) { return barangay + '||' + municipality; }
 
     const legend = L.control({ position: 'bottomright' });
     legend.onAdd = function () {
       const div = L.DomUtil.create('div', 'legend');
-      const diseaseRows = Object.keys(DISEASE_RING).map((code) => `
-        <div class="legend-row">
-          <i class="ring" style="border-color: ${DISEASE_RING[code]}"></i>${diseaseLabel(code)}
-        </div>
+      const swatch = (mark, fill) => `<span class="swatch">${markerSvg(mark, fill, 16, false)}</span>`;
+      const tierRow = (tier, label) => `
+        <div class="legend-row">${swatch({ shape: 'circle', letter: '' }, TIER_COLORS[tier])}${label}</div>`;
+      const diseaseRows = Object.keys(DISEASE_MARK).map((code) => `
+        <div class="legend-row">${swatch(DISEASE_MARK[code], NEUTRAL)}${diseaseLabel(code)}</div>
       `).join('');
       div.innerHTML = `
         <h4 class="legend-toggle">Legend &#9656;</h4>
         <div class="legend-body">
           <h4>Severity</h4>
-          <div class="legend-row"><i class="dot" style="background: ${TIER_COLORS.severe}"></i>Severe Outbreak</div>
-          <div class="legend-row"><i class="dot" style="background: ${TIER_COLORS.moderate}"></i>Moderate Threat</div>
-          <div class="legend-row"><i class="dot" style="background: ${TIER_COLORS.mild}"></i>Mild Detection</div>
-          <h4 class="legend-sub">Disease (ring)</h4>
+          ${tierRow('severe', 'Severe Outbreak')}
+          ${tierRow('moderate', 'Moderate Threat')}
+          ${tierRow('mild', 'Mild Detection')}
+          <div class="legend-row" style="opacity:0.75">${swatch({ shape: 'circle', letter: '' }, RECENT_COLOR)}Reported 2–4 weeks ago</div>
+          <h4 class="legend-sub">Disease (shape)</h4>
           ${diseaseRows}
         </div>
       `;
@@ -272,14 +309,17 @@
       detectionLayer = L.layerGroup();
       latestDetections.forEach((d) => {
         if (typeof d.latitude !== 'number' || typeof d.longitude !== 'number') return;
+        const recent = d.stage === 'recent';
         const tier = tierByAreaDisease[areaKey(d.barangay, d.municipality) + '||' + d.diseaseCode] || 'mild';
-        L.circleMarker([d.latitude, d.longitude], {
-          radius: TIER_RADIUS[tier] || 5,
-          fillColor: getColor(tier),
-          fillOpacity: 0.85,
-          color: ringColor(d.diseaseCode),
-          weight: 2,
-          opacity: 0.95
+        const daysAgo = Math.max(0, Math.round((Date.now() - d.capturedAt) / DAY_MS));
+        const statusLine = recent
+          ? `<span style="color:#9ca3af;">Reported ${daysAgo} days ago · no longer counted in the outbreak level</span><br>`
+          : `<b>Severity:</b> <span style="color:${getColor(tier)}">${tier.toUpperCase()}</span><br>`;
+        L.marker([d.latitude, d.longitude], {
+          icon: markerIcon(d.diseaseCode, tier, recent),
+          // Severe on top, then moderate, then mild; faded past reports always underneath.
+          zIndexOffset: recent ? -1000 : tier === 'severe' ? 2000 : tier === 'moderate' ? 1000 : 0,
+          keyboard: false
         })
           .bindPopup(
             `<b>${diseaseLabel(d.diseaseCode)}</b><br>` +
@@ -287,7 +327,7 @@
             `${d.municipality ? ', ' + d.municipality : ''}</span>` +
             `<hr style="border-color:#333;margin:8px 0;"/>` +
             `<span style="font-size:12px;">` +
-            `<b>Severity:</b> <span style="color:${getColor(tier)}">${tier.toUpperCase()}</span><br>` +
+            statusLine +
             `<b>Confidence:</b> ${Math.round(d.confidence * 100)}%<br>` +
             `<b>Reported:</b> ${formatDate(d.capturedAt)}` +
             `</span>`

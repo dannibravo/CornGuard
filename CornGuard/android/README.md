@@ -85,17 +85,23 @@ showing Bukidnon's barangay boundaries over OpenStreetMap, with one dot per veri
   | `geo/bukidnon-barangays.json` | 464 barangay polygons, 22 municipalities (433 KB) |
 
   Boundaries and dots draw without internet; only the OpenStreetMap basemap tiles need it.
-- **Dots and colours:** fill = the barangay's severity tier for that disease (red severe, amber
-  moderate, green mild); ring = disease (blue Northern Leaf Blight, pink Common Rust, violet Gray Leaf
-  Spot). Tapping a barangay shows its active diseases, severity, farms affected and report count.
+- **Markers:** colour = the barangay's severity tier for that disease (red severe, amber moderate,
+  green mild); shape + letter = disease (circle B Northern Leaf Blight, square R Common Rust, diamond G
+  Gray Leaf Spot). Reports 14–28 days old are drawn small and faded grey (no longer counted); older
+  ones, Healthy scans and suspended accounts' scans aren't shown. Tapping a barangay shows its active
+  diseases, severity, farms affected and report count.
 - **Data:** `MapFragment` collects two live Convex queries and pushes them into the page with
   `window.updateMapData({stats, detections})`:
   - `barangayStats:getAllStats`: the severity engine (`backend/convex/barangayStats.ts`, ported from
-    caps 3). It covers the last 14 days. Each report is weighted by confidence (1, 0.6 or 0.3).
+    caps 3). It covers the last 14 days. Each report is weighted by confidence (80%+ = 1, 60–79% = 0.6, below 60% = 0.3).
     Severe is a score of at least 4 from at least 3 farms; moderate is a score of at least 2, or 2 farms.
-  - `diagnosisRecords:mapReports`: verified shared scans that have coordinates.
+  - `diagnosisRecords:mapReports`: verified disease scans with coordinates from the last 28 days,
+    each tagged `stage` "active" (≤ 14 days, counted) or "recent" (14–28 days, faded). It also reads the
+    severity rows so the nightly decay job refreshes open maps.
+  - "Reports near you" (`diagnosisRecords:verifiedOccurrences`, `posts:nearbyReports`) is limited to the
+    farmer's barangay **in their own municipality** (names matched loosely) and the last 28 days.
 
-  Shares at 85% confidence or higher are auto-verified, as in caps 3. The rest wait for an admin.
+  Shares at 60% confidence or higher are auto-verified (caps 3 used 85%; lowered because the model's scores top out near 92.5% and field photos score lower). The rest wait for an admin.
   Both queries require sign-in.
 - **Barangay on scans:** `location/BarangayResolver` runs a point-in-polygon check of the scan's GPS
   fix against the same GeoJSON, so reports use the polygon's exact names. If there's no fix, or it's
