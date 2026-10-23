@@ -108,18 +108,25 @@ for (const [i, [who, diseaseCode, confidence, point]] of REPORTS.entries()) {
   const area = resolve(point);
   if (!area) throw new Error(`Point ${point} is outside Bukidnon`);
   const client = clients[who];
-  const recordId = await client.mutation(api.diagnosisRecords.share, {
+  if (clear) {
+    // Found by account + disease + confidence + barangay (share is keyed by capture time, so it
+    // can't be used to look an old report up).
+    const viewer = await client.query(api.users.viewer, {});
+    const mine = await client.query(api.diagnosisRecords.listForUser, { userId: viewer.userId });
+    for (const r of mine.filter((r) => r.diseaseCode === diseaseCode && r.confidence === confidence &&
+      r.barangay === area.barangay && r.municipality === area.municipality)) {
+      await client.mutation(api.diagnosisRecords.remove, { recordId: r.recordId });
+      console.log(`removed  ${diseaseCode.padEnd(21)} ${area.barangay}, ${area.municipality}`);
+    }
+    continue;
+  }
+  await client.mutation(api.diagnosisRecords.share, {
     localId: `map-demo-${i}`, diseaseCode, confidence, capturedAt: Date.now(),
     barangay: area.barangay, municipality: area.municipality, province: "Bukidnon",
     latitude: point[1], longitude: point[0], modelVersion: "cornguard_mobilenetv2_v3",
-    imageId: clear ? undefined : await upload(client, photoFor(diseaseCode, i)),
+    imageId: await upload(client, photoFor(diseaseCode, i)),
   });
-  if (clear) {
-    await client.mutation(api.diagnosisRecords.remove, { recordId });
-    console.log(`removed  ${diseaseCode.padEnd(21)} ${area.barangay}, ${area.municipality}`);
-  } else {
-    console.log(`shared   ${diseaseCode.padEnd(21)} ${Math.round(confidence * 100)}%  ${area.barangay}, ${area.municipality}  (${ACCOUNTS[who].email})`);
-  }
+  console.log(`shared   ${diseaseCode.padEnd(21)} ${Math.round(confidence * 100)}%  ${area.barangay}, ${area.municipality}  (${ACCOUNTS[who].email})`);
 }
 
 await new Promise((r) => setTimeout(r, 3000)); // recompute runs as a scheduled mutation

@@ -145,17 +145,18 @@ const upload = async (client) => {
   return (await res.json()).storageId;
 };
 // Like the app: every share carries its photo (auto-verify requires one).
-const shareScan = async (client, localId, confidence, diseaseCode = "northern_leaf_blight", withImage = true) => {
+const shareScan = async (client, localId, confidence, diseaseCode = "northern_leaf_blight", withImage = true, capturedAt = Date.now()) => {
   const id = await client.mutation(api.diagnosisRecords.share, {
-    localId, diseaseCode, confidence, capturedAt: Date.now(), imageId: withImage ? await upload(client) : undefined,
+    localId, diseaseCode, confidence, capturedAt, imageId: withImage ? await upload(client) : undefined,
     barangay: TEST_BRGY, municipality: "Valencia", province: "Bukidnon", modelVersion: "cornguard_mobilenetv2_v3",
   });
   created.push([client, id]);
   return id;
 };
-const share = (client) => shareScan(client, "42", 0.93);
+const scanTime = Date.now();
+const share = (client) => shareScan(client, "42", 0.93, undefined, true, scanTime);
 const recordId = await share(a.client);
-check("share is idempotent per localId", (await share(a.client)) === recordId);
+check("share is idempotent per localId + capture time", (await share(a.client)) === recordId);
 
 const mine = await a.client.query(api.diagnosisRecords.listForUser, { userId: viewerA.userId });
 check("share at >= 60% is auto-verified", mine.find((r) => r.recordId === recordId)?.verificationStatus === "verified");
