@@ -2,6 +2,7 @@ package com.cornguard.app.di
 
 import android.content.Context
 import android.provider.Settings
+import com.cornguard.app.data.local.ProfileAreaStore
 import com.cornguard.app.data.local.db.AppDatabase
 import com.cornguard.app.data.local.db.DiseaseReferenceSeedData
 import com.cornguard.app.data.repository.AdminRepository
@@ -94,7 +95,12 @@ object ServiceLocator {
 
     val authRepository: AuthRepository get() = convexAuthRepository
 
-    val userFarmRepository: UserFarmRepository by lazy { ConvexUserFarmRepository(convexBackend.client) }
+    /** Offline copy of each account's Settings area — what the Scan screen files scans under. */
+    val profileAreaStore: ProfileAreaStore by lazy { ProfileAreaStore(appContext) }
+
+    val userFarmRepository: UserFarmRepository by lazy {
+        ConvexUserFarmRepository(convexBackend.client, profileAreaStore)
+    }
 
     val diagnosisSharingRepository: DiagnosisSharingRepository by lazy {
         ConvexDiagnosisSharingRepository(convexBackend.client, convexBackend.uploader)

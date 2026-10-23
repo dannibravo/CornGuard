@@ -1,5 +1,6 @@
 package com.cornguard.app.ui.scan
 
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
@@ -7,7 +8,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.core.text.HtmlCompat
+import androidx.core.widget.TextViewCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -32,11 +36,13 @@ import java.io.File
  * [ModelNotReadyException] must be surfaced honestly, never papered over with a fabricated result
  * (claude/15_CLAUDE.md Model Rule). Images are decoded via [ScanImageDecoder] (downsampled, EXIF-upright).
  *
- * Attaches an approximate location to the saved record via [ServiceLocator.locationHelper] when
- * [AppPermission.LOCATION] is already granted — best-effort, never requested synchronously in the
- * save path, so a denial or missing fix never blocks or delays the scan itself
- * (claude/04_DEVELOPMENT_RULES.md #9). Every scan is saved to history, then shown in
- * [ResultBottomSheet] (caps 3 design's result sheet).
+ * A scan is filed under the farmer's Settings barangay ([ServiceLocator.profileAreaStore]) — the only
+ * place a location is set; the screen shows it. The GPS fix from [ServiceLocator.locationHelper]
+ * (when [AppPermission.LOCATION] is already granted) is kept only to place the map dot, and only
+ * if it lies inside that barangay (decided at share time, see ResultBottomSheet). It is
+ * best-effort, never requested synchronously in the save path, so a denial or missing fix never
+ * blocks or delays the scan itself (claude/04_DEVELOPMENT_RULES.md #9). Every scan is saved to
+ * history, then shown in [ResultBottomSheet] (caps 3 design's result sheet).
  */
 class ScanFragment : Fragment() {
 
@@ -84,6 +90,36 @@ class ScanFragment : Fragment() {
         binding.scanBackButton.setOnClickListener { findNavController().popBackStack() }
         binding.scanCameraButton.setOnClickListener { onCameraClicked() }
         binding.scanGalleryButton.setOnClickListener { onGalleryClicked() }
+        binding.scanArea.setOnClickListener {
+            val signedIn = ServiceLocator.authRepository.getCurrentUser() != null
+            findNavController().navigate(if (signedIn) R.id.profileFragment else R.id.authFragment)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        renderArea()
+        // Refresh the cached Settings area when online, so a change made elsewhere shows up here.
+        val user = ServiceLocator.authRepository.getCurrentUser() ?: return
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }
+            if (_binding != null) renderArea()
+        }
+    }
+
+    private fun renderArea() {
+        val user = ServiceLocator.authRepository.getCurrentUser()
+        val area = user?.let { ServiceLocator.profileAreaStore.get(it.uid) }
+        binding.scanArea.text = when {
+            area != null -> HtmlCompat.fromHtml(
+                getString(R.string.scan_area_format, area.barangay, area.municipality), HtmlCompat.FROM_HTML_MODE_LEGACY
+            )
+            user != null -> getText(R.string.scan_area_not_set)
+            else -> getText(R.string.scan_area_signed_out)
+        }
+        val color = ContextCompat.getColor(requireContext(), if (area != null) R.color.cg_accent_green else R.color.cg_warning)
+        binding.scanArea.setTextColor(color)
+        TextViewCompat.setCompoundDrawableTintList(binding.scanArea, ColorStateList.valueOf(color))
     }
 
     private fun onCameraClicked() {
@@ -155,17 +191,14 @@ class ScanFragment : Fragment() {
             val imagePath = withContext(Dispatchers.IO) { persistImage(bitmap) }
             val capturedAt = System.currentTimeMillis()
             val location = captureLocationBestEffort()
-            // Which Bukidnon barangay the scan was taken in (null outside the province); feeds
-            // the Outbreak Heatmap's per-barangay severity once the scan is shared.
-            val area = location?.let {
-                withContext(Dispatchers.Default) {
-                    runCatching { ServiceLocator.barangayResolver.resolve(it.latitude, it.longitude) }.getOrNull()
-                }
-            }
+            // Filed under the Settings barangay (null when signed out or not set yet); re-checked
+            // against the live profile when the scan is shared.
+            val owner = ServiceLocator.authRepository.getCurrentUser()?.uid
+            val area = owner?.let { ServiceLocator.profileAreaStore.get(it) }
 
             val record = DiagnosisRecordEntity(
                 // Owner = whoever is signed in (null = guest scan, claimed by the next sign-in).
-                userId = ServiceLocator.authRepository.getCurrentUser()?.uid,
+                userId = owner,
                 farmId = null,
                 diseaseCode = result.diseaseCode,
                 displayLabel = result.displayLabel,
@@ -174,7 +207,7 @@ class ScanFragment : Fragment() {
                 capturedAt = capturedAt,
                 latitude = location?.latitude,
                 longitude = location?.longitude,
-                barangay = area?.name,
+                barangay = area?.barangay,
                 municipality = area?.municipality,
                 province = area?.province,
                 modelVersion = result.modelVersion

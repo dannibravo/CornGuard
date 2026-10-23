@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import coil.load
 import com.cornguard.app.R
 import com.cornguard.app.data.local.db.entity.DiagnosisRecordEntity
@@ -15,7 +16,9 @@ import com.cornguard.app.di.ServiceLocator
 import com.cornguard.app.ui.common.CornGuardBottomSheet
 import com.cornguard.app.ui.common.TimeFormat
 import com.cornguard.app.ui.treatment.FullDetailsBottomSheet
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
@@ -42,12 +45,6 @@ class ResultBottomSheet : CornGuardBottomSheet() {
         binding.resultThumbnail.clipToOutline = true
         binding.resultCloseButton.setOnClickListener { dismiss() }
         binding.shareToCommunityButton.setOnClickListener { shareToCommunity() }
-        childFragmentManager.setFragmentResultListener(BarangayPickerBottomSheet.RESULT, viewLifecycleOwner) { _, result ->
-            onBarangayPicked(
-                result.getString(BarangayPickerBottomSheet.KEY_BARANGAY).orEmpty(),
-                result.getString(BarangayPickerBottomSheet.KEY_MUNICIPALITY).orEmpty()
-            )
-        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             val record = ServiceLocator.diagnosisHistoryRepository.getById(localId)
@@ -56,6 +53,11 @@ class ResultBottomSheet : CornGuardBottomSheet() {
                 return@launch
             }
             bind(record)
+            // Refresh the cached Settings area (online), so the location line is current.
+            val user = ServiceLocator.authRepository.getCurrentUser() ?: return@launch
+            if (record.sharedToCloud) return@launch
+            runCatching { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }
+            if (_binding != null) renderLocation(record)
         }
     }
 
@@ -85,38 +87,48 @@ class ResultBottomSheet : CornGuardBottomSheet() {
     }
 
     /**
-     * caps 3 location line: "📍 Barangay, Municipality" when the scan is placed in a Bukidnon
-     * barangay; otherwise an orange warning with "Set location manually" (the barangay picker).
-     * The location can be changed until the scan is shared.
+     * caps 3 location line. A scan is always filed under the farmer's Settings area (the single
+     * source of a scan's location), so this is read-only:
+     *  - shared: the area it was shared under (frozen);
+     *  - unshared: the account's current Settings area, with "Change in Settings";
+     *  - no Settings area / signed out: an orange warning linking to Settings / sign-in.
      */
     private fun renderLocation(record: DiagnosisRecordEntity) {
-        val hasArea = !record.barangay.isNullOrBlank()
-        val hasGps = record.latitude != null && record.longitude != null
+        val user = ServiceLocator.authRepository.getCurrentUser()
+        val area = when {
+            record.sharedToCloud && !record.barangay.isNullOrBlank() ->
+                getString(R.string.result_location_area, record.barangay, record.municipality.orEmpty())
+            user != null -> ServiceLocator.profileAreaStore.get(user.uid)?.let {
+                getString(R.string.result_location_area, it.barangay, it.municipality)
+            }
+            else -> null
+        }
+        val hasArea = area != null
         val color = ContextCompat.getColor(requireContext(), if (hasArea) R.color.cg_accent_green else R.color.cg_warning)
         binding.resultLocationIcon.setImageResource(if (hasArea) R.drawable.ic_location else R.drawable.ic_warning)
         binding.resultLocationIcon.setColorFilter(color)
         binding.resultLocationStatus.setTextColor(color)
-        binding.resultLocationStatus.text = when {
-            hasArea -> getString(R.string.result_location_area, record.barangay, record.municipality.orEmpty())
-            hasGps -> getString(R.string.result_location_outside)
-            else -> getString(R.string.result_location_not_captured)
-        }
-        binding.resultSetLocation.visibility = if (record.sharedToCloud) View.GONE else View.VISIBLE
-        binding.resultSetLocation.setText(if (hasArea) R.string.result_change_location else R.string.result_set_location)
-        binding.resultSetLocation.setOnClickListener {
-            BarangayPickerBottomSheet().show(childFragmentManager, BarangayPickerBottomSheet.TAG)
-        }
+        binding.resultLocationStatus.text = area ?: getString(
+            if (user == null) R.string.result_location_signed_out else R.string.result_location_not_set
+        )
+
+        val link = binding.resultLocationSettings
+        link.visibility = if (record.sharedToCloud) View.GONE else View.VISIBLE
+        link.setTextColor(ContextCompat.getColor(requireContext(), if (hasArea) R.color.cg_text_secondary else R.color.cg_warning))
+        link.setText(
+            when {
+                user == null -> R.string.result_location_sign_in
+                hasArea -> R.string.result_location_change_in_settings
+                else -> R.string.result_location_set_in_settings
+            }
+        )
+        link.setOnClickListener { navigateTo(if (user == null) R.id.authFragment else R.id.profileFragment) }
     }
 
-    private fun onBarangayPicked(name: String, municipality: String) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val barangay = ServiceLocator.barangayResolver.find(name, municipality) ?: return@launch
-            val (lat, lng) = barangay.centroid
-            ServiceLocator.diagnosisHistoryRepository.updateLocation(
-                localId, barangay.name, barangay.municipality, barangay.province, lat, lng
-            )
-            ServiceLocator.diagnosisHistoryRepository.getById(localId)?.let { renderLocation(it) }
-        }
+    private fun navigateTo(destination: Int) {
+        val nav = findNavController()
+        dismiss()
+        nav.navigate(destination)
     }
 
     private fun renderShareState() {
@@ -142,8 +154,19 @@ class ResultBottomSheet : CornGuardBottomSheet() {
                 showShareError(R.string.result_share_failed)
                 return@launch
             }
-            if (record.barangay.isNullOrBlank() || record.municipality.isNullOrBlank()) {
+            // File the scan under the account's current Settings area, read fresh from the profile
+            // (sharing is online anyway), so an unshared scan always follows Settings.
+            val profile = runCatching { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }
+            if (profile.isFailure) {
                 setSharing(false)
+                showShareError(R.string.result_share_failed)
+                return@launch
+            }
+            val resolver = ServiceLocator.barangayResolver
+            val barangay = profile.getOrNull()?.let { resolver.find(it.barangay, it.municipality) }
+            if (barangay == null) {
+                setSharing(false)
+                renderLocation(record)
                 showShareError(R.string.result_share_requires_location)
                 return@launch
             }
@@ -154,9 +177,20 @@ class ResultBottomSheet : CornGuardBottomSheet() {
                 return@launch
             }
             if (record.userId == null) ServiceLocator.diagnosisHistoryRepository.assignOwner(localId, user.uid)
+            // The dot keeps the scan's GPS fix only when it lies inside that barangay.
+            val (lat, lng) = withContext(Dispatchers.Default) {
+                resolver.placeScan(barangay, record.latitude, record.longitude)
+            }
+            ServiceLocator.diagnosisHistoryRepository.updateLocation(
+                localId, barangay.name, barangay.municipality, barangay.province, lat, lng
+            )
+            val filed = record.copy(
+                barangay = barangay.name, municipality = barangay.municipality, province = barangay.province,
+                latitude = lat, longitude = lng
+            )
             val result = runCatching {
                 val cloudRecordId = ServiceLocator.diagnosisSharingRepository.shareScan(
-                    record = record,
+                    record = filed,
                     ownerUserId = user.uid,
                     farmId = null
                 )
@@ -166,7 +200,7 @@ class ResultBottomSheet : CornGuardBottomSheet() {
             if (result.isSuccess) {
                 sharedToCloud = true
                 renderShareState()
-                binding.resultSetLocation.visibility = View.GONE
+                renderLocation(filed.copy(sharedToCloud = true))
             } else {
                 showShareError(R.string.result_share_failed)
             }

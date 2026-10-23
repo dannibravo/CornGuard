@@ -51,6 +51,23 @@
             android:textColor="@color/cg_text_tertiary"
             android:textSize="17sp" />
 
+        <!-- Where scans are filed: the Settings barangay (the only place a location is set). -->
+        <TextView
+            android:id="@+id/scanArea"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="?attr/selectableItemBackground"
+            android:drawablePadding="6dp"
+            android:gravity="center"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="6dp"
+            android:textColor="@color/cg_accent_green"
+            android:textSize="15sp"
+            app:drawableStartCompat="@drawable/ic_location"
+            app:drawableTint="@color/cg_accent_green"
+            tools:text="Lourdes, City of Valencia · Change in Settings" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/scanCameraButton"
             style="@style/Widget.CornGuard.Button.Primary"

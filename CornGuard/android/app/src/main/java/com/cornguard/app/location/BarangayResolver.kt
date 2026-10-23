@@ -60,12 +60,52 @@ class BarangayResolver(geoJson: String) {
     fun find(name: String, municipality: String): Barangay? =
         barangays.firstOrNull { it.name == name && it.municipality == municipality }
 
+    private val interiorPoints = HashMap<Barangay, Pair<Double, Double>>()
+
+    /**
+     * (lat, lng) of a point that [resolve]s back to [barangay]. The [Barangay.centroid] when it does
+     * (most barangays); for concave outlines whose vertex average falls outside, the grid point
+     * inside the barangay nearest that centroid.
+     */
+    fun interiorPoint(barangay: Barangay): Pair<Double, Double> = synchronized(interiorPoints) {
+        interiorPoints.getOrPut(barangay) {
+            val centroid = barangay.centroid
+            if (resolve(centroid.first, centroid.second) == barangay) return@getOrPut centroid
+            var best: Pair<Double, Double>? = null
+            var bestDistance = Double.MAX_VALUE
+            for (i in 1 until GRID) for (j in 1 until GRID) {
+                val lat = barangay.minLat + (barangay.maxLat - barangay.minLat) * i / GRID
+                val lng = barangay.minLng + (barangay.maxLng - barangay.minLng) * j / GRID
+                if (resolve(lat, lng) != barangay) continue
+                val d = (lat - centroid.first).let { it * it } + (lng - centroid.second).let { it * it }
+                if (d < bestDistance) {
+                    bestDistance = d
+                    best = lat to lng
+                }
+            }
+            best ?: centroid
+        }
+    }
+
+    /**
+     * Where a scan filed under [barangay] (the farmer's Settings area) is drawn on the map: its own
+     * GPS fix when that lies inside the barangay, otherwise the barangay's [interiorPoint]. So a
+     * scan's label and its dot can never disagree.
+     */
+    fun placeScan(barangay: Barangay, latitude: Double?, longitude: Double?): Pair<Double, Double> =
+        if (latitude != null && longitude != null && resolve(latitude, longitude) == barangay) {
+            latitude to longitude
+        } else {
+            interiorPoint(barangay)
+        }
+
     /** All barangays sorted by name, then municipality — for the manual picker. */
     fun sorted(): List<Barangay> = barangays.sortedWith(compareBy({ it.name }, { it.municipality }))
 
     companion object {
         const val ASSET_PATH = "geo/bukidnon-barangays.json"
         const val PROVINCE = "Bukidnon"
+        private const val GRID = 40
 
         /** Ray-casting point-in-polygon test on a flattened [lng, lat] ring. */
         internal fun contains(ring: DoubleArray, x: Double, y: Double): Boolean {

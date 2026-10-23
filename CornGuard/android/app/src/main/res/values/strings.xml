@@ -34,6 +34,9 @@
     <string name="scan_title">Scan Corn Leaf</string>
     <string name="scan_ready_title">Ready to scan</string>
     <string name="scan_ready_subtitle">Take a photo or choose from gallery</string>
+    <string name="scan_area_format">Scans filed under %1$s, %2$s · &lt;u&gt;Change in Settings&lt;/u&gt;</string>
+    <string name="scan_area_not_set"><u>Set your barangay in Settings</u> to share scans to the Outbreak Map</string>
+    <string name="scan_area_signed_out"><u>Sign in</u> to share scans to the Outbreak Map</string>
     <string name="scan_open_camera">Open Camera</string>
     <string name="scan_pick_gallery">Pick from Gallery</string>
     <string name="scan_processing">Analyzing Leaf…</string>
@@ -46,11 +49,13 @@
     <!-- Result sheet -->
     <string name="result_confidence_format">Confidence: %1$s%%</string>
     <string name="result_location_captured">Location captured</string>
-    <string name="result_location_not_captured">GPS unavailable</string>
-    <string name="result_location_outside">Outside Bukidnon</string>
     <string name="result_location_area">%1$s, %2$s</string>
-    <string name="result_set_location"><u>Set location manually</u></string>
-    <string name="result_change_location"><u>Change location</u></string>
+    <!-- A scan's location always comes from Settings (the profile's barangay). -->
+    <string name="result_location_not_set">No barangay set</string>
+    <string name="result_location_signed_out">Not signed in</string>
+    <string name="result_location_change_in_settings"><u>Change in Settings</u></string>
+    <string name="result_location_set_in_settings"><u>Set your barangay in Settings</u></string>
+    <string name="result_location_sign_in"><u>Sign in to file this scan under your barangay</u></string>
     <string name="picker_title">Select Barangay</string>
     <string name="picker_search_hint">Search barangay or municipality</string>
     <string name="picker_empty">No barangay matches your search.</string>
@@ -59,7 +64,7 @@
     <string name="result_share_action">Share to Community</string>
     <string name="result_shared_action_done">Shared to Community</string>
     <string name="result_share_requires_sign_in">Sign in to share this result with the community.</string>
-    <string name="result_share_requires_location">Set the location (barangay) first, so this report can appear on the Outbreak Map.</string>
+    <string name="result_share_requires_location">Set your barangay in Settings first, so this report can appear on the Outbreak Map.</string>
     <string name="result_share_not_owner">This scan belongs to another account on this phone, so it can\'t be shared from this one.</string>
     <string name="result_share_failed">Couldn\'t share this result. Check your connection and try again.</string>
     <string name="result_no_treatment">No reference content is available for this disease on this device yet.</string>
@@ -166,5 +171,6 @@
     <string name="edit_profile_municipality">Municipality / City</string>
     <string name="edit_profile_province">Province</string>
     <string name="edit_profile_mobile">Mobile number (optional)</string>
+    <string name="edit_profile_pick_area">Tap to choose your barangay</string>
     <string name="edit_profile_save_failed">Couldn\'t save your profile. Check your connection and try again.</string>
 </resources>

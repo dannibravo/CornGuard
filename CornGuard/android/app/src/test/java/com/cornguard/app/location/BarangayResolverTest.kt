@@ -30,6 +30,26 @@ class BarangayResolverTest {
     }
 
     @Test
+    fun everyInteriorPointResolvesToItsOwnBarangay() {
+        val misses = resolver.barangays.filter { b ->
+            val (lat, lng) = resolver.interiorPoint(b)
+            resolver.resolve(lat, lng) != b
+        }
+        assertTrue("interior point outside its barangay: ${misses.map { "${it.name}, ${it.municipality}" }}", misses.isEmpty())
+    }
+
+    @Test
+    fun placeScanKeepsGpsInsideTheBarangayOnly() {
+        val lourdes = resolver.find("Lourdes", "City of Valencia")!!
+        // A field inside Lourdes keeps its GPS fix.
+        assertEquals(7.900782 to 124.957409, resolver.placeScan(lourdes, 7.900782, 124.957409))
+        // A fix in Patpat (Malaybalay), or none at all, falls back to a point inside Lourdes.
+        val interior = resolver.interiorPoint(lourdes)
+        assertEquals(interior, resolver.placeScan(lourdes, 8.20613, 125.06556))
+        assertEquals(interior, resolver.placeScan(lourdes, null, null))
+    }
+
+    @Test
     fun valenciaPoblacionIsFound() {
         // "Poblacion" exists in 14 municipalities, so lookups always need the municipality too.
         assertEquals(14, resolver.barangays.count { it.name == "Poblacion" })

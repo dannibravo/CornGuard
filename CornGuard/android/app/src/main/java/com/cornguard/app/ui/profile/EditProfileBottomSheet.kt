@@ -11,6 +11,7 @@ import com.cornguard.app.R
 import com.cornguard.app.databinding.SheetEditProfileBinding
 import com.cornguard.app.di.ServiceLocator
 import com.cornguard.app.ui.common.CornGuardBottomSheet
+import com.cornguard.app.ui.common.BarangayPickerBottomSheet
 import kotlinx.coroutines.launch
 
 /**
@@ -38,6 +39,16 @@ class EditProfileBottomSheet : CornGuardBottomSheet() {
         binding.editProfileSave.setOnClickListener { save() }
         binding.editProfileName.doAfterTextChanged { text ->
             binding.editProfileAvatar.text = text?.trim()?.firstOrNull()?.uppercase() ?: ""
+        }
+        // Barangay + municipality come from the boundary list as a pair. Typing them freely let a
+        // profile end up as e.g. "Patpat, City of Valencia" (Patpat is in Malaybalay), which the
+        // map and outbreak alerts then can't place.
+        binding.editProfileBarangay.setOnClickListener { pickArea() }
+        binding.editProfileMunicipality.setOnClickListener { pickArea() }
+        childFragmentManager.setFragmentResultListener(BarangayPickerBottomSheet.RESULT, viewLifecycleOwner) { _, result ->
+            binding.editProfileBarangay.setText(result.getString(BarangayPickerBottomSheet.KEY_BARANGAY))
+            binding.editProfileMunicipality.setText(result.getString(BarangayPickerBottomSheet.KEY_MUNICIPALITY))
+            binding.editProfileProvince.setText(PROVINCE)
         }
 
         val user = ServiceLocator.authRepository.getCurrentUser() ?: return dismiss()
@@ -81,6 +92,11 @@ class EditProfileBottomSheet : CornGuardBottomSheet() {
         }
     }
 
+    private fun pickArea() {
+        if (childFragmentManager.findFragmentByTag(BarangayPickerBottomSheet.TAG) != null) return
+        BarangayPickerBottomSheet().show(childFragmentManager, BarangayPickerBottomSheet.TAG)
+    }
+
     private fun showError(message: String) {
         binding.editProfileError.visibility = View.VISIBLE
         binding.editProfileError.text = message
@@ -93,5 +109,7 @@ class EditProfileBottomSheet : CornGuardBottomSheet() {
 
     companion object {
         const val TAG = "EditProfileBottomSheet"
+        /** Every barangay in the picker is in Bukidnon. */
+        private const val PROVINCE = "Bukidnon"
     }
 }

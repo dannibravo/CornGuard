@@ -95,9 +95,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
+            android:cursorVisible="false"
+            android:focusable="false"
             android:hint="@string/auth_barangay_hint"
             android:importantForAutofill="no"
-            android:inputType="textCapWords"
+            android:inputType="none"
             android:visibility="gone" />
 
         <EditText
@@ -106,9 +108,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
+            android:cursorVisible="false"
+            android:focusable="false"
             android:hint="@string/auth_municipality_hint"
             android:importantForAutofill="no"
-            android:inputType="textCapWords"
+            android:inputType="none"
             android:visibility="gone" />
 
         <EditText
@@ -117,9 +121,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
+            android:cursorVisible="false"
+            android:focusable="false"
             android:hint="@string/auth_province_hint"
             android:importantForAutofill="no"
-            android:inputType="textCapWords"
+            android:inputType="none"
             android:visibility="gone" />
 
         <TextView
