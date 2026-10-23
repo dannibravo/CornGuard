@@ -113,14 +113,19 @@
                 android:layout_marginTop="22dp"
                 android:text="@string/edit_profile_barangay" />
 
+            <!-- Barangay and municipality are chosen together from the Bukidnon list (tap opens the
+                 picker), not typed, so the pair always matches a real barangay. -->
             <EditText
                 android:id="@+id/editProfileBarangay"
                 style="@style/Widget.CornGuard.Input"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
+                android:cursorVisible="false"
+                android:focusable="false"
+                android:hint="@string/edit_profile_pick_area"
                 android:importantForAutofill="no"
-                android:inputType="textCapWords" />
+                android:inputType="none" />
 
             <TextView
                 style="@style/TextAppearance.CornGuard.Label"
@@ -135,8 +140,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
+                android:cursorVisible="false"
+                android:focusable="false"
                 android:importantForAutofill="no"
-                android:inputType="textCapWords" />
+                android:inputType="none" />
 
             <TextView
                 style="@style/TextAppearance.CornGuard.Label"
@@ -151,8 +158,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
+                android:cursorVisible="false"
+                android:focusable="false"
                 android:importantForAutofill="no"
-                android:inputType="textCapWords" />
+                android:inputType="none" />
 
             <TextView
                 style="@style/TextAppearance.CornGuard.Label"

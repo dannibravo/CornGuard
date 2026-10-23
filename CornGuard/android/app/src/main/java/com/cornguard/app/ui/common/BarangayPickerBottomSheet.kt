@@ -1,4 +1,4 @@
-package com.cornguard.app.ui.result
+package com.cornguard.app.ui.common
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -13,11 +13,12 @@ import com.cornguard.app.databinding.ItemBarangayBinding
 import com.cornguard.app.databinding.SheetBarangayPickerBinding
 import com.cornguard.app.di.ServiceLocator
 import com.cornguard.app.location.BarangayResolver
-import com.cornguard.app.ui.common.CornGuardBottomSheet
 
 /**
- * "Set location manually" (caps 3's location picker): searchable list of the 464 Bukidnon
- * barangays from the bundled boundaries. Reports the pick as a fragment result.
+ * caps 3's location picker: searchable list of the 464 Bukidnon barangays from the bundled
+ * boundaries. Reports the pick (barangay + municipality, always a real pair) as a fragment result.
+ * Used where the account's area is set — sign-up and Edit Profile — the only places a scan's
+ * location comes from.
  */
 class BarangayPickerBottomSheet : CornGuardBottomSheet() {
 

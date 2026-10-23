@@ -192,8 +192,21 @@ The emulator has no real GPS; give it a position before scanning:
   adb emu geo fix 125.09 7.91   # Poblacion, City of Valencia
   ```
 
-The scan's result sheet should then show the barangay (e.g. "Poblacion, City of Valencia") instead of
-"GPS unavailable". A cold boot resets the position.
+A scan is always filed under the barangay set in **Settings** (the result sheet shows it); the GPS
+position only places the map dot. The dot uses the position if it lies inside that barangay,
+otherwise the barangay's interior point. So to test exact dots, set a point *inside* the Settings
+barangay, wait ~3 s, then scan. A cold boot resets the position.
+
+To check which position Android currently has (handy before a test scan):
+
+```powershell
+adb shell dumpsys location | Select-String "last location=Location\[(gps|fused)"
+```
+
+> **API 30 images stamp GPS fixes with the wrong clock** (`et=+20749d…` in that output). Android then
+> treats the cached fix as fresh forever. The app ignores fixes that aren't provably recent and
+> switches GPS on itself, so a new **Set Location** reaches the next scan. Builds up to v0.2.1
+> reused the first position after a cold boot for every scan.
 
 ## 10. Common ADB Commands
 

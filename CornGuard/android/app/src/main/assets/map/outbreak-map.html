@@ -15,6 +15,8 @@
       * Data arrives via window.updateMapData(payload) from MapFragment, and readiness is
         reported through the CornGuardMap JavaScript interface.
       * Diseases are keyed by CornGuard disease code; stats are keyed by barangay AND municipality.
+      * Location search (top-left): barangays and municipalities from the bundled boundary file
+        only. KEEP IN SYNC with admin-web/src/locationSearch.ts and MapPage.tsx's LocationSearch.
   -->
   <link rel="stylesheet" href="leaflet/leaflet.css" />
   <style>
@@ -92,7 +94,7 @@
       border-top: 1px solid #444;
       color: #9ca3af;
     }
-    /* Tap to collapse: on a phone the full legend can cover dots (CornGuard addition). */
+    /* Collapsed by default, tap to expand: on a phone the full legend can cover dots (CornGuard addition). */
     .legend { cursor: pointer; }
     .legend .legend-toggle { display: none; margin: 0; }
     .legend.collapsed .legend-body { display: none; }
@@ -108,6 +110,90 @@
     @media (prefers-reduced-motion: reduce) { .cg-marker .halo { animation: none; opacity: 0.3; } }
     /* Reports 14-28 days old: still shown, but faded — they no longer count toward the level. */
     .cg-marker-recent { opacity: 0.8; }
+
+    /* Location search: same dark panel as the legend. Its corner stacks above the bottom
+       corners so the results list is never drawn under the legend or zoom buttons. */
+    .leaflet-top.leaflet-left { z-index: 1001; }
+    /* While typing the keyboard leaves little map, so the legend, zoom and attribution step aside
+       (the attribution would otherwise float mid-map above the hidden sheet's gap). They return
+       as soon as the search box loses focus. */
+    body.searching .legend,
+    body.searching .leaflet-control-zoom,
+    body.searching .leaflet-control-attribution { display: none; }
+    .search { width: calc(100vw - 20px); max-width: 320px; font-size: 13px; }
+    /* Collapsed to a single magnifier button until tapped, to keep the map uncluttered. */
+    .search.collapsed { width: auto; }
+    .search.collapsed .search-box,
+    .search.collapsed .search-results,
+    .search:not(.collapsed) .search-toggle { display: none; }
+    .search-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      background: rgba(34, 34, 34, 0.92);
+      border: 1px solid #444;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      color: #fff;
+    }
+    .search-toggle:active { background: #333; }
+    .search-toggle svg { width: 22px; height: 22px; }
+    .search-box {
+      display: flex;
+      align-items: center;
+      background: rgba(34, 34, 34, 0.92);
+      border: 1px solid #444;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+    .search-box:focus-within { border-color: #4ade80; }
+    .search-box input {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 12px;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font: inherit;
+      font-size: 16px; /* 16px+ so the WebView doesn't zoom in on focus */
+    }
+    .search-box input::placeholder { color: #9ca3af; }
+    .search-clear {
+      flex: none;
+      width: 40px;
+      height: 40px;
+      background: none;
+      border: none;
+      color: #9ca3af;
+      font-size: 22px;
+      line-height: 1;
+    }
+    .search-results {
+      margin: 4px 0 0 0;
+      padding: 4px 0;
+      list-style: none;
+      max-height: 40vh;
+      overflow-y: auto;
+      background: rgba(34, 34, 34, 0.96);
+      border: 1px solid #444;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      color: #fff;
+    }
+    .search-results li {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+    }
+    .search-results li:active { background: #333; }
+    .search-name { font-weight: 600; }
+    .search-meta { color: #9ca3af; text-align: right; }
+    .search-results li.search-empty { color: #9ca3af; }
   </style>
 </head>
 <body>
@@ -202,23 +288,48 @@
         `font-weight="800" fill="#ffffff">${mark.letter}</text></svg>`;
     }
 
-    function markerIcon(code, tier, recent) {
+    // offset: [x, y] pixels, so reports at the same point sit side by side (see spreadOffsets).
+    function markerIcon(code, tier, recent, offset) {
       const size = recent ? RECENT_SIZE : (TIER_SIZE[tier] || TIER_SIZE.mild);
       const fill = recent ? RECENT_COLOR : getColor(tier);
+      const [dx, dy] = offset || [0, 0];
       return L.divIcon({
         className: recent ? 'cg-marker cg-marker-recent' : 'cg-marker',
         html: markerSvg(diseaseMark(code), fill, size, !recent && tier === 'severe'),
         iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
-        popupAnchor: [0, -size / 2]
+        iconAnchor: [size / 2 - dx, size / 2 - dy],
+        popupAnchor: [dx, dy - size / 2]
       });
+    }
+
+    // Reports at exactly the same coordinates (e.g. two manual picks of one barangay, which share its
+    // centroid) would draw as a single dot. Fan each such group out in a small ring, in screen pixels
+    // so it reads the same at every zoom. Returns one [dx, dy] per detection, in order.
+    // KEEP IN SYNC with spreadOffsets in admin-web/src/pages/MapPage.tsx.
+    function spreadOffsets(detections) {
+      const groups = {};
+      detections.forEach((d, i) => {
+        const key = d.latitude + ',' + d.longitude;
+        (groups[key] = groups[key] || []).push(i);
+      });
+      const offsets = detections.map(() => [0, 0]);
+      Object.values(groups).forEach((idx) => {
+        if (idx.length < 2) return;
+        const radius = 10 + 3 * idx.length;
+        idx.forEach((i, k) => {
+          const angle = (2 * Math.PI * k) / idx.length - Math.PI / 2;
+          offsets[i] = [Math.round(radius * Math.cos(angle)), Math.round(radius * Math.sin(angle))];
+        });
+      });
+      return offsets;
     }
     function diseaseLabel(code) { return DISEASE_LABEL[code] || code; }
     function areaKey(barangay, municipality) { return barangay + '||' + municipality; }
 
     const legend = L.control({ position: 'bottomright' });
     legend.onAdd = function () {
-      const div = L.DomUtil.create('div', 'legend');
+      // Starts collapsed every time the map opens; only a tap on it expands it.
+      const div = L.DomUtil.create('div', 'legend collapsed');
       const swatch = (mark, fill) => `<span class="swatch">${markerSvg(mark, fill, 16, false)}</span>`;
       const tierRow = (tier, label) => `
         <div class="legend-row">${swatch({ shape: 'circle', letter: '' }, TIER_COLORS[tier])}${label}</div>`;
@@ -284,8 +395,258 @@
           layer.bindPopup(barangayPopupHtml(feature.properties, null));
         }
       }).addTo(map);
+      buildSearchIndex();
       return true;
     }
+
+    // ---- Location search ----
+    // Searches only the bundled boundary file: every barangay plus every municipality derived
+    // from it, so it can never offer a place the map has no outline for.
+    // KEEP IN SYNC with admin-web/src/locationSearch.ts (matching) and MapPage.tsx (behaviour).
+    const NO_LOCATION_MESSAGE =
+      'Location not available — only barangays and municipalities in Bukidnon can be searched.';
+    // Blue stays distinct from all three severity colours.
+    const HIGHLIGHT_STYLE = { color: '#2563eb', weight: 3, fillColor: '#2563eb', fillOpacity: 0.15 };
+    const SEARCH_LIMIT = 12;
+    // Longest wait for the soft keyboard to close and the WebView to regain its height.
+    const KEYBOARD_CLOSE_MS = 800;
+    let fullHeight = window.innerHeight;
+    window.addEventListener('resize', () => { fullHeight = Math.max(fullHeight, window.innerHeight); });
+
+    // Runs fn once the page is back to (nearly) full height, i.e. the keyboard has closed.
+    function whenKeyboardClosed(fn) {
+      const isFull = () => window.innerHeight >= fullHeight * 0.9;
+      if (isFull()) { fn(); return; }
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        window.removeEventListener('resize', onResize);
+        fn();
+      };
+      const onResize = () => { if (isFull()) finish(); };
+      window.addEventListener('resize', onResize);
+      setTimeout(finish, KEYBOARD_CLOSE_MS);
+    }
+    let searchIndex = [];
+    let highlightedLayers = [];
+    let pendingPopup = null;
+
+    // Lowercase, accents stripped (Ñ → n), whitespace collapsed.
+    function normalizeName(s) {
+      return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+    }
+
+    function buildSearchIndex() {
+      const byKey = {};
+      searchIndex = [];
+      const add = (barangay, municipality, layer) => {
+        const key = (barangay || '') + '||' + municipality;
+        if (!byKey[key]) {
+          const name = barangay || municipality;
+          byKey[key] = {
+            kind: barangay ? 'barangay' : 'municipality',
+            barangay: barangay,
+            municipality: municipality,
+            label: name,
+            name: normalizeName(name),
+            // Without "City of" / "(Capital)", so "malaybalay" ranks the city first.
+            shortName: normalizeName(name.replace(/^city of /i, '').replace(/\(.*?\)/g, '')),
+            full: normalizeName(barangay ? barangay + ' ' + municipality : municipality),
+            layers: []
+          };
+          searchIndex.push(byKey[key]);
+        }
+        byKey[key].layers.push(layer);
+      };
+      barangayLayers.forEach((layer) => {
+        const p = layer.feature.properties;
+        if (!p.municipality) return;
+        add(null, p.municipality, layer);
+        if (p.barangay) add(p.barangay, p.municipality, layer);
+      });
+    }
+
+    // Lower is better; null = no match.
+    function matchRank(entry, q) {
+      const names = [entry.name, entry.shortName];
+      if (names.some((n) => n === q)) return 0;
+      if (names.some((n) => n.startsWith(q))) return 1;
+      if (entry.name.split(' ').some((word) => word.startsWith(q))) return 2;
+      if (entry.name.includes(q)) return 3;
+      // e.g. "poblacion valencia", or just the town name for its barangays
+      if (q.split(' ').every((word) => entry.full.includes(word))) return 4;
+      return null;
+    }
+
+    function searchLocations(query) {
+      const q = normalizeName(query);
+      if (!q) return [];
+      return searchIndex
+        .map((entry) => ({ entry: entry, rank: matchRank(entry, q) }))
+        .filter((m) => m.rank !== null)
+        .sort((a, b) =>
+          a.rank - b.rank ||
+          (a.entry.kind === b.entry.kind ? 0 : a.entry.kind === 'municipality' ? -1 : 1) ||
+          a.entry.label.localeCompare(b.entry.label) ||
+          a.entry.municipality.localeCompare(b.entry.municipality))
+        .slice(0, SEARCH_LIMIT)
+        .map((m) => m.entry);
+    }
+
+    function clearHighlight() {
+      highlightedLayers.forEach((layer) => geoJsonLayer.resetStyle(layer));
+      highlightedLayers = [];
+      if (pendingPopup) map.off('moveend', pendingPopup);
+      pendingPopup = null;
+    }
+
+    function selectLocation(entry) {
+      clearHighlight();
+      const bounds = L.latLngBounds([]);
+      entry.layers.forEach((layer) => {
+        layer.setStyle(HIGHLIGHT_STYLE);
+        layer.bringToFront();
+        bounds.extend(layer.getBounds());
+      });
+      highlightedLayers = entry.layers.slice();
+      map.closePopup();
+      const flyOptions = {
+        // Extra top room so the search box doesn't cover the area.
+        paddingTopLeft: [20, chrome.top + 70],
+        paddingBottomRight: [20, chrome.bottom + 20],
+        maxZoom: 14
+      };
+      if (entry.kind === 'barangay') {
+        // Open the barangay's outbreak popup once the map has arrived. Not on the first moveend:
+        // a window resize (keyboard closing) fires one mid-flight, and opening the popup then
+        // auto-pans and cancels the flight.
+        const padding = L.point(flyOptions.paddingTopLeft).add(L.point(flyOptions.paddingBottomRight));
+        const targetZoom = Math.min(flyOptions.maxZoom, map.getBoundsZoom(bounds, false, padding));
+        pendingPopup = () => {
+          if (Math.abs(map.getZoom() - targetZoom) > 0.01) return;
+          map.off('moveend', pendingPopup);
+          pendingPopup = null;
+          entry.layers[0].openPopup(bounds.getCenter());
+        };
+        map.on('moveend', pendingPopup);
+      }
+      map.flyToBounds(bounds, flyOptions);
+    }
+
+    const searchControl = L.control({ position: 'topleft' });
+    searchControl.onAdd = function () {
+      const div = L.DomUtil.create('div', 'search collapsed');
+      div.innerHTML =
+        '<button type="button" class="search-toggle" aria-label="Search barangay or municipality">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"' +
+        ' aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>' +
+        '</button>' +
+        '<div class="search-box">' +
+        '<input type="text" placeholder="Search barangay or municipality"' +
+        ' aria-label="Search barangay or municipality" autocomplete="off" enterkeyhint="search" />' +
+        '<button type="button" class="search-clear" aria-label="Close search">&times;</button>' +
+        '</div>' +
+        '<ul class="search-results" role="listbox" hidden></ul>';
+      const toggleButton = div.querySelector('.search-toggle');
+      const input = div.querySelector('input');
+      const clearButton = div.querySelector('.search-clear');
+      const list = div.querySelector('.search-results');
+      let results = [];
+
+      function expand() {
+        div.classList.remove('collapsed');
+        input.focus();
+      }
+
+      // Back to the icon; the search, highlight and popup go with it.
+      function collapse() {
+        clear();
+        input.blur();
+        div.classList.add('collapsed');
+      }
+
+      function showResults() {
+        list.innerHTML = '';
+        if (!input.value.trim()) {
+          list.hidden = true;
+          return;
+        }
+        results = searchLocations(input.value);
+        if (results.length === 0) {
+          const li = document.createElement('li');
+          li.className = 'search-empty';
+          li.textContent = NO_LOCATION_MESSAGE;
+          list.appendChild(li);
+        }
+        results.forEach((entry) => {
+          const li = document.createElement('li');
+          li.setAttribute('role', 'option');
+          const name = document.createElement('span');
+          name.className = 'search-name';
+          name.textContent = entry.label;
+          const meta = document.createElement('span');
+          meta.className = 'search-meta';
+          meta.textContent = entry.kind === 'municipality' ? 'Municipality' : entry.municipality;
+          li.appendChild(name);
+          li.appendChild(meta);
+          li.addEventListener('click', () => choose(entry));
+          list.appendChild(li);
+        });
+        list.hidden = false;
+      }
+
+      function choose(entry) {
+        input.value = entry.kind === 'barangay' ? entry.label + ', ' + entry.municipality : entry.label;
+        list.hidden = true;
+        // Collapse the legend so it doesn't cover the area's popup (one tap reopens it).
+        const legendDiv = document.querySelector('.legend');
+        if (legendDiv) legendDiv.classList.add('collapsed');
+        // Close the soft keyboard first: the app's window resizes for it, so fly only once the
+        // map is back to full height, or the area ends up off-centre and under-zoomed. (The
+        // input has usually lost focus before the tap's click arrives, so judge by height.)
+        input.blur();
+        whenKeyboardClosed(() => {
+          map.invalidateSize({ pan: false });
+          selectLocation(entry);
+        });
+      }
+
+      function clear() {
+        clearHighlight();
+        map.closePopup();
+        input.value = '';
+        showResults();
+      }
+
+      input.addEventListener('input', showResults);
+      input.addEventListener('focus', () => {
+        document.body.classList.add('searching');
+        showResults();
+      });
+      input.addEventListener('blur', () => {
+        document.body.classList.remove('searching');
+        // Nothing typed: fold back to the icon. (A chosen place stays shown until closed.)
+        if (!input.value.trim()) div.classList.add('collapsed');
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          if (results.length > 0 && input.value.trim()) choose(results[0]);
+        } else if (e.key === 'Escape') {
+          collapse();
+        }
+      });
+      toggleButton.addEventListener('click', expand);
+      clearButton.addEventListener('click', collapse);
+      // Keep taps, scrolls and key presses ("-" zooms out, arrows pan) from reaching the map.
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.disableScrollPropagation(div);
+      L.DomEvent.on(div, 'keydown keyup keypress', L.DomEvent.stopPropagation);
+      // Touching the map hides the list (the search text and highlight stay).
+      map.on('click dragstart', () => { list.hidden = true; });
+      return div;
+    };
+    searchControl.addTo(map);
 
     function render() {
       const statsByArea = {};
@@ -307,8 +668,9 @@
       // Report dots, rebuilt on every update and stacked above the polygons.
       if (detectionLayer) map.removeLayer(detectionLayer);
       detectionLayer = L.layerGroup();
-      latestDetections.forEach((d) => {
-        if (typeof d.latitude !== 'number' || typeof d.longitude !== 'number') return;
+      const plotted = latestDetections.filter((d) => typeof d.latitude === 'number' && typeof d.longitude === 'number');
+      const offsets = spreadOffsets(plotted);
+      plotted.forEach((d, i) => {
         const recent = d.stage === 'recent';
         const tier = tierByAreaDisease[areaKey(d.barangay, d.municipality) + '||' + d.diseaseCode] || 'mild';
         const daysAgo = Math.max(0, Math.round((Date.now() - d.capturedAt) / DAY_MS));
@@ -316,7 +678,7 @@
           ? `<span style="color:#9ca3af;">Reported ${daysAgo} days ago · no longer counted in the outbreak level</span><br>`
           : `<b>Severity:</b> <span style="color:${getColor(tier)}">${tier.toUpperCase()}</span><br>`;
         L.marker([d.latitude, d.longitude], {
-          icon: markerIcon(d.diseaseCode, tier, recent),
+          icon: markerIcon(d.diseaseCode, tier, recent, offsets[i]),
           // Severe on top, then moderate, then mild; faded past reports always underneath.
           zIndexOffset: recent ? -1000 : tier === 'severe' ? 2000 : tier === 'moderate' ? 1000 : 0,
           keyboard: false

@@ -13,6 +13,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.cornguard.app.R
 import com.cornguard.app.databinding.FragmentAuthBinding
+import com.cornguard.app.location.BarangayResolver
+import com.cornguard.app.ui.common.BarangayPickerBottomSheet
 import kotlinx.coroutines.launch
 
 /**
@@ -46,6 +48,16 @@ class AuthFragment : Fragment() {
 
         binding.passwordToggle.setOnClickListener { setPasswordVisible(!passwordVisible) }
 
+        // Barangay + municipality come from the boundary list as a pair (same picker as Edit
+        // Profile), so a new account can't start with a mismatched area that scans then inherit.
+        binding.barangayInput.setOnClickListener { pickArea() }
+        binding.municipalityInput.setOnClickListener { pickArea() }
+        childFragmentManager.setFragmentResultListener(BarangayPickerBottomSheet.RESULT, viewLifecycleOwner) { _, result ->
+            binding.barangayInput.setText(result.getString(BarangayPickerBottomSheet.KEY_BARANGAY))
+            binding.municipalityInput.setText(result.getString(BarangayPickerBottomSheet.KEY_MUNICIPALITY))
+            binding.provinceInput.setText(BarangayResolver.PROVINCE)
+        }
+
         binding.authSkipButton.setOnClickListener {
             findNavController().popBackStack()
         }
@@ -68,6 +80,12 @@ class AuthFragment : Fragment() {
         }
 
         observeUiState()
+    }
+
+    private fun pickArea() {
+        if (childFragmentManager.findFragmentByTag(BarangayPickerBottomSheet.TAG) == null) {
+            BarangayPickerBottomSheet().show(childFragmentManager, BarangayPickerBottomSheet.TAG)
+        }
     }
 
     private var passwordVisible = false

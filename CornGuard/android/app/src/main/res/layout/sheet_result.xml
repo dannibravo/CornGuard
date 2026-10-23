@@ -92,14 +92,14 @@
                 </LinearLayout>
 
                 <TextView
-                    android:id="@+id/resultSetLocation"
+                    android:id="@+id/resultLocationSettings"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:background="?attr/selectableItemBackground"
                     android:paddingVertical="4dp"
-                    android:text="@string/result_set_location"
-                    android:textColor="@color/cg_warning"
+                    android:text="@string/result_location_change_in_settings"
+                    android:textColor="@color/cg_text_secondary"
                     android:textSize="15sp"
                     android:textStyle="bold"
                     android:visibility="gone"

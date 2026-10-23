@@ -1,5 +1,6 @@
 package com.cornguard.app.data.repository.convex
 
+import com.cornguard.app.data.local.ProfileAreaStore
 import com.cornguard.app.data.model.Farm
 import com.cornguard.app.data.model.UserProfile
 import com.cornguard.app.data.remote.convex.CornGuardConvexClient
@@ -16,9 +17,11 @@ import kotlinx.coroutines.flow.map
 /**
  * Profiles and farms in Convex (`users`, `farms` tables). The backend always acts on the signed-in
  * user for writes, so the `uid`/`ownerUserId` parameters here only select what to read.
+ * Every profile read or write also refreshes [areaStore], the offline copy of the Settings area.
  */
 class ConvexUserFarmRepository(
-    private val client: CornGuardConvexClient
+    private val client: CornGuardConvexClient,
+    private val areaStore: ProfileAreaStore
 ) : UserFarmRepository {
 
     override suspend fun createUserProfile(
@@ -37,14 +40,16 @@ class ConvexUserFarmRepository(
                 "province" to province
             )
         )
+        areaStore.put(uid, barangay, municipality, province)
     }
 
     override suspend fun getUserProfile(uid: String): UserProfile? =
         client.queryOnce<UserDto?>("users:get", convexArgs("userId" to uid))?.toUserProfile()
+            ?.also { areaStore.put(it.userId, it.barangay, it.municipality, it.province) }
 
     override fun observeUserProfile(uid: String): Flow<UserProfile?> =
         client.observe<UserDto?>("users:get", convexArgs("userId" to uid), fallback = null)
-            .map { it?.toUserProfile() }
+            .map { dto -> dto?.toUserProfile()?.also { areaStore.put(it.userId, it.barangay, it.municipality, it.province) } }
 
     /**
      * Accepts the former Firestore field names (`display_name`, `mobile_number`) as well as the
@@ -56,6 +61,7 @@ class ConvexUserFarmRepository(
             field to value
         }
         client.execute("users:update", convexArgs(*args.toList().toTypedArray()))
+        areaStore.put(uid, args["barangay"] as? String, args["municipality"] as? String, args["province"] as? String)
     }
 
     override suspend fun createFarm(

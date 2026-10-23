@@ -14,6 +14,8 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnLayout
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
@@ -54,6 +56,8 @@ class MapFragment : Fragment() {
     private val nearbyAdapter = NearbyReportAdapter()
 
     private var pageReady = false
+    private var signedIn = false
+    private var keyboardOpen = false
     private var latestStats: List<BarangayStat>? = null
     private var latestReports: List<MapReport>? = null
 
@@ -86,6 +90,7 @@ class MapFragment : Fragment() {
         }
 
         setUpWebView()
+        watchKeyboard()
         observeAuthState()
     }
 
@@ -165,9 +170,9 @@ class MapFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 ServiceLocator.authRepository.observeAuthState().collect { user ->
-                    val signedIn = user != null
+                    signedIn = user != null
                     binding.mapSignedOut.visibility = if (signedIn) View.GONE else View.VISIBLE
-                    binding.mapReportsSheet.visibility = if (signedIn) View.VISIBLE else View.GONE
+                    updateSheetVisibility()
                     if (signedIn) {
                         loadGisData(user!!.uid)
                     } else {
@@ -199,6 +204,25 @@ class MapFragment : Fragment() {
                     }
             }
         }
+    }
+
+    /**
+     * The window resizes for the soft keyboard, which left the map's search results only a sliver
+     * between the header and the "Reports near you" sheet. Hide the sheet while the keyboard is up.
+     */
+    private fun watchKeyboard() {
+        binding.root.viewTreeObserver.addOnGlobalLayoutListener {
+            val root = _binding?.root ?: return@addOnGlobalLayoutListener
+            val open = ViewCompat.getRootWindowInsets(root)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+            if (open != keyboardOpen) {
+                keyboardOpen = open
+                updateSheetVisibility()
+            }
+        }
+    }
+
+    private fun updateSheetVisibility() {
+        binding.mapReportsSheet.visibility = if (signedIn && !keyboardOpen) View.VISIBLE else View.GONE
     }
 
     /** Sends { stats?, detections? } to the page; a null part keeps the page's last value. */

@@ -84,6 +84,64 @@ export const purgeTestData = internalMutation({
 });
 
 /**
+ * Empties the Outbreak Map on a DEV deployment: every shared scan (with its photo), every severity
+ * row, every outbreak and the push log. Accounts, farms, devices and community posts are kept.
+ * CLI only:
+ *
+ *   npx convex run devAccounts:resetMapData
+ */
+export const resetMapData = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    let records = 0, stats = 0, outbreaks = 0, notifications = 0;
+    for (const r of await ctx.db.query("diagnosisRecords").collect()) {
+      if (r.imageId) await ctx.storage.delete(r.imageId).catch(() => {});
+      await ctx.db.delete(r._id);
+      records++;
+    }
+    for (const s of await ctx.db.query("barangayDiseaseStats").collect()) { await ctx.db.delete(s._id); stats++; }
+    for (const o of await ctx.db.query("outbreaks").collect()) { await ctx.db.delete(o._id); outbreaks++; }
+    for (const n of await ctx.db.query("notifications").collect()) { await ctx.db.delete(n._id); notifications++; }
+    return { records, stats, outbreaks, notifications };
+  },
+});
+
+/**
+ * Moves a shared scan to corrected coordinates on a DEV deployment (e.g. one whose manual barangay
+ * pick stored the barangay's centroid instead of the field's GPS). Barangay/municipality are kept.
+ * CLI only:
+ *
+ *   npx convex run devAccounts:setRecordLocation "{recordId:'k97...', latitude:7.9, longitude:124.95}"
+ */
+export const setRecordLocation = internalMutation({
+  args: { recordId: v.id("diagnosisRecords"), latitude: v.number(), longitude: v.number() },
+  handler: async (ctx, { recordId, latitude, longitude }) => {
+    const record = await ctx.db.get(recordId);
+    if (!record) throw new ConvexError("No such record.");
+    await ctx.db.patch(recordId, { latitude, longitude });
+    return { before: [record.latitude, record.longitude], after: [latitude, longitude] };
+  },
+});
+
+/**
+ * Deletes one shared scan (and its photo) on a DEV deployment, then recomputes its barangay's
+ * severity. For removing a mistaken test report. CLI only:
+ *
+ *   npx convex run devAccounts:deleteRecord "{recordId:'k97...'}"
+ */
+export const deleteRecord = internalMutation({
+  args: { recordId: v.id("diagnosisRecords") },
+  handler: async (ctx, { recordId }) => {
+    const record = await ctx.db.get(recordId);
+    if (!record) throw new ConvexError("No such record.");
+    if (record.imageId) await ctx.storage.delete(record.imageId).catch(() => {});
+    await ctx.db.delete(recordId);
+    await scheduleRecompute(ctx, record);
+    return { deleted: recordId, barangay: record.barangay, municipality: record.municipality };
+  },
+});
+
+/**
  * Sends a TEST outbreak push to the farmers in and around a barangay, to check FCM delivery. CLI only
  * (needs the deploy key) — the admin website has no manual alert, by design. Recorded in the outbreak
  * History as source "manual" with a TEST message.
