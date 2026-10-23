@@ -38,8 +38,9 @@ async function toRecord(ctx: QueryCtx, r: Doc<"diagnosisRecords">) {
 }
 
 /**
- * Shares one on-device scan to the cloud. Idempotent per (user, localId), so a retried share
- * after a dropped connection returns the existing record instead of duplicating it.
+ * Shares one on-device scan to the cloud. Idempotent per (user, localId, capturedAt), so a retried
+ * share after a dropped connection returns the existing record instead of duplicating it. The capture
+ * time is part of the key because local ids restart at 1 after a reinstall or "Clear data".
  */
 export const share = mutation({
   args: {
@@ -58,10 +59,12 @@ export const share = mutation({
   },
   handler: async (ctx, { farmId, ...args }) => {
     const user = await requireActiveUser(ctx);
-    const existing = await ctx.db
-      .query("diagnosisRecords")
-      .withIndex("by_user_local", (q) => q.eq("userId", user._id).eq("localId", args.localId))
-      .unique();
+    const existing = (
+      await ctx.db
+        .query("diagnosisRecords")
+        .withIndex("by_user_local", (q) => q.eq("userId", user._id).eq("localId", args.localId))
+        .collect()
+    ).find((r) => r.capturedAt === args.capturedAt);
     if (existing) {
       // The duplicate upload's file is no longer needed.
       if (args.imageId && args.imageId !== existing.imageId) await ctx.storage.delete(args.imageId);
