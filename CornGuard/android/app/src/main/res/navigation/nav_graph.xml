@@ -7,9 +7,9 @@
 
     <!--
         Bottom-nav destinations: homeFragment (Dashboard), historyFragment, profileFragment
-        (Settings). Scan, Community and Map open from the Dashboard cards. The diagnosis result,
-        full details, create-post, comments and edit-profile screens are bottom sheets opened in
-        code, not graph destinations.
+        (Settings). Scan, Community and Map open from the Dashboard cards, Notifications from its
+        bell. The diagnosis result, full details, create-post, comments and edit-profile screens
+        are bottom sheets opened in code, not graph destinations.
     -->
 
     <fragment
@@ -26,6 +26,9 @@
         <action
             android:id="@+id/action_home_to_map"
             app:destination="@id/mapFragment" />
+        <action
+            android:id="@+id/action_home_to_notifications"
+            app:destination="@id/notificationsFragment" />
     </fragment>
 
     <fragment
@@ -51,6 +54,13 @@
         android:name="com.cornguard.app.ui.community.CommunityFragment"
         android:label="@string/community_title"
         tools:layout="@layout/fragment_community" />
+
+    <!-- The Dashboard bell's inbox. Its items open the map or a post's comments (postId argument). -->
+    <fragment
+        android:id="@+id/notificationsFragment"
+        android:name="com.cornguard.app.ui.notifications.NotificationsFragment"
+        android:label="@string/notifications_title"
+        tools:layout="@layout/fragment_notifications" />
 
     <!-- Reached from any online-only screen's sign-in prompt; never the start destination. -->
     <fragment

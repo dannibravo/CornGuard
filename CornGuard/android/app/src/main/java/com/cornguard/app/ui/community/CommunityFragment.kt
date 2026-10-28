@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 /**
  * Community feed (caps 3 design's Global Feed). Online-only and sign-in gated. The + button opens
  * [CreatePostBottomSheet]; the comment icon opens [CommentsBottomSheet]; the heart toggles the
- * existing upvote.
+ * existing upvote. With [ARG_OPEN_POST_ID] (a reply notification) it opens that post's comments.
  */
 class CommunityFragment : Fragment() {
 
@@ -54,6 +54,12 @@ class CommunityFragment : Fragment() {
         childFragmentManager.setFragmentResultListener(RESULT_FEED_CHANGED, viewLifecycleOwner) { _, _ -> loadFeed() }
 
         observeAuthState()
+        // Opened from a community-reply notification: show that post's comments once.
+        if (savedInstanceState == null) {
+            arguments?.getString(ARG_OPEN_POST_ID)?.let { postId ->
+                CommentsBottomSheet.newInstance(postId).show(childFragmentManager, CommentsBottomSheet.TAG)
+            }
+        }
     }
 
     private fun observeAuthState() {
@@ -114,5 +120,6 @@ class CommunityFragment : Fragment() {
 
     companion object {
         const val RESULT_FEED_CHANGED = "community_feed_changed"
+        const val ARG_OPEN_POST_ID = "openPostId"
     }
 }

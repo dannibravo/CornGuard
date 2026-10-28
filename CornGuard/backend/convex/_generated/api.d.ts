@@ -18,6 +18,7 @@ import type * as devices from "../devices.js";
 import type * as diagnosisRecords from "../diagnosisRecords.js";
 import type * as http from "../http.js";
 import type * as lib_access from "../lib/access.js";
+import type * as notifications from "../notifications.js";
 import type * as outbreakAlerts from "../outbreakAlerts.js";
 import type * as posts from "../posts.js";
 import type * as push from "../push.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   diagnosisRecords: typeof diagnosisRecords;
   http: typeof http;
   "lib/access": typeof lib_access;
+  notifications: typeof notifications;
   outbreakAlerts: typeof outbreakAlerts;
   posts: typeof posts;
   push: typeof push;
