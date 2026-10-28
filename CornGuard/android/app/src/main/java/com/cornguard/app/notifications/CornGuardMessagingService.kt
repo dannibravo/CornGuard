@@ -23,8 +23,8 @@ import kotlinx.coroutines.launch
  * com.google.firebase.MESSAGING_EVENT intent filter.
  *
  * Accepts either a `notification` payload (title/body) or a plain `data` payload with `title` and
- * `body` (or `message`) keys; the backend sends data-only messages. Deep-linking to a specific
- * post/area from the notification is not implemented — tapping it just opens the app.
+ * `body` (or `message`) keys; the backend sends data-only messages. Tapping one marks its inbox
+ * entry (the Dashboard bell) read and opens the Outbreak Map or the replied-to post.
  */
 class CornGuardMessagingService : FirebaseMessagingService() {
 
@@ -44,22 +44,38 @@ class CornGuardMessagingService : FirebaseMessagingService() {
         super.onMessageReceived(message)
         val title = message.notification?.title ?: message.data["title"] ?: getString(R.string.app_name)
         val body = message.notification?.body ?: message.data["body"] ?: message.data["message"] ?: return
-        showNotification(title, body, isOutbreak = message.data["type"] == TYPE_OUTBREAK)
+        showNotification(
+            title,
+            body,
+            isOutbreak = message.data["type"] == TYPE_OUTBREAK,
+            notificationId = message.data["notification_id"]?.takeIf { it.isNotBlank() },
+            relatedPostId = message.data["related_post_id"]?.takeIf { it.isNotBlank() }
+        )
     }
 
     /**
      * Outbreak alerts (backend/convex/outbreakAlerts.ts) use their own high-importance channel, as
      * caps 3 did, so they pop up; tapping one opens the Outbreak Map.
      */
-    private fun showNotification(title: String, body: String, isOutbreak: Boolean) {
+    private fun showNotification(
+        title: String,
+        body: String,
+        isOutbreak: Boolean,
+        notificationId: String?,
+        relatedPostId: String?
+    ) {
         ensureChannels()
 
+        val notifyId = System.currentTimeMillis().toInt()
         val intent = Intent(this, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             .putExtra(MainActivity.EXTRA_OPEN_MAP, isOutbreak)
+            .putExtra(MainActivity.EXTRA_NOTIFICATION_ID, notificationId)
+            .putExtra(MainActivity.EXTRA_POST_ID, relatedPostId)
+        // One request code per notification, so stacked notifications keep their own extras.
         val contentIntent = PendingIntent.getActivity(
             this,
-            if (isOutbreak) 1 else 0,
+            notifyId,
             intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
@@ -76,7 +92,7 @@ class CornGuardMessagingService : FirebaseMessagingService() {
             .setContentIntent(contentIntent)
             .build()
 
-        getSystemService<NotificationManager>()?.notify(System.currentTimeMillis().toInt(), notification)
+        getSystemService<NotificationManager>()?.notify(notifyId, notification)
     }
 
     private fun ensureChannels() {

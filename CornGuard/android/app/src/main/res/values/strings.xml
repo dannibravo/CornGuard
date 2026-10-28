@@ -30,6 +30,15 @@
     <string name="home_map_title">Outbreak Map</string>
     <string name="home_map_subtitle">View active crop disease outbreaks in Bukidnon</string>
 
+    <!-- Notifications (Dashboard bell) -->
+    <string name="notifications_title">Notifications</string>
+    <string name="notifications_unread_description">Notifications, %1$d unread</string>
+    <string name="notifications_badge_overflow">9+</string>
+    <string name="notifications_mark_all_read">Mark all read</string>
+    <string name="notifications_empty">No notifications yet. Outbreak alerts and replies to your posts will appear here.</string>
+    <string name="notifications_sign_in_prompt">Sign in to see your outbreak alerts and replies.</string>
+    <string name="notifications_unread_dot">Unread</string>
+
     <!-- Scan -->
     <string name="scan_title">Scan Corn Leaf</string>
     <string name="scan_ready_title">Ready to scan</string>

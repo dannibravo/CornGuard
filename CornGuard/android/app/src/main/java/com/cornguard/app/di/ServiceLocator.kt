@@ -12,6 +12,7 @@ import com.cornguard.app.data.repository.DiagnosisHistoryRepository
 import com.cornguard.app.data.repository.DiagnosisSharingRepository
 import com.cornguard.app.data.repository.DiseaseReferenceRepository
 import com.cornguard.app.data.repository.GisRepository
+import com.cornguard.app.data.repository.NotificationRepository
 import com.cornguard.app.data.repository.UserFarmRepository
 import com.cornguard.app.BuildConfig
 import com.cornguard.app.data.remote.convex.ConvexBackend
@@ -20,6 +21,7 @@ import com.cornguard.app.data.repository.convex.ConvexAuthRepository
 import com.cornguard.app.data.repository.convex.ConvexCommunityRepository
 import com.cornguard.app.data.repository.convex.ConvexDiagnosisSharingRepository
 import com.cornguard.app.data.repository.convex.ConvexGisRepository
+import com.cornguard.app.data.repository.convex.ConvexNotificationRepository
 import com.cornguard.app.data.repository.convex.ConvexUserFarmRepository
 import com.cornguard.app.data.repository.local.LocalDiagnosisHistoryRepository
 import com.cornguard.app.data.repository.local.LocalDiseaseReferenceRepository
@@ -116,6 +118,10 @@ object ServiceLocator {
     }
 
     val adminRepository: AdminRepository by lazy { ConvexAdminRepository(convexBackend.client) }
+
+    val notificationRepository: NotificationRepository by lazy {
+        ConvexNotificationRepository(convexBackend.client)
+    }
 
     // Process-lifetime scope for startup-only work (seeding, session restore). Not exposed for general use —
     // screens use viewLifecycleOwner.lifecycleScope, not this.

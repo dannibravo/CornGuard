@@ -147,3 +147,16 @@ data class NotificationDto(
     val deliveryStatus: String,
     val createdAt: Double
 )
+
+/** A row of `notifications:mine` — the farmer's own inbox, unlike the admin [NotificationDto]. */
+@Serializable
+data class InboxNotificationDto(
+    val notificationId: String,
+    val type: String,
+    val title: String,
+    val message: String,
+    val relatedPostId: String? = null,
+    val diseaseCode: String? = null,
+    val createdAt: Double,
+    val read: Boolean
+)

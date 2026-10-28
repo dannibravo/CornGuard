@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Inbox row: type icon, title + time, message; unread rows are tinted and carry a dot. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:foreground="?attr/selectableItemBackground"
+    android:orientation="horizontal"
+    android:paddingHorizontal="24dp"
+    android:paddingVertical="14dp">
+
+    <ImageView
+        android:id="@+id/notificationIcon"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:background="@drawable/bg_circle"
+        android:importantForAccessibility="no"
+        android:padding="10dp"
+        tools:backgroundTint="@color/cg_green_tint"
+        tools:src="@drawable/ic_warning"
+        tools:tint="@color/cg_danger" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/notificationTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textColor="@color/cg_text_primary"
+                android:textSize="16sp"
+                tools:text="Northern Leaf Blight outbreak reported nearby"
+                tools:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/notificationTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:textAppearance="@style/TextAppearance.CornGuard.Meta"
+                android:textSize="14sp"
+                tools:text="3h" />
+
+            <View
+                android:id="@+id/notificationUnreadDot"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_circle"
+                android:backgroundTint="@color/cg_primary"
+                android:contentDescription="@string/notifications_unread_dot" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/notificationMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="3"
+            android:textColor="@color/cg_text_secondary"
+            android:textSize="15sp"
+            tools:text="Multiple corn farms in Poblacion, City of Valencia have confirmed Northern Leaf Blight. Check the outbreak map." />
+    </LinearLayout>
+</LinearLayout>
