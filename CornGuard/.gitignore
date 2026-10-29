@@ -1,0 +1,20 @@
+# Root-level ignores only. android/, firebase/*/, and ml/ each already have their own
+# .gitignore covering build output, node_modules, venvs, caches, and local secrets for that
+# subproject — this file does not duplicate or override any of those, it only covers
+# cross-cutting concerns that could appear at the repository root.
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE (root-level only — android/.gitignore already covers android/.idea/ etc.)
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -1,0 +1,5 @@
+dataset_version,sample_id,original_filename,relative_path,class_label,source_type,split,exclusion_reason
+v1-public-baseline,Corn_Gray_Spot (29),Corn_Gray_Spot (29).jpg,data\raw\gray_leaf_spot\public\Corn_Gray_Spot (29).jpg,gray_leaf_spot,public,test,label_conflict_unresolved_cross_split_duplicate
+v1-public-baseline,Corn_Gray_Spot (564),Corn_Gray_Spot (564).jpg,data\raw\gray_leaf_spot\public\Corn_Gray_Spot (564).jpg,gray_leaf_spot,public,test,label_conflict_unresolved_cross_split_duplicate
+v1-public-baseline,Corn_Blight (106),Corn_Blight (106).jpg,data\raw\northern_leaf_blight\public\Corn_Blight (106).jpg,northern_leaf_blight,public,train,label_conflict_unresolved_cross_split_duplicate
+v1-public-baseline,Corn_Blight (1104),Corn_Blight (1104).jpg,data\raw\northern_leaf_blight\public\Corn_Blight (1104).jpg,northern_leaf_blight,public,train,label_conflict_unresolved_cross_split_duplicate
