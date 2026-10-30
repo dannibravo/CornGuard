@@ -16,6 +16,7 @@ import com.cornguard.app.di.ServiceLocator
 import com.cornguard.app.ui.common.CornGuardBottomSheet
 import com.cornguard.app.ui.common.TimeFormat
 import com.cornguard.app.ui.treatment.FullDetailsBottomSheet
+import com.cornguard.app.ui.treatment.ReviewLabelBinder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -76,6 +77,7 @@ class ResultBottomSheet : CornGuardBottomSheet() {
         viewLifecycleOwner.lifecycleScope.launch {
             val reference = ServiceLocator.diseaseReferenceRepository.getByCode(record.diseaseCode)
             binding.resultTreatmentPreview.text = reference?.treatmentSteps ?: getString(R.string.result_no_treatment)
+            ReviewLabelBinder.bind(binding.resultReviewLabel.root, reference)
         }
         binding.resultViewDetails.setOnClickListener {
             FullDetailsBottomSheet.newInstance(record.diseaseCode)

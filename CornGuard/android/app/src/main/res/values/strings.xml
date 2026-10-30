@@ -88,9 +88,12 @@
     <string name="treatment_source_label">Source</string>
     <string name="treatment_offline_indicator">Available offline — no internet needed</string>
     <string name="treatment_not_found">No reference content is available for this disease on this device yet.</string>
-    <string name="treatment_disclaimer">This guidance is general information and has not yet been
-        verified by an agricultural expert. Confirm with your local DA office or agricultural
-        technician before applying any treatment.</string>
+    <string name="treatment_disclaimer">This guidance was checked against published research and
+        Philippine pesticide registrations, but has not yet been reviewed by an agricultural expert.
+        Confirm with your local DA office or agricultural technician before applying any treatment,
+        and always follow the product label.</string>
+    <string name="review_label_sources">Reviewed against published sources · %1$s</string>
+    <string name="review_label_expert">Verified by an agricultural expert · %1$s, %2$s</string>
 
     <!-- History -->
     <string name="history_title">Detection History</string>

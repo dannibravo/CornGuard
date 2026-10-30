@@ -69,4 +69,23 @@ class DiseaseReferenceDaoTest {
         assertEquals(1, all.size)
         assertEquals("v2", all.first().contentVersion)
     }
+
+    @Test
+    fun reviewFields_roundTrip() = runTest {
+        dao.upsertAll(
+            listOf(
+                sampleReference(contentVersion = "v1").copy(
+                    reviewStatus = "expert_verified",
+                    reviewedBy = "Juan Dela Cruz, DA-RFO 10",
+                    reviewedAt = 1_793_318_400_000L
+                )
+            )
+        )
+
+        val stored = dao.getByCode("gray_leaf_spot")
+
+        assertEquals("expert_verified", stored?.reviewStatus)
+        assertEquals("Juan Dela Cruz, DA-RFO 10", stored?.reviewedBy)
+        assertEquals(1_793_318_400_000L, stored?.reviewedAt)
+    }
 }

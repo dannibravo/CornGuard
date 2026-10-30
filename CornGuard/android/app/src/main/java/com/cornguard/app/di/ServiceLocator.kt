@@ -158,7 +158,7 @@ object ServiceLocator {
         appContext = context.applicationContext
         appScope.launch {
             // Upserted every launch so updated reference content replaces older copies. See
-            // DiseaseReferenceSeedData's doc comment — not yet expert-verified guidance.
+            // DiseaseReferenceSeedData's doc comment — source-reviewed, not yet expert-verified.
             diseaseReferenceRepository.upsertAll(DiseaseReferenceSeedData.all)
         }
         if (BuildConfig.CONVEX_URL.isNotBlank()) {

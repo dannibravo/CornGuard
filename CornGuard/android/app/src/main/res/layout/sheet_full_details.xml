@@ -78,6 +78,7 @@
                 tools:text="Source: CornGuard disease knowledge base" />
 
             <TextView
+                android:id="@+id/detailsDisclaimer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"

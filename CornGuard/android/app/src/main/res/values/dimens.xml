@@ -13,4 +13,7 @@
     <!-- Outbreak Heatmap: collapsed height of the "Reports near you" sheet, and its list height. -->
     <dimen name="map_sheet_peek">72dp</dimen>
     <dimen name="map_sheet_content_height">360dp</dimen>
+
+    <!-- Check icon in the treatment review label (view_review_label.xml). -->
+    <dimen name="review_label_icon_size">14dp</dimen>
 </resources>

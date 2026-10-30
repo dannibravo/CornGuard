@@ -9,8 +9,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Verifies v1 → v2 (disease references gain `causes` / `duration`) keeps existing scan history and
- * reference rows intact. Uses the exported schemas in app/schemas.
+ * Verifies v1 → v2 (disease references gain `causes` / `duration`) and v2 → v3 (review metadata)
+ * keep existing scan history and reference rows intact. Uses the exported schemas in app/schemas.
  */
 @RunWith(AndroidJUnit4::class)
 class AppDatabaseMigrationTest {
@@ -48,6 +48,29 @@ class AppDatabaseMigrationTest {
         db.query("SELECT COUNT(*) FROM diagnosis_records").use {
             it.moveToFirst()
             assertEquals(1, it.getInt(0))
+        }
+    }
+
+    @Test
+    fun migrate2To3_keepsRowsAndDefaultsReviewFields() {
+        helper.createDatabase(TEST_DB, 2).apply {
+            execSQL(
+                "INSERT INTO disease_references (diseaseCode, displayName, symptoms, treatmentSteps, " +
+                    "preventionSteps, causes, duration, sourceReference, contentVersion, updatedAt) " +
+                    "VALUES ('healthy', 'Healthy', 's', 't', 'p', 'c', 'd', 'src', 'v1', 1)"
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(TEST_DB, 3, true, AppDatabase.MIGRATION_2_3)
+
+        db.query("SELECT treatmentSteps, reviewStatus, reviewedBy, reviewedAt FROM disease_references WHERE diseaseCode = 'healthy'").use {
+            it.moveToFirst()
+            assertEquals("t", it.getString(0))
+            // Existing content is never assumed reviewed.
+            assertEquals("unreviewed", it.getString(1))
+            assertEquals("", it.getString(2))
+            assertEquals(0L, it.getLong(3))
         }
     }
 

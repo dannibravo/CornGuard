@@ -18,7 +18,7 @@ import com.cornguard.app.data.local.db.entity.DiseaseReferenceEntity
  */
 @Database(
     entities = [DiagnosisRecordEntity::class, DiseaseReferenceEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -37,6 +37,15 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v3: disease references gain review metadata (`reviewStatus`, `reviewedBy`, `reviewedAt`). */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `disease_references` ADD COLUMN `reviewStatus` TEXT NOT NULL DEFAULT 'unreviewed'")
+                db.execSQL("ALTER TABLE `disease_references` ADD COLUMN `reviewedBy` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `disease_references` ADD COLUMN `reviewedAt` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         @Volatile
         private var instance: AppDatabase? = null
 
@@ -46,7 +55,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     DATABASE_NAME
-                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
             }
         }
     }
