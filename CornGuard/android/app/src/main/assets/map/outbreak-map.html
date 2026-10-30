@@ -224,16 +224,26 @@
     const map = L.map('map', { zoomControl: false }).setView([8.15, 125.13], 9);
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
+    // Fitting all of Bukidnon on a phone lands around zoom 8, which reads as a jarring zoom-out;
+    // never open wider than the initial view.
+    const FIT_MIN_ZOOM = 9;
     let hasFitted = false;
     function fitToLayer(force) {
       if (!geoJsonLayer) return;
       if (hasFitted && !force) return;
       const bounds = geoJsonLayer.getBounds();
       if (!bounds.isValid()) return;
-      map.fitBounds(bounds, {
-        paddingTopLeft: [20, chrome.top + 20],
-        paddingBottomRight: [20, chrome.bottom + 20],
-      });
+      const paddingTL = L.point(20, chrome.top + 20);
+      const paddingBR = L.point(20, chrome.bottom + 20);
+      const zoom = Math.max(FIT_MIN_ZOOM, map.getBoundsZoom(bounds, false, paddingTL.add(paddingBR)));
+      // Same centring as fitBounds: the middle of the area left clear of the header and sheet.
+      const offset = paddingBR.subtract(paddingTL).divideBy(2);
+      const center = map.unproject(
+        map.project(bounds.getSouthWest(), zoom).add(map.project(bounds.getNorthEast(), zoom))
+          .divideBy(2).add(offset),
+        zoom
+      );
+      map.setView(center, zoom, { animate: false });
       hasFitted = true;
     }
 
