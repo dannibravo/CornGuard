@@ -5,6 +5,7 @@ import com.cornguard.app.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 /** Time labels used across the design: compact relative times and full date-times. */
 object TimeFormat {
@@ -23,6 +24,12 @@ object TimeFormat {
     /** e.g. "Sep 27, 2026 8:36 PM" (History cards, result sheet). */
     fun dateTime(timestampMs: Long): String =
         SimpleDateFormat("MMM d, yyyy h:mm a", Locale.getDefault()).format(Date(timestampMs))
+
+    /** e.g. "Oct 2026" (treatment review label). UTC, so a date stored as UTC midnight never shifts month. */
+    fun monthYear(timestampMs: Long): String =
+        SimpleDateFormat("MMM yyyy", Locale.getDefault())
+            .apply { timeZone = TimeZone.getTimeZone("UTC") }
+            .format(Date(timestampMs))
 
     /** Rounds a 0..1 confidence to one decimal percentage, e.g. 0.674 -> "67.4". */
     fun percent(confidence: Float): String = String.format(Locale.US, "%.1f", confidence * 100)

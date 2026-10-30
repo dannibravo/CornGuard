@@ -136,6 +136,10 @@
                     android:textSize="17sp"
                     tools:text="Chemical Option:\nApply foliar fungicides like 'Amistar 25 SC'…" />
 
+                <include
+                    android:id="@+id/resultReviewLabel"
+                    layout="@layout/view_review_label" />
+
                 <TextView
                     android:id="@+id/resultViewDetails"
                     android:layout_width="wrap_content"

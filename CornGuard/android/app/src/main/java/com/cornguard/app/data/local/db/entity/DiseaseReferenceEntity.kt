@@ -31,5 +31,16 @@ data class DiseaseReferenceEntity(
     val contentVersion: String,
 
     /** Epoch millis, UTC. */
-    val updatedAt: Long
+    val updatedAt: Long,
+
+    /**
+     * Added in DB version 3: a [com.cornguard.app.model.ReviewStatus] stored value, who reviewed
+     * the content (named expert for the expert tier) and when (epoch millis, UTC; 0 = never).
+     */
+    @ColumnInfo(defaultValue = "unreviewed")
+    val reviewStatus: String = "unreviewed",
+    @ColumnInfo(defaultValue = "")
+    val reviewedBy: String = "",
+    @ColumnInfo(defaultValue = "0")
+    val reviewedAt: Long = 0L
 )

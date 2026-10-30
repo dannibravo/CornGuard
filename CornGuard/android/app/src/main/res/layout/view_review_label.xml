@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Small review label under a Treatment section; bound by ReviewLabelBinder, hidden when there is
+     no review to show. -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/reviewLabel"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="8dp"
+    android:drawablePadding="6dp"
+    android:gravity="center_vertical"
+    android:textAppearance="@style/TextAppearance.CornGuard.Meta"
+    android:visibility="gone"
+    tools:text="Reviewed against published sources · Oct 2026"
+    tools:visibility="visible" />
