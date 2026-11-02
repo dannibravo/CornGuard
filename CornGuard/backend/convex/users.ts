@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, QueryCtx } from "./_generated/server";
-import { currentUserId, requireActiveUser } from "./lib/access";
+import { currentUserId, requireActiveUser, requireUser } from "./lib/access";
 
 /** Shape returned to the app for `AuthUser` / `UserProfile`. */
 async function toProfile(ctx: QueryCtx, user: Doc<"users">) {
@@ -19,6 +19,7 @@ async function toProfile(ctx: QueryCtx, user: Doc<"users">) {
     province: user.province ?? "",
     role: user.role ?? "farmer",
     accountStatus: user.accountStatus ?? "active",
+    onboardingStatus: user.onboardingStatus ?? "done",
     farmIds: farms.map((f) => f._id as string),
   };
 }
@@ -56,7 +57,10 @@ export const createProfile = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireActiveUser(ctx);
+    // A brand-new account (no profile yet) is "Fresh": the app shows it the onboarding tutorial.
+    const isNewAccount = user.name === undefined && user.onboardingStatus === undefined;
     await ctx.db.patch(user._id, {
+      ...(isNewAccount ? { onboardingStatus: "fresh" as const } : {}),
       name: args.displayName,
       barangay: args.barangay,
       municipality: args.municipality,
@@ -123,5 +127,14 @@ export const farmsForUser = query({
       latitude: f.latitude ?? null,
       longitude: f.longitude ?? null,
     }));
+  },
+});
+
+/** The app's first-sign-in tutorial was finished or skipped; it won't be shown again. */
+export const completeOnboarding = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    if (user.onboardingStatus !== "done") await ctx.db.patch(user._id, { onboardingStatus: "done" });
   },
 });

@@ -53,6 +53,9 @@ export default defineSchema({
     municipality: v.optional(v.string()),
     province: v.optional(v.string()),
     mobileNumber: v.optional(v.string()),
+    // "fresh" from registration until the app's first-sign-in tutorial is finished or skipped.
+    // Missing = an account from before the tutorial existed: treated as "done".
+    onboardingStatus: v.optional(v.union(v.literal("fresh"), v.literal("done"))),
   })
     .index("email", ["email"])
     .index("phone", ["phone"]),

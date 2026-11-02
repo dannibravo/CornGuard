@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Onboarding guide (OnboardingDialogFragment): chapter label + Skip, progress bar, an annotated
+     app screenshot, title and caption, Back/Next. Screenshots come from android/tools/tutorial. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/cg_bg"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingBottom="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onboardingChapter"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/cg_primary"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            tools:text="Outbreak Map · 2 of 6" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/onboardingSkip"
+            style="@style/Widget.CornGuard.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="@string/onboarding_skip"
+            android:textSize="16sp" />
+    </LinearLayout>
+
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/onboardingProgress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="100"
+        app:indicatorColor="@color/cg_primary"
+        app:trackColor="@color/cg_input_border"
+        app:trackCornerRadius="4dp"
+        app:trackThickness="6dp" />
+
+    <LinearLayout
+        android:id="@+id/onboardingSlide"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- The screenshot takes the space the text doesn't need, centred, never stretched. -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="14dp"
+            android:layout_weight="1">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/cg_input_border"
+                app:strokeWidth="1dp">
+
+                <ImageView
+                    android:id="@+id/onboardingImage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:adjustViewBounds="true"
+                    android:scaleType="fitCenter"
+                    tools:src="@drawable/tutorial_15_map" />
+            </com.google.android.material.card.MaterialCardView>
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/onboardingTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:accessibilityHeading="true"
+            android:textColor="@color/cg_text_primary"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            tools:text="The Outbreak Map" />
+
+        <TextView
+            android:id="@+id/onboardingBody"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:lineSpacingMultiplier="1.15"
+            android:textColor="@color/cg_text_secondary"
+            android:textSize="16sp"
+            tools:text="Each dot is a verified disease report. ① Search for a place, ② filter what you see, ③ zoom, and ④ open the Legend." />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/onboardingBack"
+            style="@style/Widget.CornGuard.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
+            android:text="@string/onboarding_back"
+            android:textSize="17sp" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/onboardingNext"
+            style="@style/Widget.CornGuard.Button.Pill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="140dp"
+            android:minHeight="56dp"
+            android:text="@string/onboarding_next"
+            android:textSize="17sp" />
+    </LinearLayout>
+</LinearLayout>

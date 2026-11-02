@@ -66,6 +66,14 @@ const profileA = await b.client.query(api.users.get, { userId: viewerA.userId })
 check("createProfile stores profile, role forced to farmer", profileA?.displayName === "Farmer A" && profileA.role === "farmer");
 const viewerB = await b.client.query(api.users.viewer, {});
 
+// --- Onboarding ("Fresh" accounts get the first-sign-in tutorial once) ------------------------
+check("new account is Fresh", (await a.client.query(api.users.viewer, {}))?.onboardingStatus === "fresh");
+await a.client.mutation(api.users.completeOnboarding, {});
+check("completing the tutorial marks it done", (await a.client.query(api.users.viewer, {}))?.onboardingStatus === "done");
+await a.client.mutation(api.users.createProfile, {
+  displayName: "Farmer A", barangay: "Poblacion", municipality: "Valencia", province: "Bukidnon",
+});
+check("re-saving the profile doesn't make an account Fresh again", (await a.client.query(api.users.viewer, {}))?.onboardingStatus === "done");
 
 await expectError("wrong password rejected", () =>
   new ConvexHttpClient(url).action(api.auth.signIn, {
