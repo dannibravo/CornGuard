@@ -1,8 +1,11 @@
 package com.cornguard.app
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.edit
 import androidx.core.os.bundleOf
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -11,6 +14,7 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.cornguard.app.databinding.ActivityMainBinding
 import com.cornguard.app.di.ServiceLocator
+import com.cornguard.app.permissions.AppPermission
 import com.cornguard.app.ui.community.CommunityFragment
 import com.cornguard.app.ui.onboarding.OnboardingDialogFragment
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,6 +32,11 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+
+    // Android 13+ only shows push alerts (outbreaks, replies) once this is granted. The answer is
+    // the user's; we only ask once per install.
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -94,7 +103,12 @@ class MainActivity : AppCompatActivity() {
                     .filterNotNull()
                     .catch { }
                     .collect { profile ->
-                        if (!profile.isFresh) return@collect
+                        val guideShowing = supportFragmentManager.findFragmentByTag(OnboardingDialogFragment.TAG) != null
+                        if (!profile.isFresh) {
+                            // Not over the guide: once it's done the profile turns "done" and we get here.
+                            if (!guideShowing) maybeAskNotificationPermission()
+                            return@collect
+                        }
                         if (!OnboardingDialogFragment.shouldShow(this@MainActivity, profile.userId, profile.isFresh)) {
                             runCatching { ServiceLocator.userFarmRepository.completeOnboarding() }
                         } else if (supportFragmentManager.findFragmentByTag(OnboardingDialogFragment.TAG) == null) {
@@ -104,6 +118,16 @@ class MainActivity : AppCompatActivity() {
                     }
             }
         }
+    }
+
+    /** Once per install, after sign-in, on Android 13+ when notifications aren't allowed yet. */
+    private fun maybeAskNotificationPermission() {
+        val permission = AppPermission.NOTIFICATIONS.manifestPermissions.firstOrNull() ?: return
+        if (ServiceLocator.permissionManager.isGranted(AppPermission.NOTIFICATIONS)) return
+        val prefs = getSharedPreferences(PREFS_PERMISSIONS, Context.MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_ASKED_NOTIFICATIONS, false)) return
+        prefs.edit { putBoolean(KEY_ASKED_NOTIFICATIONS, true) }
+        notificationPermissionLauncher.launch(permission)
     }
 
     private fun observeConnectivity() {
@@ -120,6 +144,8 @@ class MainActivity : AppCompatActivity() {
         const val EXTRA_OPEN_MAP = "com.cornguard.app.OPEN_MAP"
         const val EXTRA_NOTIFICATION_ID = "com.cornguard.app.NOTIFICATION_ID"
         const val EXTRA_POST_ID = "com.cornguard.app.POST_ID"
+        private const val PREFS_PERMISSIONS = "permissions"
+        private const val KEY_ASKED_NOTIFICATIONS = "asked_notifications"
         private val DASHBOARD_CHILDREN =
             setOf(R.id.scanFragment, R.id.communityFragment, R.id.mapFragment, R.id.notificationsFragment)
     }

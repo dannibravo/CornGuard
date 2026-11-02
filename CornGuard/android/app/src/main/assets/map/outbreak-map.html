@@ -336,6 +336,11 @@
       const root = document.documentElement.style;
       root.setProperty('--chrome-top', chrome.top + 'px');
       root.setProperty('--chrome-bottom', chrome.bottom + 'px');
+      // Popups pan clear of the app's header and the reports sheet; without this a popup on a dot
+      // near the top opened underneath the header, hiding the disease name. Set on the prototype so
+      // every popup (barangay outlines and report dots) picks it up, including ones already bound.
+      L.Popup.prototype.options.autoPanPaddingTopLeft = L.point(10, chrome.top + 10);
+      L.Popup.prototype.options.autoPanPaddingBottomRight = L.point(10, chrome.bottom + 10);
       fitToLayer(true);
     }
     window.setMapChrome = setMapChrome;
