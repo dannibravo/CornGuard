@@ -28,6 +28,14 @@ async function deleteUser(ctx: MutationCtx, userId: Id<"users">) {
     await removeFile(r.imageId);
     await ctx.db.delete(r._id);
   }
+  // Reports the user filed, and reports on their posts (incl. those posts' comments) and comments.
+  for (const r of await ctx.db.query("reports").withIndex("by_reporter", (q) => q.eq("reporterId", userId)).collect()) await ctx.db.delete(r._id);
+  for (const p of await ctx.db.query("communityPosts").withIndex("by_user", (q) => q.eq("userId", userId)).collect()) {
+    for (const r of await ctx.db.query("reports").withIndex("by_post", (q) => q.eq("postId", p._id)).collect()) await ctx.db.delete(r._id);
+  }
+  for (const c of await ctx.db.query("comments").filter((q) => q.eq(q.field("userId"), userId)).collect()) {
+    for (const r of await ctx.db.query("reports").withIndex("by_target_reporter", (q) => q.eq("targetType", "comment").eq("targetId", c._id)).collect()) await ctx.db.delete(r._id);
+  }
   for (const p of await ctx.db.query("communityPosts").withIndex("by_user", (q) => q.eq("userId", userId)).collect()) {
     for (const c of await ctx.db.query("comments").withIndex("by_post", (q) => q.eq("postId", p._id)).collect()) await ctx.db.delete(c._id);
     for (const pv of await ctx.db.query("postVotes").withIndex("by_post", (q) => q.eq("postId", p._id)).collect()) await ctx.db.delete(pv._id);
@@ -53,7 +61,7 @@ async function deleteUser(ctx: MutationCtx, userId: Id<"users">) {
 
 /**
  * Removes leftover test data from a DEV deployment: every account whose email ends with `@test.dev`
- * (smoke-test and emulator accounts) with all its scans, posts, comments, votes, farms, devices,
+ * (smoke-test and emulator accounts) with all its scans, posts, comments, votes, reports, farms, devices,
  * notifications, photos and sign-in rows; plus, with `history: true`, all outbreaks and
  * notifications (test alerts), and with `demoReports: true`, the seeded map reports
  * (`localId` "map-demo-*"). Severity stats are then recomputed. CLI only:
