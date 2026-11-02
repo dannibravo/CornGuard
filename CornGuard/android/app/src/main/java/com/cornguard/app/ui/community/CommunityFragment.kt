@@ -99,7 +99,13 @@ class CommunityFragment : Fragment() {
                 binding.communityEmptyState.setText(R.string.community_load_failed)
                 return@launch
             }
-            adapter.submitList(posts)
+            // A new post lands at the top; RecyclerView keeps the old first item anchored, which
+            // hid the new one above the screen. Jump to it (not on likes etc., where the top is unchanged).
+            val newTop = posts.firstOrNull()?.postId
+            val topChanged = newTop != null && newTop != adapter.currentList.firstOrNull()?.postId
+            adapter.submitList(posts) {
+                if (topChanged) _binding?.communityRecyclerView?.scrollToPosition(0)
+            }
             binding.communityEmptyState.setText(R.string.community_empty)
             binding.communityEmptyState.visibility = if (posts.isEmpty()) View.VISIBLE else View.GONE
         }

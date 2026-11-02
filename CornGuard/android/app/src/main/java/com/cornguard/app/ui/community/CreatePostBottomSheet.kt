@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.os.bundleOf
 import androidx.core.widget.doAfterTextChanged
@@ -53,6 +54,14 @@ class CreatePostBottomSheet : CornGuardBottomSheet() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = SheetCreatePostBinding.inflate(inflater, container, false)
         return binding.root
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Shrink the sheet's window for the keyboard (the sheet scrolls) so the Post button isn't
+        // hidden behind it while typing.
+        @Suppress("DEPRECATION")
+        dialog?.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

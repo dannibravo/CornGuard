@@ -13,6 +13,7 @@ import com.cornguard.app.R
 import com.cornguard.app.databinding.FragmentHomeBinding
 import com.cornguard.app.di.ServiceLocator
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -46,15 +47,21 @@ class HomeFragment : Fragment() {
         observeUnreadCount()
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private fun observeName() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                runCatching { ServiceLocator.authRepository.observeAuthState() }.getOrNull()?.collect { user ->
-                    val name = user?.let {
-                        runCatching { ServiceLocator.userFarmRepository.getUserProfile(it.uid) }.getOrNull()?.displayName
+                // Live profile, not a one-off read: right after registering the profile is saved a
+                // moment after sign-in, and a one-off read showed "Farmer" until the app restarted.
+                runCatching { ServiceLocator.authRepository.observeAuthState() }.getOrNull()
+                    ?.flatMapLatest { user ->
+                        if (user == null) flowOf(null)
+                        else ServiceLocator.userFarmRepository.observeUserProfile(user.uid).catch { emit(null) }
                     }
-                    binding.homeName.text = name?.takeIf { it.isNotBlank() } ?: getString(R.string.default_farmer_name)
-                }
+                    ?.collect { profile ->
+                        binding.homeName.text = profile?.displayName?.takeIf { it.isNotBlank() }
+                            ?: getString(R.string.default_farmer_name)
+                    }
             }
         }
     }

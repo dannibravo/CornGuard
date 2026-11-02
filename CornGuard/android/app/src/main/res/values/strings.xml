@@ -97,7 +97,7 @@
 
     <!-- History -->
     <string name="history_title">Detection History</string>
-    <string name="history_empty">No detections yet. Go to the Scanner tab to analyze your first corn leaf!</string>
+    <string name="history_empty">No detections yet. Tap Scan Corn on the Dashboard to check your first corn leaf.</string>
     <string name="history_badge_shared">Shared</string>
     <string name="history_badge_local">On device</string>
     <string name="history_confidence_format">Confidence: %1$s%%</string>
