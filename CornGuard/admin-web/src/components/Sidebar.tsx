@@ -13,7 +13,7 @@ export function Sidebar() {
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '📊', count: undefined as number | undefined },
     { path: '/outbreaks', label: 'Outbreaks', icon: '🚨', count: stats?.pendingOutbreaks },
-    { path: '/moderation', label: 'Review', icon: '🛡️', count: stats?.scansUnverified },
+    { path: '/moderation', label: 'Review', icon: '🛡️', count: stats ? stats.scansUnverified + stats.reportsOpen : undefined },
     { path: '/users', label: 'Users', icon: '👥', count: undefined },
     { path: '/map', label: 'Outbreak Map', icon: '🗺️', count: undefined },
   ];

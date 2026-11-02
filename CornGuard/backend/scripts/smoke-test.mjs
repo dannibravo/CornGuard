@@ -66,6 +66,7 @@ const profileA = await b.client.query(api.users.get, { userId: viewerA.userId })
 check("createProfile stores profile, role forced to farmer", profileA?.displayName === "Farmer A" && profileA.role === "farmer");
 const viewerB = await b.client.query(api.users.viewer, {});
 
+
 await expectError("wrong password rejected", () =>
   new ConvexHttpClient(url).action(api.auth.signIn, {
     provider: "password", params: { email: emailA, password: "nope-nope-nope", flow: "signIn" },
@@ -268,7 +269,42 @@ const notifications = await admin.query(api.admin.recentNotifications, { limit: 
 const reply = notifications.find((n) => n.type === "community_reply" && n.recipientUserId === viewerA.userId);
 check("reply notification recorded for post author", !!reply, reply?.deliveryStatus);
 
+// --- Reports (farmers flag posts/comments; admins resolve) ------------------------------------
+const commentId = (await b.client.query(api.posts.comments, { postId }))[0].commentId;
+await b.client.mutation(api.reports.create, { targetType: "post", targetId: postId, reason: "wrong_info", note: "  Wrong treatment advice  " });
+await b.client.mutation(api.reports.create, { targetType: "post", targetId: postId, reason: "spam" });
+await expectError("cannot report your own post", () =>
+  a.client.mutation(api.reports.create, { targetType: "post", targetId: postId, reason: "spam" }));
+check("reported post leaves the reporter's feed", !(await b.client.query(api.posts.feed, {})).some((p) => p.postId === postId));
+check("reported post stays in the author's feed", (await a.client.query(api.posts.feed, {})).some((p) => p.postId === postId));
+check("reporter can't open the reported post", (await b.client.query(api.posts.get, { postId })) === null);
+
+await a.client.mutation(api.reports.create, { targetType: "comment", targetId: commentId, reason: "offensive" });
+check("reported comment leaves the reporter's list", !(await a.client.query(api.posts.comments, { postId })).some((c) => c.commentId === commentId));
+check("reported comment stays for its author", (await b.client.query(api.posts.comments, { postId })).some((c) => c.commentId === commentId));
+check("reported comment drops out of the reporter's comment count", (await a.client.query(api.posts.get, { postId })).commentCount === 0);
+
+await expectError("non-admin cannot list reports", () => b.client.query(api.admin.listReports, {}));
+const openReports = await admin.query(api.admin.listReports, {});
+const postReport = openReports.find((r) => r.targetId === postId);
+check("post report queued once per reporter (repeat ignored)",
+  postReport?.reporterCount === 1 && postReport.reasonCounts.wrong_info === 1 && !postReport.reasonCounts.spam,
+  JSON.stringify(postReport?.reasonCounts));
+check("report note trimmed", postReport?.notes[0] === "Wrong treatment advice");
+check("comment report queued", openReports.some((r) => r.targetType === "comment" && r.targetId === commentId));
+const openBefore = (await admin.query(api.admin.stats, {})).reportsOpen;
+check("stats count open reported items", openBefore >= 2, String(openBefore));
+
+await admin.mutation(api.admin.resolveReports, { targetType: "comment", targetId: commentId, outcome: "dismissed" });
+check("dismissed report leaves the open queue", !(await admin.query(api.admin.listReports, {})).some((r) => r.targetId === commentId));
+check("dismissed report listed as resolved",
+  (await admin.query(api.admin.listReports, { status: "resolved" })).find((r) => r.targetId === commentId)?.outcome === "dismissed");
+check("dismissing keeps the comment visible", (await b.client.query(api.posts.comments, { postId })).some((c) => c.commentId === commentId));
+check("stats open count drops after dismiss", (await admin.query(api.admin.stats, {})).reportsOpen === openBefore - 1);
+
 await admin.mutation(api.admin.setPostModeration, { postId, status: "hidden" });
+check("hiding a reported post resolves its report as actioned",
+  (await admin.query(api.admin.listReports, { status: "resolved" })).find((r) => r.targetId === postId)?.outcome === "actioned");
 check("hidden post leaves feed", !(await b.client.query(api.posts.feed, {})).some((p) => p.postId === postId));
 check("author still sees own hidden post", (await a.client.query(api.posts.get, { postId })) !== null);
 

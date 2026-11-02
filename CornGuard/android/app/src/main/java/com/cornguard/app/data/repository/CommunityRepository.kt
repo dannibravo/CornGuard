@@ -4,6 +4,8 @@ import com.cornguard.app.data.local.db.entity.DiagnosisRecordEntity
 import com.cornguard.app.data.model.Comment
 import com.cornguard.app.data.model.CommunityPost
 import com.cornguard.app.data.model.DraftPost
+import com.cornguard.app.data.model.ReportReason
+import com.cornguard.app.data.model.ReportTarget
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -60,4 +62,10 @@ interface CommunityRepository {
      * upvoted).
      */
     suspend fun toggleUpvote(postId: String, userId: String): Boolean
+
+    /**
+     * Flags someone else's post or comment for admin review. Reporting the same item twice is a
+     * no-op. Afterwards the item no longer appears for this user (feed, comments, counts).
+     */
+    suspend fun report(target: ReportTarget, targetId: String, reason: ReportReason, note: String?)
 }
