@@ -15,3 +15,13 @@ export const statusBadge = (status: string) =>
      unverified: 'badge-orange', pending: 'badge-orange',
      rejected: 'badge-red', dismissed: 'badge-gray', hidden: 'badge-orange', removed: 'badge-red', suspended: 'badge-red',
   } as Record<string, string>)[status] ?? 'badge-gray';
+
+// Why a farmer reported a post or comment. KEEP IN SYNC with backend/convex/schema.ts reportReason
+// and the app's ReportReason.
+export const REPORT_REASON_LABEL: Record<string, string> = {
+  wrong_info: 'Wrong diagnosis or advice',
+  spam: 'Spam or selling',
+  offensive: 'Offensive or abusive',
+  off_topic: 'Not about corn farming',
+  other: 'Something else',
+};

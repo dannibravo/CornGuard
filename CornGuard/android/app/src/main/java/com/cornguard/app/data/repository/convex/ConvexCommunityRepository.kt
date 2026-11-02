@@ -4,6 +4,8 @@ import com.cornguard.app.data.local.db.entity.DiagnosisRecordEntity
 import com.cornguard.app.data.model.Comment
 import com.cornguard.app.data.model.CommunityPost
 import com.cornguard.app.data.model.DraftPost
+import com.cornguard.app.data.model.ReportReason
+import com.cornguard.app.data.model.ReportTarget
 import com.cornguard.app.data.remote.convex.CommentDto
 import com.cornguard.app.data.remote.convex.ConvexFileUploader
 import com.cornguard.app.data.remote.convex.CornGuardConvexClient
@@ -81,6 +83,14 @@ class ConvexCommunityRepository(
             field to value
         }
         client.execute("posts:updateContent", convexArgs("postId" to postId, *args.toTypedArray()))
+    }
+
+    override suspend fun report(target: ReportTarget, targetId: String, reason: ReportReason, note: String?) {
+        val args = mutableListOf<Pair<String, Any?>>(
+            "targetType" to target.code, "targetId" to targetId, "reason" to reason.code
+        )
+        note?.trim()?.takeIf { it.isNotEmpty() }?.let { args += "note" to it }
+        client.execute("reports:create", convexArgs(*args.toTypedArray()))
     }
 
     override suspend fun deletePost(postId: String) {

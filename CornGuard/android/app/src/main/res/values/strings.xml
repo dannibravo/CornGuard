@@ -136,6 +136,29 @@
     <string name="comments_empty">No comments yet. Be the first to reply.</string>
     <string name="comment_hint">Write a comment…</string>
     <string name="comment_send">Send comment</string>
+    <string name="post_more_options">More options</string>
+    <string name="edit_post_action">Edit post</string>
+    <string name="delete_post_action">Delete post</string>
+    <string name="edit_post_title">Edit Post</string>
+    <string name="edit_post_failed">Couldn\'t save your changes. Check your connection and try again.</string>
+    <string name="delete_post_title">Delete this post?</string>
+    <string name="delete_post_message">It will be removed from the community feed for everyone, along with its comments and likes. This can\'t be undone.</string>
+    <string name="delete_post_failed">Couldn\'t delete the post. Check your connection and try again.</string>
+    <string name="report_post_action">Report post</string>
+    <string name="report_comment_action">Report comment</string>
+    <string name="report_post_title">Report post</string>
+    <string name="report_comment_title">Report comment</string>
+    <string name="report_subtitle">Why are you reporting this? An admin will review it. The person won\'t know who reported it.</string>
+    <string name="report_reason_wrong_info">Wrong diagnosis or advice</string>
+    <string name="report_reason_spam">Spam or selling</string>
+    <string name="report_reason_offensive">Offensive or abusive</string>
+    <string name="report_reason_off_topic">Not about corn farming</string>
+    <string name="report_reason_other">Something else</string>
+    <string name="report_note_hint">Add details (optional)</string>
+    <string name="report_submit">Submit report</string>
+    <string name="report_cancel">Cancel</string>
+    <string name="report_thanks">Thanks — an admin will review it. You won\'t see it anymore.</string>
+    <string name="report_failed">Couldn\'t send the report. Check your connection and try again.</string>
     <string name="time_now">now</string>
 
     <!-- Shared / connectivity -->

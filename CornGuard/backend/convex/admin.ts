@@ -5,7 +5,8 @@ import { QueryCtx, internalMutation, mutation, query } from "./_generated/server
 import { scheduleRecompute } from "./barangayStats";
 import { requireAdmin } from "./lib/access";
 import { recipientsFor } from "./outbreakAlerts";
-import { moderationStatus, verificationStatus } from "./schema";
+import { resolveOpenReports } from "./reports";
+import { moderationStatus, reportTargetType, verificationStatus } from "./schema";
 
 const reviewStatus = v.union(v.literal("verified"), v.literal("rejected"));
 
@@ -37,20 +38,23 @@ export const setPostVerification = mutation({
 export const setPostModeration = mutation({
   args: { postId: v.string(), status: moderationStatus },
   handler: async (ctx, { postId, status }) => {
-    await requireAdmin(ctx);
+    const admin = await requireAdmin(ctx);
     const id = ctx.db.normalizeId("communityPosts", postId);
     if (!id || !(await ctx.db.get(id))) throw new ConvexError("Post not found.");
     await ctx.db.patch(id, { moderationStatus: status });
+    // Taking it down answers any open reports on it.
+    if (status !== "visible") await resolveOpenReports(ctx, "post", id, "actioned", admin._id);
   },
 });
 
 export const setCommentModeration = mutation({
   args: { commentId: v.string(), status: moderationStatus },
   handler: async (ctx, { commentId, status }) => {
-    await requireAdmin(ctx);
+    const admin = await requireAdmin(ctx);
     const id = ctx.db.normalizeId("comments", commentId);
     if (!id || !(await ctx.db.get(id))) throw new ConvexError("Comment not found.");
     await ctx.db.patch(id, { moderationStatus: status });
+    if (status !== "visible") await resolveOpenReports(ctx, "comment", id, "actioned", admin._id);
   },
 });
 
@@ -147,12 +151,13 @@ export const stats = query({
   args: {},
   handler: async (ctx) => {
     await requireAdmin(ctx);
-    const [users, records, posts, outbreaks, sev] = await Promise.all([
+    const [users, records, posts, outbreaks, sev, openReports] = await Promise.all([
       ctx.db.query("users").collect(),
       ctx.db.query("diagnosisRecords").collect(),
       ctx.db.query("communityPosts").collect(),
       ctx.db.query("outbreaks").withIndex("by_status", (q) => q.eq("status", "pending")).collect(),
       ctx.db.query("barangayDiseaseStats").collect(),
+      ctx.db.query("reports").withIndex("by_status", (q) => q.eq("status", "open")).collect(),
     ]);
     const count = <T,>(xs: T[], f: (x: T) => boolean) => xs.filter(f).length;
     return {
@@ -167,6 +172,8 @@ export const stats = query({
       postsUnverified: count(posts, (p) => p.verificationStatus === "unverified" && p.moderationStatus === "visible"),
       pendingOutbreaks: outbreaks.length,
       severeAreas: count(sev, (s) => s.severityTier === "severe" && s.rawReportCount > 0),
+      // Distinct reported items awaiting review, not individual reports.
+      reportsOpen: new Set(openReports.map((r) => `${r.targetType}:${r.targetId}`)).size,
     };
   },
 });
@@ -350,5 +357,82 @@ export const recentNotifications = query({
       deliveryStatus: n.deliveryStatus,
       createdAt: n._creationTime,
     }));
+  },
+});
+
+/**
+ * Reported posts/comments, one row per item, most-reported first (then most recently reported).
+ * "open" = awaiting review; "resolved" = dismissed or actioned (latest 200 reports).
+ */
+export const listReports = query({
+  args: { status: v.optional(v.union(v.literal("open"), v.literal("resolved"))) },
+  handler: async (ctx, { status }) => {
+    await requireAdmin(ctx);
+    const rows = status === "resolved"
+      ? (await ctx.db.query("reports").order("desc").take(400)).filter((r) => r.status !== "open").slice(0, 200)
+      : await ctx.db.query("reports").withIndex("by_status", (q) => q.eq("status", "open")).collect();
+
+    const groups = new Map<string, Doc<"reports">[]>();
+    rows.forEach((r) => {
+      const key = `${r.targetType}:${r.targetId}`;
+      groups.set(key, [...(groups.get(key) ?? []), r]);
+    });
+
+    const items = await Promise.all([...groups.values()].map(async (reports) => {
+      const { targetType, targetId, postId } = reports[0];
+      const post = await ctx.db.get(postId);
+      const comment = targetType === "comment"
+        ? await ctx.db.get(targetId as Id<"comments">)
+        : null;
+      const authorId = targetType === "post" ? post?.userId : comment?.userId;
+      const author = authorId ? await ctx.db.get(authorId) : null;
+      const reasonCounts: Record<string, number> = {};
+      reports.forEach((r) => { reasonCounts[r.reason] = (reasonCounts[r.reason] ?? 0) + 1; });
+      const times = reports.map((r) => r._creationTime);
+      const latestResolved = reports.reduce<Doc<"reports"> | null>(
+        (acc, r) => (r.resolvedAt && (!acc || r.resolvedAt > (acc.resolvedAt ?? 0)) ? r : acc), null);
+      return {
+        targetType,
+        targetId,
+        postId,
+        postTitle: post?.title ?? "(deleted post)",
+        text: targetType === "post" ? (post?.body ?? "") : (comment?.body ?? "(deleted comment)"),
+        imageUrl: targetType === "post" && post?.imageId ? await ctx.storage.getUrl(post.imageId) : null,
+        authorName: nameOf(author),
+        moderationStatus: (targetType === "post" ? post?.moderationStatus : comment?.moderationStatus) ?? "removed",
+        reporterCount: reports.length,
+        reasonCounts,
+        notes: reports.flatMap((r) => (r.note ? [r.note] : [])),
+        firstReportedAt: Math.min(...times),
+        lastReportedAt: Math.max(...times),
+        outcome: latestResolved?.status ?? null,
+        resolvedAt: latestResolved?.resolvedAt ?? null,
+      };
+    }));
+    return items.sort((a, b) =>
+      status === "resolved"
+        ? (b.resolvedAt ?? 0) - (a.resolvedAt ?? 0)
+        : b.reporterCount - a.reporterCount || b.lastReportedAt - a.lastReportedAt);
+  },
+});
+
+/** Closes an item's open reports: dismissed (no action), or actioned with an optional hide/remove. */
+export const resolveReports = mutation({
+  args: {
+    targetType: reportTargetType,
+    targetId: v.string(),
+    outcome: v.union(v.literal("dismissed"), v.literal("actioned")),
+    moderation: v.optional(v.union(v.literal("hidden"), v.literal("removed"))),
+  },
+  handler: async (ctx, { targetType, targetId, outcome, moderation }) => {
+    const admin = await requireAdmin(ctx);
+    if (moderation) {
+      const id = targetType === "post"
+        ? ctx.db.normalizeId("communityPosts", targetId)
+        : ctx.db.normalizeId("comments", targetId);
+      if (!id || !(await ctx.db.get(id))) throw new ConvexError("Content not found.");
+      await ctx.db.patch(id, { moderationStatus: moderation });
+    }
+    await resolveOpenReports(ctx, targetType, targetId, moderation ? "actioned" : outcome, admin._id);
   },
 });

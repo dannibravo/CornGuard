@@ -64,6 +64,20 @@
             android:visibility="gone"
             tools:text="Common Rust"
             tools:visibility="visible" />
+
+        <!-- Shown only on other people's posts: "Report post". -->
+        <ImageButton
+            android:id="@+id/postMenu"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="-8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/post_more_options"
+            android:src="@drawable/ic_more_vert"
+            android:visibility="gone"
+            app:tint="@color/cg_text_secondary"
+            tools:visibility="visible" />
     </LinearLayout>
 
     <TextView

@@ -4,19 +4,28 @@ import { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, QueryCtx } from "./_generated/server";
 import { assertOwnerOrAdmin, currentUserId, isAdmin, requireActiveUser } from "./lib/access";
 import { areaKey } from "./outbreakAlerts";
+import { reportedTargetIds } from "./reports";
 import { areaField } from "./schema";
 
 async function authorName(ctx: QueryCtx, userId: Id<"users">) {
   return (await ctx.db.get(userId))?.name ?? "Farmer";
 }
 
-/** Visible comments on a post (plus the viewer's own hidden ones), oldest first. */
-async function visibleComments(ctx: QueryCtx, postId: Id<"communityPosts">, viewerId: Id<"users"> | null) {
+/**
+ * Visible comments on a post (plus the viewer's own hidden ones), oldest first. Comments the
+ * viewer reported are left out for them (`reported` = their reported comment ids).
+ */
+async function visibleComments(
+  ctx: QueryCtx,
+  postId: Id<"communityPosts">,
+  viewerId: Id<"users"> | null,
+  reported: Set<string>,
+) {
   const rows = await ctx.db
     .query("comments")
     .withIndex("by_post", (q) => q.eq("postId", postId))
     .collect();
-  return rows.filter((c) => c.moderationStatus === "visible" || c.userId === viewerId);
+  return rows.filter((c) => (c.moderationStatus === "visible" || c.userId === viewerId) && !reported.has(c._id));
 }
 
 async function toComment(ctx: QueryCtx, c: Doc<"comments">) {
@@ -31,9 +40,10 @@ async function toComment(ctx: QueryCtx, c: Doc<"comments">) {
   };
 }
 
-async function toPost(ctx: QueryCtx, p: Doc<"communityPosts">) {
+/** `reportedComments`: the viewer's reported comment ids (see reportedTargetIds). */
+async function toPost(ctx: QueryCtx, p: Doc<"communityPosts">, reportedComments: Set<string>) {
   const viewerId = await currentUserId(ctx);
-  const comments = await visibleComments(ctx, p._id, viewerId);
+  const comments = await visibleComments(ctx, p._id, viewerId, reportedComments);
   const liked = viewerId
     ? await ctx.db
         .query("postVotes")
@@ -122,11 +132,17 @@ export const feed = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, { areaField, areaValue, diseaseTag, limit }) => {
-    if (!(await currentUserId(ctx))) return [];
+    const viewerId = await currentUserId(ctx);
+    if (!viewerId) return [];
+    const reported = await reportedTargetIds(ctx, viewerId);
     let q = visiblePosts(ctx, areaField && areaValue !== undefined ? { field: areaField, value: areaValue } : null);
     if (diseaseTag) q = q.filter((f) => f.eq(f.field("diseaseTag"), diseaseTag));
-    const posts = await q.order("desc").take(limit ?? 50);
-    return await Promise.all(posts.map((p) => toPost(ctx, p)));
+    const wanted = limit ?? 50;
+    // Posts the viewer reported are left out for them; take extra so the page stays full.
+    const posts = (await q.order("desc").take(wanted + reported.posts.size))
+      .filter((p) => !reported.posts.has(p._id))
+      .slice(0, wanted);
+    return await Promise.all(posts.map((p) => toPost(ctx, p, reported.comments)));
   },
 });
 
@@ -138,11 +154,13 @@ export const get = query({
     if (!userId) return null;
     const post = await loadPost(ctx, postId);
     if (!post) return null;
-    if (post.moderationStatus !== "visible" && post.userId !== userId) {
+    const reported = await reportedTargetIds(ctx, userId);
+    // Hidden/removed or reported-by-this-viewer posts: only the author or an admin sees them.
+    if ((post.moderationStatus !== "visible" || reported.posts.has(post._id)) && post.userId !== userId) {
       const viewer = await ctx.db.get(userId);
       if (!isAdmin(viewer)) return null;
     }
-    return await toPost(ctx, post);
+    return await toPost(ctx, post, reported.comments);
   },
 });
 
@@ -179,6 +197,10 @@ export const remove = mutation({
     }
     for (const vote of await ctx.db.query("postVotes").withIndex("by_post", (q) => q.eq("postId", post._id)).collect()) {
       await ctx.db.delete(vote._id);
+    }
+    // Reports on the post or its comments: nothing left to review.
+    for (const report of await ctx.db.query("reports").withIndex("by_post", (q) => q.eq("postId", post._id)).collect()) {
+      await ctx.db.delete(report._id);
     }
     if (post.imageId) await ctx.storage.delete(post.imageId);
     await ctx.db.delete(post._id);
@@ -224,7 +246,8 @@ export const comments = query({
     if (!userId) return [];
     const id = ctx.db.normalizeId("communityPosts", postId);
     if (!id) return [];
-    const rows = await visibleComments(ctx, id, userId);
+    const reported = await reportedTargetIds(ctx, userId);
+    const rows = await visibleComments(ctx, id, userId, reported.comments);
     return await Promise.all(rows.map((c) => toComment(ctx, c)));
   },
 });

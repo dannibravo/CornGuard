@@ -8,6 +8,7 @@ import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.PopupMenu
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.text.inSpans
@@ -21,10 +22,18 @@ import com.cornguard.app.databinding.ItemCommunityPostBinding
 import com.cornguard.app.ui.common.DiseaseStyle
 import com.cornguard.app.ui.common.TimeFormat
 
-/** Feed posts (caps 3 design): author, text, photo, heart + comment counts, two comment previews. */
+/**
+ * Feed posts (caps 3 design): author, text, photo, heart + comment counts, two comment previews.
+ * Every post has a ⋮ menu: "Edit post" / "Delete post" on your own, "Report post" on anyone
+ * else's. [currentUserId] decides whose post it is.
+ */
 class CommunityPostAdapter(
     private val onLike: (CommunityPost) -> Unit,
-    private val onComments: (CommunityPost) -> Unit
+    private val onComments: (CommunityPost) -> Unit,
+    private val onReport: (CommunityPost) -> Unit,
+    private val onEdit: (CommunityPost) -> Unit,
+    private val onDelete: (CommunityPost) -> Unit,
+    private val currentUserId: () -> String?
 ) : ListAdapter<CommunityPost, CommunityPostAdapter.ViewHolder>(DIFF) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -34,6 +43,7 @@ class CommunityPostAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.bind(getItem(position), onLike, onComments)
+        holder.bindMenu(getItem(position), currentUserId(), onReport, onEdit, onDelete)
     }
 
     class ViewHolder(private val binding: ItemCommunityPostBinding) : RecyclerView.ViewHolder(binding.root) {
@@ -92,6 +102,35 @@ class CommunityPostAdapter(
             binding.postCommentPreviews.setOnClickListener { onComments(post) }
         }
 
+        fun bindMenu(
+            post: CommunityPost,
+            viewerId: String?,
+            onReport: (CommunityPost) -> Unit,
+            onEdit: (CommunityPost) -> Unit,
+            onDelete: (CommunityPost) -> Unit
+        ) {
+            binding.postMenu.visibility = if (viewerId != null) View.VISIBLE else View.GONE
+            val own = post.userId == viewerId
+            binding.postMenu.setOnClickListener { anchor ->
+                PopupMenu(anchor.context, anchor).apply {
+                    if (own) {
+                        menu.add(0, MENU_EDIT, 0, R.string.edit_post_action)
+                        menu.add(0, MENU_DELETE, 1, R.string.delete_post_action)
+                    } else {
+                        menu.add(0, MENU_REPORT, 0, R.string.report_post_action)
+                    }
+                    setOnMenuItemClickListener { item ->
+                        when (item.itemId) {
+                            MENU_EDIT -> onEdit(post)
+                            MENU_DELETE -> onDelete(post)
+                            else -> onReport(post)
+                        }
+                        true
+                    }
+                }.show()
+            }
+        }
+
         /** "**Name**  comment text", as in the design's inline previews. */
         private fun previewLine(context: android.content.Context, name: String, body: String) =
             TextView(context).apply {
@@ -110,6 +149,10 @@ class CommunityPostAdapter(
     }
 
     companion object {
+        private const val MENU_REPORT = 1
+        private const val MENU_EDIT = 2
+        private const val MENU_DELETE = 3
+
         private val DIFF = object : DiffUtil.ItemCallback<CommunityPost>() {
             override fun areItemsTheSame(old: CommunityPost, new: CommunityPost) = old.postId == new.postId
             override fun areContentsTheSame(old: CommunityPost, new: CommunityPost) = old == new

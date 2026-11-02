@@ -1,5 +1,8 @@
 package com.cornguard.app.data.model
 
+import androidx.annotation.StringRes
+import com.cornguard.app.R
+
 /**
  * Mirrors firebase/schema/logical-schema.md's communityPosts/{postId} shape and
  * firebase/repositories/community-repository-interface.md's CommunityPost value type.
@@ -52,3 +55,18 @@ data class DraftPost(
     val municipality: String,
     val province: String
 )
+
+/** What a report is about: `targetType` sent to `reports:create`. */
+enum class ReportTarget(val code: String) { POST("post"), COMMENT("comment") }
+
+/**
+ * Why a post or comment was reported. [code] is what the backend stores.
+ * KEEP IN SYNC with backend/convex/schema.ts reportReason and admin-web's REPORT_REASON_LABEL.
+ */
+enum class ReportReason(val code: String, @StringRes val label: Int) {
+    WRONG_INFO("wrong_info", R.string.report_reason_wrong_info),
+    SPAM("spam", R.string.report_reason_spam),
+    OFFENSIVE("offensive", R.string.report_reason_offensive),
+    OFF_TOPIC("off_topic", R.string.report_reason_off_topic),
+    OTHER("other", R.string.report_reason_other)
+}

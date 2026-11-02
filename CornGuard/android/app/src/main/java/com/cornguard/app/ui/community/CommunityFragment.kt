@@ -12,8 +12,11 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.cornguard.app.R
 import com.cornguard.app.data.model.CommunityPost
+import com.cornguard.app.data.model.ReportTarget
 import com.cornguard.app.databinding.FragmentCommunityBinding
 import com.cornguard.app.di.ServiceLocator
+import android.widget.Toast
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
 /**
@@ -25,7 +28,14 @@ class CommunityFragment : Fragment() {
 
     private var _binding: FragmentCommunityBinding? = null
     private val binding get() = _binding!!
-    private val adapter = CommunityPostAdapter(onLike = ::toggleLike, onComments = ::openComments)
+    private val adapter = CommunityPostAdapter(
+        onLike = ::toggleLike,
+        onComments = ::openComments,
+        onReport = ::openReport,
+        onEdit = ::openEdit,
+        onDelete = ::confirmDelete,
+        currentUserId = { ServiceLocator.authRepository.getCurrentUser()?.uid }
+    )
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -111,6 +121,33 @@ class CommunityFragment : Fragment() {
 
     private fun openComments(post: CommunityPost) {
         CommentsBottomSheet.newInstance(post.postId).show(childFragmentManager, CommentsBottomSheet.TAG)
+    }
+
+    /** The sheet reports back with RESULT_FEED_CHANGED, so the post leaves the feed on success. */
+    private fun openReport(post: CommunityPost) {
+        ReportBottomSheet.newInstance(ReportTarget.POST, post.postId).show(childFragmentManager, ReportBottomSheet.TAG)
+    }
+
+    private fun openEdit(post: CommunityPost) {
+        CreatePostBottomSheet.forEdit(post).show(childFragmentManager, CreatePostBottomSheet.TAG)
+    }
+
+    private fun confirmDelete(post: CommunityPost) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.delete_post_title)
+            .setMessage(R.string.delete_post_message)
+            .setNegativeButton(R.string.action_cancel, null)
+            .setPositiveButton(R.string.action_delete) { _, _ ->
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val result = runCatching { ServiceLocator.communityRepository.deletePost(post.postId) }
+                    if (_binding == null) return@launch
+                    if (result.isFailure) {
+                        Toast.makeText(requireContext(), R.string.delete_post_failed, Toast.LENGTH_LONG).show()
+                    }
+                    loadFeed()
+                }
+            }
+            .show()
     }
 
     override fun onDestroyView() {

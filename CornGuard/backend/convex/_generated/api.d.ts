@@ -23,6 +23,7 @@ import type * as outbreakAlerts from "../outbreakAlerts.js";
 import type * as posts from "../posts.js";
 import type * as push from "../push.js";
 import type * as pushData from "../pushData.js";
+import type * as reports from "../reports.js";
 import type * as storage from "../storage.js";
 import type * as users from "../users.js";
 
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   posts: typeof posts;
   push: typeof push;
   pushData: typeof pushData;
+  reports: typeof reports;
   storage: typeof storage;
   users: typeof users;
 }>;

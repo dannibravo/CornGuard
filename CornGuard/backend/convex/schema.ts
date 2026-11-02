@@ -13,6 +13,15 @@ export const moderationStatus = v.union(
   v.literal("hidden"),
   v.literal("removed"),
 );
+export const reportTargetType = v.union(v.literal("post"), v.literal("comment"));
+// KEEP IN SYNC with the app's ReportReason and admin-web's REPORT_REASON_LABEL.
+export const reportReason = v.union(
+  v.literal("wrong_info"),
+  v.literal("spam"),
+  v.literal("offensive"),
+  v.literal("off_topic"),
+  v.literal("other"),
+);
 export const verificationStatus = v.union(
   v.literal("unverified"),
   v.literal("verified"),
@@ -154,6 +163,26 @@ export default defineSchema({
     body: v.string(),
     moderationStatus,
   }).index("by_post", ["postId"]),
+
+  // A farmer flagging a post or comment for admin review. Reports never hide anything for other
+  // users; they only rank the admin queue (admin.listReports). The reporter stops seeing the item.
+  reports: defineTable({
+    targetType: reportTargetType,
+    targetId: v.string(),
+    /** The post itself, or the comment's post. */
+    postId: v.id("communityPosts"),
+    reporterId: v.id("users"),
+    reason: reportReason,
+    note: v.optional(v.string()),
+    status: v.union(v.literal("open"), v.literal("dismissed"), v.literal("actioned")),
+    resolvedBy: v.optional(v.id("users")),
+    resolvedAt: v.optional(v.number()),
+  })
+    .index("by_target_reporter", ["targetType", "targetId", "reporterId"])
+    .index("by_reporter", ["reporterId"])
+    .index("by_status", ["status"])
+    .index("by_target_status", ["targetType", "targetId", "status"])
+    .index("by_post", ["postId"]),
 
   postVotes: defineTable({
     postId: v.id("communityPosts"),

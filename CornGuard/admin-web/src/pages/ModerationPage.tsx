@@ -4,7 +4,7 @@ import { api } from '../convex';
 import { DataTable } from '../components/DataTable';
 import { ImageThumb } from '../components/ImageThumb';
 import { Tabs } from '../components/Tabs';
-import { date, diseaseLabel, pct, statusBadge } from '../labels';
+import { date, diseaseLabel, pct, REPORT_REASON_LABEL, statusBadge } from '../labels';
 
 /**
  * caps 3's Moderation page for CornGuard. Nothing is permanently deleted: scans are verified or
@@ -24,16 +24,26 @@ type Post = {
   authorHistory: { scansShared: number; scansVerified: number; scansRejected: number; posts: number; postsRemoved: number };
 };
 type Comment = { commentId: string; userName: string; body: string; postTitle: string; moderationStatus: string; createdAt: number };
+type Report = {
+  targetType: 'post' | 'comment'; targetId: string; postId: string; postTitle: string; text: string; imageUrl: string | null;
+  authorName: string; moderationStatus: string; reporterCount: number; reasonCounts: Record<string, number>; notes: string[];
+  firstReportedAt: number; lastReportedAt: number; outcome: 'dismissed' | 'actioned' | null; resolvedAt: number | null;
+};
 
 export default function ModerationPage() {
-  const [tab, setTab] = useState<'scans' | 'posts' | 'comments'>('scans');
+  const [tab, setTab] = useState<'scans' | 'reports' | 'posts' | 'comments'>('scans');
+  const stats = useQuery(api.admin.stats);
+  const openReports = stats?.reportsOpen ?? 0;
   return (
     <div className="moderation-page">
       <div className="card">
         <div className="card-body">
           <Tabs value={tab} onChange={(v) => setTab(v as typeof tab)} tabs={[
-            { id: 'scans', label: 'Leaf scans' }, { id: 'posts', label: 'Posts' }, { id: 'comments', label: 'Comments' }]} />
+            { id: 'scans', label: 'Leaf scans' },
+            { id: 'reports', label: openReports > 0 ? `Reported (${openReports})` : 'Reported' },
+            { id: 'posts', label: 'Posts' }, { id: 'comments', label: 'Comments' }]} />
           {tab === 'scans' && <ScansTab />}
+          {tab === 'reports' && <ReportsTab />}
           {tab === 'posts' && <PostsTab />}
           {tab === 'comments' && <CommentsTab />}
         </div>
@@ -189,6 +199,71 @@ function CommentsTab() {
                 : <button className="btn btn-sm btn-secondary" onClick={wrap(() => setModeration({ commentId: r.commentId, status: 'visible' }))}>Restore</button>}
             </div>
           ) },
+        ]}
+      />
+    </>
+  );
+}
+
+/**
+ * Posts and comments farmers flagged, one row per item, most-reported first. Reports never hide
+ * anything by themselves: Hide/Remove here (or in the Posts/Comments tabs) closes them as actioned,
+ * Dismiss closes them with no change.
+ */
+function ReportsTab() {
+  const [status, setStatus] = useState<'open' | 'resolved'>('open');
+  const reports = useQuery(api.admin.listReports, { status }) as Report[] | undefined;
+  const resolve = useMutation(api.admin.resolveReports);
+  const { wrap, banner } = useAction();
+  const rows = (reports ?? []).map((r) => ({ ...r, key: `${r.targetType}:${r.targetId}` }));
+
+  return (
+    <>
+      <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+        Farmers can report posts and comments. A reported item stays visible to everyone except the farmer who
+        reported it until you act. <strong>Hide/Remove</strong> takes it down; <strong>Dismiss</strong> keeps it up.
+      </p>
+      <Tabs value={status} onChange={(v) => setStatus(v as typeof status)} tabs={[
+        { id: 'open', label: 'Awaiting review' }, { id: 'resolved', label: 'Resolved' }]} />
+      {banner}
+      <DataTable<(typeof rows)[number]>
+        data={rows}
+        loading={reports === undefined}
+        keyField="key"
+        emptyMessage={status === 'open' ? 'No open reports.' : 'No resolved reports yet.'}
+        columns={[
+          { key: 'imageUrl', header: 'Photo', width: '80px', render: (r) => r.targetType === 'post'
+            ? <ImageThumb src={r.imageUrl} size="sm" alt={r.postTitle} onClick={() => {}} />
+            : <span className="badge badge-gray">comment</span> },
+          { key: 'text', header: 'Reported content', render: (r) => (
+            <div>
+              <span className={`badge ${r.targetType === 'post' ? 'badge-blue' : 'badge-gray'}`}>{r.targetType}</span>{' '}
+              {r.targetType === 'post'
+                ? <strong>{r.postTitle}</strong>
+                : <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>on &ldquo;{r.postTitle}&rdquo;</span>}
+              <br /><span style={{ fontSize: 12 }}>{r.text.slice(0, 200)}</span>
+            </div>) },
+          { key: 'authorName', header: 'Author', width: '140px' },
+          { key: 'reasonCounts', header: 'Reasons', width: '220px', render: (r) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
+              {Object.entries(r.reasonCounts).sort((a, b) => b[1] - a[1]).map(([reason, n]) => (
+                <span key={reason}><span className="badge badge-orange">{n}</span> {REPORT_REASON_LABEL[reason] ?? reason}</span>))}
+              {r.notes.map((note, i) => <em key={i} style={{ color: 'var(--text-muted)' }}>&ldquo;{note}&rdquo;</em>)}
+            </div>) },
+          { key: 'reporterCount', header: 'Reporters', sortable: true, width: '90px' },
+          { key: 'lastReportedAt', header: 'Last reported', sortable: true, width: '170px', render: (r) => date(r.lastReportedAt) },
+          { key: 'moderationStatus', header: 'Status', width: '110px', render: (r) => (
+            <><span className={`badge ${statusBadge(r.moderationStatus)}`}>{r.moderationStatus}</span>
+              {r.outcome && <><br /><span className={`badge ${r.outcome === 'actioned' ? 'badge-red' : 'badge-gray'}`}>{r.outcome}</span></>}</>) },
+          { key: 'actions', header: 'Actions', width: '210px', render: (r) => status === 'open' ? (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <button className="btn btn-sm btn-secondary" onClick={wrap(() => resolve({ targetType: r.targetType, targetId: r.targetId, outcome: 'dismissed' }))}>Dismiss</button>
+              {r.moderationStatus === 'visible' && <>
+                <button className="btn btn-sm btn-secondary" onClick={wrap(() => resolve({ targetType: r.targetType, targetId: r.targetId, outcome: 'actioned', moderation: 'hidden' }))}>Hide</button>
+                <button className="btn btn-sm btn-danger" onClick={wrap(() => resolve({ targetType: r.targetType, targetId: r.targetId, outcome: 'actioned', moderation: 'removed' }))}>Remove</button>
+              </>}
+            </div>
+          ) : <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{r.resolvedAt ? date(r.resolvedAt) : '\u2014'}</span> },
         ]}
       />
     </>
