@@ -836,6 +836,118 @@ tr:hover td {
 .map-search-meta { color: #9ca3af; white-space: nowrap; }
 .map-search-results li.map-search-empty { color: #9ca3af; cursor: default; }
 
+/* ─── Outbreak map disease/severity filter (MapPage) ─────────────────────────
+   Top-right, same dark panel as the search and legend. Same design as the app's map filter. */
+.map-filter {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 12px;
+}
+.map-filter-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: rgba(34, 34, 34, 0.92);
+  border: 1px solid #444;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  color: #fff;
+  cursor: pointer;
+}
+.map-filter-toggle:hover { background: #333; }
+.map-filter-toggle[aria-expanded="true"] { border-color: #4ade80; }
+.map-filter-toggle svg { width: 20px; height: 20px; }
+.map-filter-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: #4ade80;
+  color: #111;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+.map-filter-panel {
+  margin-top: 6px;
+  width: min(280px, calc(100vw - 40px));
+  max-height: calc(70vh - 70px);
+  overflow-y: auto;
+  padding: 10px;
+  background: rgba(34, 34, 34, 0.96);
+  border: 1px solid #444;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  color: #fff;
+}
+.map-filter-panel h4 { margin: 0 0 6px 0; font-size: 12px; font-weight: 600; color: #4ade80; }
+.map-filter-panel h4 + .map-filter-chips + h4 { margin-top: 10px; padding-top: 10px; border-top: 1px solid #444; }
+.map-filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.map-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid #555;
+  border-radius: 999px;
+  color: #d1d5db;
+  font: inherit;
+  cursor: pointer;
+}
+.map-filter-chip:hover { border-color: #9ca3af; color: #fff; }
+.map-filter-chip[aria-pressed="true"] { background: rgba(74, 222, 128, 0.16); border-color: #4ade80; color: #fff; font-weight: 600; }
+.map-filter-chip .swatch { width: 16px; height: 16px; flex: none; display: block; }
+.map-filter-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #444;
+  color: #9ca3af;
+}
+.map-filter-reset,
+.map-filter-empty button {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  color: #4ade80;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.map-filter-reset:disabled { color: #6b7280; cursor: default; }
+.map-filter-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 999;
+  padding: 10px 14px;
+  background: rgba(34, 34, 34, 0.92);
+  border: 1px solid #444;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 /* Report markers (MapPage): fill = severity, shape + letter = disease. White outline + shadow keep
    them visible on any map background. Same design as the app's map. */
 .cg-marker { background: none; border: none; }
