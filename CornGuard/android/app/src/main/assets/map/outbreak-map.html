@@ -47,11 +47,20 @@
       background: rgba(34, 34, 34, 0.92);
       color: #eee;
       border-bottom-color: #444;
-      width: 34px;
-      height: 34px;
-      line-height: 34px;
-      font-size: 20px;
     }
+    /* Zoom buttons: 48px = Android's minimum touch target. The .leaflet-touch prefix is needed to
+       beat leaflet.css's own touch rules (30px, 22px font), which otherwise win on a phone. */
+    .leaflet-touch .leaflet-bar a,
+    .leaflet-touch .leaflet-bar a:hover {
+      width: 48px;
+      height: 48px;
+      line-height: 48px;
+    }
+    .leaflet-touch .leaflet-control-zoom .leaflet-control-zoom-in,
+    .leaflet-touch .leaflet-control-zoom .leaflet-control-zoom-out { font-size: 28px; }
+    .leaflet-touch .leaflet-bar a:first-child { border-top-left-radius: 8px; border-top-right-radius: 8px; }
+    .leaflet-touch .leaflet-bar a:last-child { border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; }
+    .leaflet-touch .leaflet-bar { border-radius: 8px; }
     .leaflet-bar a:hover,
     .leaflet-bar a:focus { background: #333; color: #fff; }
     .leaflet-bar a.leaflet-disabled { background: rgba(34, 34, 34, 0.6); color: #666; }
@@ -118,9 +127,12 @@
        (the attribution would otherwise float mid-map above the hidden sheet's gap). They return
        as soon as the search box loses focus. */
     body.searching .legend,
+    body.searching .filter,
+    body.searching .map-empty,
     body.searching .leaflet-control-zoom,
     body.searching .leaflet-control-attribution { display: none; }
-    .search { width: calc(100vw - 20px); max-width: 320px; font-size: 13px; }
+    /* Leaves room on the right for the filter button. */
+    .search { width: calc(100vw - 74px); max-width: 320px; font-size: 13px; }
     /* Collapsed to a single magnifier button until tapped, to keep the map uncluttered. */
     .search.collapsed { width: auto; }
     .search.collapsed .search-box,
@@ -194,10 +206,118 @@
     .search-name { font-weight: 600; }
     .search-meta { color: #9ca3af; text-align: right; }
     .search-results li.search-empty { color: #9ca3af; }
+
+    /* Disease / severity filter (top-right). KEEP IN SYNC with admin-web's .map-filter* rules. */
+    .filter { display: flex; flex-direction: column; align-items: flex-end; font-size: 13px; }
+    .filter-toggle {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      background: rgba(34, 34, 34, 0.92);
+      border: 1px solid #444;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      color: #fff;
+    }
+    .filter-toggle:active { background: #333; }
+    .filter-toggle[aria-expanded="true"] { border-color: #4ade80; }
+    .filter-toggle svg { width: 22px; height: 22px; }
+    .filter-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 4px;
+      border-radius: 9px;
+      background: #4ade80;
+      color: #111;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 18px;
+      text-align: center;
+    }
+    .filter-badge[hidden], .filter-panel[hidden] { display: none; }
+    /* No WebView focus box on tap; keyboard focus still gets a ring. */
+    .filter button:focus, .map-empty button:focus { outline: none; }
+    .filter button:focus-visible, .map-empty button:focus-visible { outline: 2px solid #4ade80; outline-offset: 2px; }
+    .filter-panel {
+      margin-top: 6px;
+      width: calc(100vw - 20px);
+      max-width: 300px;
+      max-height: calc(100vh - var(--chrome-top) - var(--chrome-bottom) - 80px);
+      overflow-y: auto;
+      box-sizing: border-box;
+      padding: 10px;
+      background: rgba(34, 34, 34, 0.96);
+      border: 1px solid #444;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      color: #fff;
+    }
+    .filter-panel h4 { margin: 0 0 8px 0; font-size: 12px; font-weight: 600; color: #4ade80; }
+    .filter-panel h4.filter-sub { margin-top: 10px; padding-top: 10px; border-top: 1px solid #444; }
+    .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 34px;
+      padding: 4px 12px;
+      background: transparent;
+      border: 1px solid #555;
+      border-radius: 999px;
+      color: #d1d5db;
+      font: inherit;
+    }
+    .filter-chip[aria-pressed="true"] { background: rgba(74, 222, 128, 0.16); border-color: #4ade80; color: #fff; font-weight: 600; }
+    .filter-chip .swatch { width: 16px; height: 16px; flex: none; display: block; }
+    .filter-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #444;
+      color: #9ca3af;
+    }
+    .filter-reset, .map-empty button {
+      background: none;
+      border: none;
+      padding: 8px 0;
+      color: #4ade80;
+      font: inherit;
+      font-weight: 600;
+    }
+    .filter-reset:disabled { color: #6b7280; }
+    /* Shown when the filters leave no markers; centred in the area clear of the header and sheet. */
+    .map-empty {
+      position: absolute;
+      left: 50%;
+      top: calc(50% + (var(--chrome-top) - var(--chrome-bottom)) / 2);
+      transform: translate(-50%, -50%);
+      z-index: 999;
+      padding: 8px 14px;
+      background: rgba(34, 34, 34, 0.92);
+      border: 1px solid #444;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      color: #fff;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    /* The open panel already says "Showing 0 of N"; the notice would sit half under it. */
+    .map-empty[hidden], body.filter-open .map-empty { display: none; }
   </style>
 </head>
 <body>
   <div id="map"></div>
+  <div class="map-empty" role="status" hidden>No reports match these filters. <button type="button">Reset</button></div>
 
   <script src="leaflet/leaflet.js"></script>
   <script>
@@ -336,6 +456,37 @@
     function diseaseLabel(code) { return DISEASE_LABEL[code] || code; }
     function areaKey(barangay, municipality) { return barangay + '||' + municipality; }
 
+    // ---- Disease / severity filters ----
+    // KEEP IN SYNC with admin-web/src/mapFilters.ts. An empty set means "All". Within a filter the
+    // choices are OR'd; across the two filters they're AND'd. Reset every time the map opens.
+    const SEVERITY_OPTIONS = [
+      { key: 'severe', label: 'Severe' },
+      { key: 'moderate', label: 'Moderate' },
+      { key: 'mild', label: 'Mild' },
+      { key: 'past', label: 'Past (2–4 wks)' }
+    ];
+    const DISEASE_KEYS = Object.keys(DISEASE_MARK);
+    const SEVERITY_KEYS = SEVERITY_OPTIONS.map((o) => o.key);
+    const filters = { diseases: new Set(), severities: new Set() };
+
+    // 'past' for faded (14-28 day) reports, otherwise the barangay + disease tier.
+    function severityKey(d, tierByAreaDisease) {
+      if (d.stage === 'recent') return 'past';
+      return tierByAreaDisease[areaKey(d.barangay, d.municipality) + '||' + d.diseaseCode] || 'mild';
+    }
+    function matchesFilters(diseaseCode, sev) {
+      return (filters.diseases.size === 0 || filters.diseases.has(diseaseCode)) &&
+        (filters.severities.size === 0 || filters.severities.has(sev));
+    }
+    function statMatches(stat) { return matchesFilters(stat.diseaseCode, stat.severityTier); }
+    // Toggles one key; selecting every key collapses back to "All" (empty).
+    function toggleKey(set, key, allKeys) {
+      if (set.has(key)) set.delete(key); else set.add(key);
+      if (allKeys.every((k) => set.has(k))) set.clear();
+    }
+    function activeFilterCount() { return filters.diseases.size + filters.severities.size; }
+    function severitySwatchColor(key) { return key === 'past' ? RECENT_COLOR : TIER_COLORS[key]; }
+
     const legend = L.control({ position: 'bottomright' });
     legend.onAdd = function () {
       // Starts collapsed every time the map opens; only a tap on it expands it.
@@ -374,9 +525,10 @@
 
     // Polygons carry no severity fill: a filled barangay would imply the whole area is
     // infected when only specific farms reported. Severity lives on the dots.
-    function barangayPopupHtml(properties, bStats) {
+    function barangayPopupHtml(properties, allStats) {
       let html = `<b>${properties.barangay}</b>` +
         `<br><span style="color:#888;">${properties.municipality}</span>`;
+      const bStats = (allStats || []).filter(statMatches);
       if (bStats && bStats.length > 0) {
         bStats.forEach((stat) => {
           html += `<hr style="border-color:#333;margin:8px 0;"/><span style="font-size:12px;">`;
@@ -387,7 +539,9 @@
           html += `</span>`;
         });
       } else {
-        html += `<p style="color:#666;">No active disease reports</p>`;
+        html += allStats && allStats.length > 0
+          ? `<p style="color:#666;">No reports match the current filters</p>`
+          : `<p style="color:#666;">No active disease reports</p>`;
       }
       return html;
     }
@@ -658,6 +812,97 @@
     };
     searchControl.addTo(map);
 
+    // Filter button + panel (top-right). Built once; refreshFilterUi() keeps it in step with
+    // `filters` and the counts after every render.
+    let refreshFilterUi = () => {};
+    const filterControl = L.control({ position: 'topright' });
+    filterControl.onAdd = function () {
+      const div = L.DomUtil.create('div', 'filter');
+      const swatch = (mark, fill) => `<span class="swatch">${markerSvg(mark, fill, 16, false)}</span>`;
+      const chip = (group, key, content) =>
+        `<button type="button" class="filter-chip" data-group="${group}" data-key="${key}" aria-pressed="false">${content}</button>`;
+      const diseaseChips = DISEASE_KEYS.map((code) =>
+        chip('diseases', code, swatch(DISEASE_MARK[code], NEUTRAL) + diseaseLabel(code))).join('');
+      const severityChips = SEVERITY_OPTIONS.map((o) =>
+        chip('severities', o.key, swatch({ shape: 'circle', letter: '' }, severitySwatchColor(o.key)) + o.label)).join('');
+      div.innerHTML =
+        '<button type="button" class="filter-toggle" aria-label="Filter outbreak map" aria-expanded="false">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"' +
+        ' aria-hidden="true"><path d="M3.5 5h17l-6.5 7.5V19l-4 1.5v-8z"/></svg>' +
+        '<span class="filter-badge" hidden></span>' +
+        '</button>' +
+        '<div class="filter-panel" hidden>' +
+        '<h4>Disease</h4>' +
+        `<div class="filter-chips">${chip('diseases', '', 'All')}${diseaseChips}</div>` +
+        '<h4 class="filter-sub">Severity</h4>' +
+        `<div class="filter-chips">${chip('severities', '', 'All')}${severityChips}</div>` +
+        '<div class="filter-footer"><span class="filter-count"></span>' +
+        '<button type="button" class="filter-reset">Reset filters</button></div>' +
+        '</div>';
+      const toggleButton = div.querySelector('.filter-toggle');
+      const badge = div.querySelector('.filter-badge');
+      const panel = div.querySelector('.filter-panel');
+      const countLabel = div.querySelector('.filter-count');
+      const resetButton = div.querySelector('.filter-reset');
+
+      function setOpen(open) {
+        panel.hidden = !open;
+        toggleButton.setAttribute('aria-expanded', String(open));
+        document.body.classList.toggle('filter-open', open);
+        if (open) {
+          // The panel and these would otherwise overlap on a phone.
+          const results = document.querySelector('.search-results');
+          if (results) results.hidden = true;
+          const legendDiv = document.querySelector('.legend');
+          if (legendDiv) legendDiv.classList.add('collapsed');
+        }
+      }
+
+      refreshFilterUi = (shown, total) => {
+        div.querySelectorAll('.filter-chip').forEach((b) => {
+          const set = filters[b.dataset.group];
+          const pressed = b.dataset.key ? set.has(b.dataset.key) : set.size === 0;
+          b.setAttribute('aria-pressed', String(pressed));
+        });
+        const count = activeFilterCount();
+        badge.hidden = count === 0;
+        badge.textContent = String(count);
+        resetButton.disabled = count === 0;
+        countLabel.textContent = `Showing ${shown} of ${total} reports`;
+      };
+
+      toggleButton.addEventListener('click', () => setOpen(panel.hidden));
+      div.querySelectorAll('.filter-chip').forEach((b) => {
+        b.addEventListener('click', () => {
+          const group = b.dataset.group;
+          if (b.dataset.key) toggleKey(filters[group], b.dataset.key, group === 'diseases' ? DISEASE_KEYS : SEVERITY_KEYS);
+          else filters[group].clear();
+          applyFilters();
+        });
+      });
+      resetButton.addEventListener('click', resetFilters);
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.disableScrollPropagation(div);
+      // Touching the map folds the panel away (the filters stay applied).
+      map.on('click dragstart', () => setOpen(false));
+      return div;
+    };
+    filterControl.addTo(map);
+
+    const emptyNotice = document.querySelector('.map-empty');
+    emptyNotice.querySelector('button').addEventListener('click', resetFilters);
+
+    function applyFilters() {
+      // An open popup was built for the old filters, or its marker is about to disappear.
+      map.closePopup();
+      render();
+    }
+    function resetFilters() {
+      filters.diseases.clear();
+      filters.severities.clear();
+      applyFilters();
+    }
+
     function render() {
       const statsByArea = {};
       const tierByAreaDisease = {};
@@ -678,11 +923,22 @@
       // Report dots, rebuilt on every update and stacked above the polygons.
       if (detectionLayer) map.removeLayer(detectionLayer);
       detectionLayer = L.layerGroup();
-      const plotted = latestDetections.filter((d) => typeof d.latitude === 'number' && typeof d.longitude === 'number');
+      const withCoords = latestDetections.filter((d) => typeof d.latitude === 'number' && typeof d.longitude === 'number');
+      // Narrowed before spreadOffsets, so same-point rings close up instead of leaving gaps.
+      const plotted = [];
+      const sevs = [];
+      withCoords.forEach((d) => {
+        const sev = severityKey(d, tierByAreaDisease);
+        if (!matchesFilters(d.diseaseCode, sev)) return;
+        plotted.push(d);
+        sevs.push(sev);
+      });
+      refreshFilterUi(plotted.length, withCoords.length);
+      emptyNotice.hidden = !(activeFilterCount() > 0 && plotted.length === 0);
       const offsets = spreadOffsets(plotted);
       plotted.forEach((d, i) => {
-        const recent = d.stage === 'recent';
-        const tier = tierByAreaDisease[areaKey(d.barangay, d.municipality) + '||' + d.diseaseCode] || 'mild';
+        const recent = sevs[i] === 'past';
+        const tier = recent ? 'mild' : sevs[i];
         const daysAgo = Math.max(0, Math.round((Date.now() - d.capturedAt) / DAY_MS));
         const statusLine = recent
           ? `<span style="color:#9ca3af;">Reported ${daysAgo} days ago · no longer counted in the outbreak level</span><br>`

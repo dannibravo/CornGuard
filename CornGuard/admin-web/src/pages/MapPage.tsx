@@ -13,6 +13,17 @@ import {
   NO_LOCATION_MESSAGE,
   type LocationEntry,
 } from '../locationSearch';
+import {
+  EMPTY_FILTERS,
+  SEVERITY_OPTIONS,
+  activeCount,
+  matchesFilters,
+  severityKey,
+  statMatches,
+  toggleKey,
+  type MapFilters,
+  type SeverityKey,
+} from '../mapFilters';
 
 // KEEP IN SYNC with the app's android/app/src/main/assets/map/outbreak-map.html — the two maps must agree on
 // what a marker means. Update both or neither.
@@ -340,6 +351,92 @@ function LocationSearch({ map, layerRef }: { map: L.Map | null; layerRef: React.
   );
 }
 
+const DISEASE_KEYS = Object.keys(DISEASE_MARK);
+const SEVERITY_KEYS = SEVERITY_OPTIONS.map((o) => o.key);
+const severitySwatchColor = (key: SeverityKey) => (key === 'past' ? RECENT_COLOR : TIER_COLOR[key]);
+
+/**
+ * Disease + severity filter, top-right over the map. Like LocationSearch it sits beside the
+ * MapContainer, so clicks on it never reach Leaflet. Same behaviour as the app's map
+ * (outbreak-map.html filter control).
+ */
+function MapFilterPanel({
+  filters,
+  onChange,
+  shown,
+  total,
+  open,
+  setOpen,
+}: {
+  filters: MapFilters;
+  onChange: (f: MapFilters) => void;
+  shown: number;
+  total: number;
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}) {
+  const count = activeCount(filters);
+  const swatch = (mark: Mark, fill: string) => (
+    <span className="swatch" dangerouslySetInnerHTML={{ __html: markerSvg(mark, fill, 16, false) }} />
+  );
+  const chip = (key: string, pressed: boolean, onClick: () => void, content: React.ReactNode) => (
+    <button key={key} type="button" className="map-filter-chip" aria-pressed={pressed} onClick={onClick}>
+      {content}
+    </button>
+  );
+
+  return (
+    <div className="map-filter">
+      <button
+        type="button"
+        className="map-filter-toggle"
+        aria-label="Filter outbreak map"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" aria-hidden="true">
+          <path d="M3.5 5h17l-6.5 7.5V19l-4 1.5v-8z" />
+        </svg>
+        {count > 0 && <span className="map-filter-badge">{count}</span>}
+      </button>
+      {open && (
+        <div className="map-filter-panel">
+          <h4>Disease</h4>
+          <div className="map-filter-chips">
+            {chip('all', filters.diseases.size === 0, () => onChange({ ...filters, diseases: new Set() }), 'All')}
+            {DISEASE_KEYS.map((code) =>
+              chip(
+                code,
+                filters.diseases.has(code),
+                () => onChange({ ...filters, diseases: toggleKey(filters.diseases, code, DISEASE_KEYS) }),
+                <>{swatch(DISEASE_MARK[code], NEUTRAL)}{diseaseLabel(code)}</>,
+              ),
+            )}
+          </div>
+          <h4>Severity</h4>
+          <div className="map-filter-chips">
+            {chip('all', filters.severities.size === 0, () => onChange({ ...filters, severities: new Set() }), 'All')}
+            {SEVERITY_OPTIONS.map(({ key, label }) =>
+              chip(
+                key,
+                filters.severities.has(key),
+                () => onChange({ ...filters, severities: toggleKey(filters.severities, key, SEVERITY_KEYS) }),
+                <>{swatch({ shape: 'circle', letter: '' }, severitySwatchColor(key))}{label}</>,
+              ),
+            )}
+          </div>
+          <div className="map-filter-footer">
+            <span>Showing {shown} of {total} reports</span>
+            <button type="button" className="map-filter-reset" disabled={count === 0} onClick={() => onChange(EMPTY_FILTERS)}>
+              Reset filters
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MapPage() {
   const stats = useQuery(api.barangayStats.getAllStats);
   // Individual verified reports — these are what get drawn as dots. The aggregated
@@ -365,8 +462,34 @@ export default function MapPage() {
   const statsRef = useRef(statsByBarangay);
   statsRef.current = statsByBarangay;
 
+  const [filters, setFilters] = useState<MapFilters>(EMPTY_FILTERS);
+  const [filterOpen, setFilterOpen] = useState(false);
+  // Clicking or dragging the map folds the panel away (the filters stay applied), as in the app.
+  useEffect(() => {
+    if (!map) return;
+    const close = () => setFilterOpen(false);
+    map.on('click dragstart', close);
+    return () => {
+      map.off('click dragstart', close);
+    };
+  }, [map]);
+  // Read by the barangay popups when they open, like statsRef.
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
   const reportCount = detections?.length ?? 0;
-  const offsets = spreadOffsets(detections ?? []);
+  // Each report with its severity key, narrowed to the filters. Offsets are computed on the
+  // filtered list so same-point rings close up instead of leaving gaps.
+  const visible: { d: any; sev: SeverityKey }[] = (detections ?? [])
+    .map((d: any) => ({ d, sev: severityKey(d, tierByBarangayDisease) }))
+    .filter(({ d, sev }: { d: any; sev: SeverityKey }) => matchesFilters(d.diseaseCode, sev, filters));
+  const offsets = spreadOffsets(visible.map(({ d }) => d));
+  const filtering = activeCount(filters) > 0;
+  // An open popup was built for the old filters (or its marker is about to disappear).
+  const changeFilters = (f: MapFilters) => {
+    map?.closePopup();
+    setFilters(f);
+  };
 
   return (
     <div className="dashboard">
@@ -374,12 +497,27 @@ export default function MapPage() {
         <h1 className="page-title">Outbreak Map</h1>
         <p className="page-subtitle">
           Individual verified reports across Bukidnon
-          {detections ? ` — ${reportCount} plotted` : ''}
+          {detections ? (filtering ? ` — ${visible.length} of ${reportCount} plotted` : ` — ${reportCount} plotted`) : ''}
         </p>
       </div>
 
       <div className="card" style={{ position: 'relative', height: '70vh', minHeight: '500px', overflow: 'hidden', padding: 0 }}>
         <LocationSearch map={map} layerRef={barangayLayerRef} />
+        <MapFilterPanel
+          filters={filters}
+          onChange={changeFilters}
+          shown={visible.length}
+          total={reportCount}
+          open={filterOpen}
+          setOpen={setFilterOpen}
+        />
+        {/* Not while the panel is open: it already says "Showing 0 of N", and would cover this. */}
+        {detections && filtering && visible.length === 0 && !filterOpen && (
+          <div className="map-filter-empty" role="status">
+            No reports match these filters.{' '}
+            <button type="button" onClick={() => changeFilters(EMPTY_FILTERS)}>Reset</button>
+          </div>
+        )}
         <MapContainer
           ref={setMap}
           center={[8.15, 125.13]}
@@ -408,7 +546,8 @@ export default function MapPage() {
               const municipalityName = feature.properties.municipality;
               // Built when opened: onEachFeature only runs once, before the stats query has loaded.
               layer.bindPopup(() => {
-                const bStats = statsRef.current.get(`${barangayName}||${municipalityName}`);
+                const allStats = statsRef.current.get(`${barangayName}||${municipalityName}`) ?? [];
+                const bStats = allStats.filter((s) => statMatches(s, filtersRef.current));
 
                 let popupContent = `
                   <div style="font-family: sans-serif; color: #fff; background: #222; padding: 4px; border-radius: 4px;">
@@ -431,7 +570,7 @@ export default function MapPage() {
                 } else {
                   popupContent += `
                     <hr style="border-color: #333; margin: 8px 0;" />
-                    <span style="color: #888; font-size: 13px;">No active outbreaks reported.</span>
+                    <span style="color: #888; font-size: 13px;">${allStats.length > 0 ? 'No reports match the current filters.' : 'No active outbreaks reported.'}</span>
                   `;
                 }
 
@@ -442,9 +581,9 @@ export default function MapPage() {
           />
 
           {/* Report dots, after the polygons so they stack above them */}
-          {(detections ?? []).map((d: any, i: number) => {
-            const recent = d.stage === 'recent';
-            const tier = tierByBarangayDisease.get(`${d.barangay}||${d.municipality}||${d.diseaseCode}`) || 'mild';
+          {visible.map(({ d, sev }, i: number) => {
+            const recent = sev === 'past';
+            const tier = recent ? 'mild' : sev;
             const daysAgo = Math.max(0, Math.round((Date.now() - d.capturedAt) / DAY_MS));
             return (
               <Marker
