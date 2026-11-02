@@ -12,6 +12,12 @@ import androidx.navigation.ui.setupWithNavController
 import com.cornguard.app.databinding.ActivityMainBinding
 import com.cornguard.app.di.ServiceLocator
 import com.cornguard.app.ui.community.CommunityFragment
+import com.cornguard.app.ui.onboarding.OnboardingDialogFragment
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 /**
@@ -39,6 +45,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         observeConnectivity()
+        observeOnboarding()
         if (savedInstanceState == null) handleNotificationIntent(intent)
     }
 
@@ -68,6 +75,34 @@ class MainActivity : AppCompatActivity() {
             openMap -> if (navController.currentDestination?.id != R.id.mapFragment) navController.navigate(R.id.mapFragment)
             postId != null ->
                 navController.navigate(R.id.communityFragment, bundleOf(CommunityFragment.ARG_OPEN_POST_ID to postId))
+        }
+    }
+
+    /**
+     * A "Fresh" account (just registered) gets the onboarding tutorial once, over whatever screen
+     * it's on — right after registering, or at the next launch if it was closed half-way. If this
+     * phone already finished it but the server wasn't told (e.g. offline), tell it now instead.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun observeOnboarding() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                ServiceLocator.authRepository.observeAuthState()
+                    .flatMapLatest { user ->
+                        if (user == null) emptyFlow() else ServiceLocator.userFarmRepository.observeUserProfile(user.uid)
+                    }
+                    .filterNotNull()
+                    .catch { }
+                    .collect { profile ->
+                        if (!profile.isFresh) return@collect
+                        if (!OnboardingDialogFragment.shouldShow(this@MainActivity, profile.userId, profile.isFresh)) {
+                            runCatching { ServiceLocator.userFarmRepository.completeOnboarding() }
+                        } else if (supportFragmentManager.findFragmentByTag(OnboardingDialogFragment.TAG) == null) {
+                            OnboardingDialogFragment.newInstance(profile.userId)
+                                .show(supportFragmentManager, OnboardingDialogFragment.TAG)
+                        }
+                    }
+            }
         }
     }
 

@@ -15,6 +15,7 @@ import com.cornguard.app.R
 import com.cornguard.app.data.model.AuthUser
 import com.cornguard.app.databinding.FragmentProfileBinding
 import com.cornguard.app.di.ServiceLocator
+import com.cornguard.app.ui.onboarding.OnboardingDialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
@@ -50,6 +51,14 @@ class ProfileFragment : Fragment() {
         }
         binding.profileAddFarmButton.setOnClickListener { addFarm() }
         binding.profileAboutRow.setOnClickListener { showAbout() }
+        // Replays the onboarding guide; finishing it here changes nothing on the account.
+        binding.profileTutorialRow.setOnClickListener {
+            val uid = ServiceLocator.authRepository.getCurrentUser()?.uid ?: return@setOnClickListener
+            if (childFragmentManager.findFragmentByTag(OnboardingDialogFragment.TAG) == null) {
+                OnboardingDialogFragment.newInstance(uid, replay = true)
+                    .show(childFragmentManager, OnboardingDialogFragment.TAG)
+            }
+        }
         binding.profileLogOutRow.setOnClickListener { signOut() }
 
         childFragmentManager.setFragmentResultListener(RESULT_PROFILE_CHANGED, viewLifecycleOwner) { _, _ ->

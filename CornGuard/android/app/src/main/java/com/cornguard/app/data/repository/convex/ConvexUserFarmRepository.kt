@@ -55,6 +55,10 @@ class ConvexUserFarmRepository(
      * Accepts the former Firestore field names (`display_name`, `mobile_number`) as well as the
      * Convex ones. Only profile fields are editable; anything else is rejected.
      */
+    override suspend fun completeOnboarding() {
+        client.execute("users:completeOnboarding", convexArgs())
+    }
+
     override suspend fun updateUserProfile(uid: String, fields: Map<String, Any>) {
         val args = fields.entries.associate { (key, value) ->
             val field = PROFILE_FIELDS[key] ?: throw IllegalArgumentException("Field '$key' can't be edited")
@@ -100,7 +104,8 @@ class ConvexUserFarmRepository(
             barangay = barangay,
             municipality = municipality,
             province = province,
-            farmIds = farmIds
+            farmIds = farmIds,
+            isFresh = onboardingStatus == "fresh"
         )
     }
 

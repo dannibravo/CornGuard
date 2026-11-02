@@ -30,6 +30,9 @@ interface UserFarmRepository {
     )
 
     suspend fun getUserProfile(uid: String): UserProfile?
+
+    /** The signed-in user finished or skipped the first-sign-in tutorial; it won't show again. */
+    suspend fun completeOnboarding()
     fun observeUserProfile(uid: String): Flow<UserProfile?>
 
     /**

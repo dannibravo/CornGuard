@@ -15,5 +15,7 @@ data class UserProfile(
     val barangay: String,
     val municipality: String,
     val province: String,
-    val farmIds: List<String>
+    val farmIds: List<String>,
+    /** A new account that hasn't finished the onboarding tutorial ("Fresh"). */
+    val isFresh: Boolean = false
 )

@@ -19,6 +19,8 @@ data class UserDto(
     val province: String = "",
     val role: String = "farmer",
     val accountStatus: String = "active",
+    /** "fresh" until the first-sign-in tutorial is finished or skipped; older accounts are "done". */
+    val onboardingStatus: String = "done",
     val farmIds: List<String> = emptyList()
 )
 
