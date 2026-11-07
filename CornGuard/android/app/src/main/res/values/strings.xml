@@ -203,7 +203,7 @@
     <string name="onboarding_21_body">Tap the bell on the Dashboard. You\'ll see ② replies to your posts and ③ outbreak alerts for your area. Tap one to open it, or ① mark all as read.</string>
 
     <string name="onboarding_22_title">Your profile</string>
-    <string name="onboarding_22_body">Tap the pencil on your profile card to change your name and barangay. Your barangay decides where scans are filed and what \"near you\" shows. ① Add your farms, ② open this guide again, ③ see the app version, or ④ sign out. You\'re all set!</string>
+    <string name="onboarding_22_body">Tap the pencil on your profile card to change your name and barangay. Your barangay decides where scans are filed and what \"near you\" shows. ① Open this guide again, ② see the app version, or ③ sign out. You\'re all set!</string>
     <string name="edit_post_action">Edit post</string>
     <string name="delete_post_action">Delete post</string>
     <string name="edit_post_title">Edit Post</string>
@@ -258,7 +258,7 @@
     <string name="profile_location_not_set">Location not set</string>
     <string name="profile_edit">Edit profile</string>
     <string name="profile_signed_out_title">You\'re not signed in</string>
-    <string name="profile_signed_out_body">Sign in to manage your profile and farms. Scanning and history work without an account.</string>
+    <string name="profile_signed_out_body">Sign in to manage your profile. Scanning and history work without an account.</string>
     <string name="profile_farms_title">My Farms</string>
     <string name="profile_farm_name_hint">Add a farm, e.g. North field</string>
     <string name="profile_add_farm_action">Add</string>

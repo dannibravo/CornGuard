@@ -920,50 +920,39 @@
     0,
     320,
     1080,
-    1210
+    1180
    ],
    "marks": [
     {
      "box": [
-      42,
-      425,
-      996,
-      340
-     ],
-     "n": 1,
-     "label": "Add a farm",
-     "side": "inside"
-    },
-    {
-     "box": [
       50,
-      935,
+      890,
       980,
       180
      ],
-     "n": 2,
+     "n": 1,
      "label": "This guide",
      "side": "above"
     },
     {
      "box": [
       50,
-      1120,
+      1082,
       980,
-      190
+      180
      ],
-     "n": 3,
+     "n": 2,
      "label": "App version",
      "side": "inside"
     },
     {
      "box": [
       50,
-      1315,
+      1274,
       980,
       180
      ],
-     "n": 4,
+     "n": 3,
      "label": "Sign out",
      "side": "inside"
     }

@@ -74,10 +74,8 @@ class ProfileFragment : Fragment() {
                     val signedIn = user != null
                     binding.profileSignedOutCard.visibility = if (signedIn) View.GONE else View.VISIBLE
                     binding.profileContent.visibility = if (signedIn) View.VISIBLE else View.GONE
-                    if (user != null) {
-                        loadProfile(user)
-                        loadFarms(user.uid)
-                    }
+                    // loadFarms() is not called while My Farms is hidden (see fragment_profile.xml).
+                    if (user != null) loadProfile(user)
                 }
             }
         }
