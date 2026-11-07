@@ -183,6 +183,8 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
+                <!-- My Farms is hidden until scans can be linked to a farm (D-03): saved farms aren't
+                     used anywhere else yet. Remove visibility="gone" here and on the card below to restore. -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -190,13 +192,15 @@
                     android:layout_marginTop="28dp"
                     android:text="@string/profile_farms_title"
                     android:textAppearance="@style/TextAppearance.CornGuard.SectionHeader"
-                    android:textSize="16sp" />
+                    android:textSize="16sp"
+                    android:visibility="gone" />
 
                 <com.google.android.material.card.MaterialCardView
                     style="@style/Widget.CornGuard.Card"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    android:visibility="gone"
                     app:cardCornerRadius="20dp">
 
                     <LinearLayout

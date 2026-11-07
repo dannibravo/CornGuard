@@ -680,7 +680,7 @@ The result sheet slides up after every scan, and when a History item is tapped.
 #### M-SET-01 · Signed-out card
 **Platform:** 📱 Mobile app
 **Steps:** 1. Sign out. 2. Tap "Settings".
-**Expected result:** "You're not signed in" with "Sign in to manage your profile and farms. Scanning and history work without an account." and a "Sign In" button.
+**Expected result:** "You're not signed in" with "Sign in to manage your profile. Scanning and history work without an account." and a "Sign In" button.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### M-SET-02 · Profile information
@@ -704,12 +704,11 @@ The result sheet slides up after every scan, and when a History item is tapped.
 **Error/edge cases:** Empty name → "Please fill in all required fields." and nothing is saved. Offline → "Couldn't save your profile. Check your connection and try again."
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
-#### M-SET-05 · My Farms
+#### M-SET-05 · My Farms is hidden
 **Platform:** 📱 Mobile app
-**Steps:** 1. Under "MY FARMS", type `North field` in "Add a farm, e.g. North field". 2. Tap "Add".
-**Expected result:** The text box clears and "North field" appears in the list. Before adding any farm the list says "No farms added yet."
-**Explanation:** Farmers can name their fields.
-**Error/edge cases:** Tapping "Add" with an empty box does nothing. The button is disabled while saving (no duplicates from double taps).
+**Steps:** 1. Sign in as the demo farmer. 2. Tap "Settings".
+**Expected result:** No "MY FARMS" section: the profile card is followed directly by "OTHER".
+**Explanation:** Saved farms aren't linked to scans yet, so the section is hidden (since v0.2.4.1) until that is built.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### M-SET-06 · About CornGuard
