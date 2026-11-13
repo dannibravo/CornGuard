@@ -8,12 +8,15 @@
 // dataset folder with Blight/ Common_Rust/ Gray_Leaf_Spot/ subfolders to upload real leaf photos
 // (nicer in the admin website's review screens); otherwise a tiny placeholder JPEG is used.
 //
-// DEV deployments only. Uses the demo account plus two helper farmer accounts (created on first
-// run) so one barangay reaches "severe" (3 farms). Every point is checked against the bundled
-// Bukidnon boundaries so the barangay/municipality match the map polygons.
+// DEV deployments only. Uses the demo account plus four helper farmer accounts (created on first
+// run) so one barangay reaches "severe" (5 farms). Each barangay first gets 6 weeks of past healthy
+// scans (devAccounts:seedAreaHistory), so it has left "collecting data" and has a baseline (0 for
+// every disease); without that history its outbreak status would be Undetermined. Every point is
+// checked against the bundled Bukidnon boundaries so the barangay/municipality match the map polygons.
 
 import { ConvexHttpClient } from "convex/browser";
 import { anyApi } from "convex/server";
+import { execSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -45,18 +48,22 @@ const ACCOUNTS = [
   { email: "demo@cornguard.app", name: "Demo Farmer" },
   { email: "demo2@cornguard.app", name: "Demo Farmer 2" },
   { email: "demo3@cornguard.app", name: "Demo Farmer 3" },
+  { email: "demo4@cornguard.app", name: "Demo Farmer 4" },
+  { email: "demo5@cornguard.app", name: "Demo Farmer 5" },
 ];
 
 // account index, disease, confidence, [lng, lat]
 const REPORTS = [
-  // Valencia: 3 farms, weighted score 4 -> SEVERE (Northern Leaf Blight)
+  // Valencia: 5 farms, weighted score 5 -> SEVERE (Northern Leaf Blight)
   [0, "northern_leaf_blight", 0.95, [125.09, 7.91]],
-  [0, "northern_leaf_blight", 0.93, [125.092, 7.912]],
   [1, "northern_leaf_blight", 0.96, [125.088, 7.908]],
   [2, "northern_leaf_blight", 0.92, [125.091, 7.907]],
-  // Malaybalay: 2 farms -> MODERATE (Common Rust)
+  [3, "northern_leaf_blight", 0.94, [125.092, 7.912]],
+  [4, "northern_leaf_blight", 0.93, [125.0895, 7.9105]],
+  // Malaybalay: 3 farms -> MODERATE (Common Rust)
   [1, "common_rust", 0.9, [125.128, 8.157]],
   [2, "common_rust", 0.88, [125.1285, 8.1575]],
+  [3, "common_rust", 0.91, [125.1278, 8.1568]],
   // Maramag: 1 farm -> MILD (Gray Leaf Spot)
   [2, "gray_leaf_spot", 0.91, [125.005, 7.763]],
 ];
@@ -103,6 +110,21 @@ async function session({ email, name }) {
 
 const clients = [];
 for (const account of ACCOUNTS) clients.push(await session(account));
+
+// History first (or, with --clear, remove it): each demo barangay leaves "collecting data".
+const areas = new Map();
+for (const [, , , point] of REPORTS) {
+  const area = resolve(point);
+  if (area) areas.set(`${area.barangay}||${area.municipality}`, area);
+}
+for (const { barangay, municipality } of areas.values()) {
+  const args = `{barangay:'${barangay}', municipality:'${municipality}', weeks:${clear ? 0 : 6}, healthyPerWeek:3, clear:true}`;
+  try {
+    console.log(execSync(`npx convex run devAccounts:seedAreaHistory "${args}"`, { encoding: "utf8", env: process.env }).trim());
+  } catch (e) {
+    console.log(e.stdout?.toString().trim() || e.message);
+  }
+}
 
 for (const [i, [who, diseaseCode, confidence, point]] of REPORTS.entries()) {
   const area = resolve(point);

@@ -86,6 +86,13 @@ Confirm:
 ### Provisional safe design
 Use IDs rather than embedding all farm information into User or DiagnosisRecord. This keeps the schema compatible with either one-to-one or one-to-many ownership after approval.
 
+### Development decision (Nov 2026, instructor's suggestion)
+- One farmer can own **many** farms; each farm has **one** owner (no shared farms).
+- A farm's location is a **map pin** plus the Bukidnon barangay it falls in (resolved from the bundled boundaries). Farms outside Bukidnon can't be saved.
+- Farms are **private**: only the owner can list them or see their pins. A farm's location leaves the owner only with a scan they choose to share from it.
+- A shared scan can be filed at one of the farmer's farms (its barangay and pin); otherwise under the farmer's Settings barangay. Outbreak counting stays one per farmer per barangay.
+- Required at creation: a name and a pin inside Bukidnon.
+
 ---
 
 ## D-04 — Model Input Normalization

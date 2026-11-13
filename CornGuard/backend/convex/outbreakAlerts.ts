@@ -5,16 +5,53 @@ import { MutationCtx, QueryCtx, internalMutation } from "./_generated/server";
 import { BARANGAY_NEIGHBORS } from "./barangayNeighbors";
 
 /**
- * Outbreak push alerts, ported from caps 3 (my-app/convex/notifications.sendOutbreakAlert), with an
- * admin in the loop: when a barangay + disease first turns "severe" (barangayStats.recompute) the
- * outbreak is queued as "pending" (queueOutbreak). Nothing is sent until an admin approves it in the
- * admin website (admin.approveOutbreak -> sendOutbreak). There is no manual alert: every alert starts
- * from verified reports (panel requirement D-07: validation before public alerts).
+ * Automatic disease-level alerts, sent without an admin step:
+ *  - a barangay + disease rising to MODERATE (2x its baseline) sends an awareness notice
+ *    ("disease_awareness");
+ *  - rising to SEVERE (3x its baseline) sends a potential-outbreak warning ("outbreak_alert").
+ * barangayStats.recompute calls autoAlert only when the level goes UP, and never while the barangay
+ * is still collecting data for its baseline; going down sends nothing. Validation happens before
+ * the level is calculated, not before sending: only verified reports (confident scans with a photo,
+ * or admin-verified) count toward a level (panel requirement D-07). Admins can still dismiss a
+ * false alarm afterwards and unverify the reports behind it.
  *
- * Recipients: every active farmer whose profile is in that barangay or a bordering one. Profiles
- * hold free-typed names ("Valencia") while outbreaks use the boundary file's official ones
- * ("City of Valencia"), so both sides are compared in a normalised form.
+ * Cooldown: the same level for the same barangay + disease is not sent again within 14 days, so a
+ * level dipping overnight and rising again doesn't repeat the alert.
+ *
+ * Recipients: every active farmer whose profile is in that barangay or one that borders it
+ * (BARANGAY_NEIGHBORS, generated from the boundary map, so it includes border barangays of the next
+ * town). Profiles hold free-typed names ("Valencia") while outbreaks use the boundary file's
+ * official ones ("City of Valencia"), so both sides are compared in a normalised form.
  */
+
+export type AlertLevel = "moderate" | "severe";
+
+/** Don't repeat the same level for the same barangay + disease within this time. */
+const COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000;
+/** Diseases crossing the same level in one barangay within this delay go out as one alert. */
+const BATCH_DELAY_MS = 60 * 1000;
+
+/** The fixed message for each level; only the disease and place names are filled in. */
+const TEMPLATES: Record<AlertLevel, {
+  type: string;
+  title: (diseases: string, barangay: string) => string;
+  message: (diseases: string, area: string) => string;
+}> = {
+  moderate: {
+    type: "disease_awareness",
+    title: (diseases, barangay) => `${diseases} cases rising in ${barangay}`,
+    message: (diseases, area) =>
+      `More corn farms than usual in ${area}, near you, have reported ${diseases} this week. ` +
+      `Check your field and the outbreak map.`,
+  },
+  severe: {
+    type: "outbreak_alert",
+    title: (diseases) => `Potential outbreak: ${diseases} near you`,
+    message: (diseases, area) =>
+      `Reports of ${diseases} in ${area}, close to your farm, are far above the usual level for this area. ` +
+      `Inspect your crops and take precautions. See the outbreak map for details.`,
+  },
+};
 
 export const DISEASE_LABEL: Record<string, string> = {
   northern_leaf_blight: "Northern Leaf Blight",
@@ -68,27 +105,43 @@ export async function recipientsFor(ctx: QueryCtx, barangay: string, municipalit
 }
 
 /**
- * Called by barangayStats.recompute when a barangay + disease turns severe. Adds the disease to the
- * barangay's pending outbreak (one combined alert per barangay) or opens a new pending one.
+ * Called by barangayStats.recompute when a barangay + disease rises to `level`. Skips it if that level
+ * was already alerted for this disease here within the cooldown (even if an admin dismissed it as a
+ * false alarm); otherwise joins the barangay's alert that is about to go out at this level, or
+ * schedules a new one.
  */
-export async function queueOutbreak(
+/** The numbers behind an alert, stored on it as `trigger`. */
+export type AlertSnapshot = {
+  farms: number; baselineFarms: number; threshold: number; monitoringStatus: string; baselineSource?: string;
+};
+
+export async function autoAlert(
   ctx: MutationCtx,
-  { barangay, municipality, diseaseCode }: { barangay: string; municipality: string; diseaseCode: string },
+  { barangay, municipality, diseaseCode, level, snapshot }:
+    { barangay: string; municipality: string; diseaseCode: string; level: AlertLevel; snapshot: AlertSnapshot },
 ) {
-  const pending = await ctx.db
+  const trigger = { diseaseCode, ...snapshot };
+  const recent = await ctx.db
     .query("outbreaks")
-    .withIndex("by_area_status", (q) => q.eq("barangay", barangay).eq("municipality", municipality).eq("status", "pending"))
-    .first();
-  if (pending) {
-    if (!pending.diseaseCodes.includes(diseaseCode)) {
-      await ctx.db.patch(pending._id, { diseaseCodes: [...pending.diseaseCodes, diseaseCode] });
-    }
-    return pending._id;
+    .withIndex("by_area_level", (q) => q.eq("barangay", barangay).eq("municipality", municipality)
+      .eq("level", level).gte("declaredAt", Date.now() - COOLDOWN_MS))
+    .collect();
+  if (recent.some((o) => o.diseaseCodes.includes(diseaseCode))) return null;
+
+  const scheduled = recent.find((o) => o.status === "scheduled");
+  if (scheduled) {
+    await ctx.db.patch(scheduled._id, {
+      diseaseCodes: [...scheduled.diseaseCodes, diseaseCode],
+      trigger: [...(scheduled.trigger ?? []), trigger],
+    });
+    return scheduled._id;
   }
-  return await ctx.db.insert("outbreaks", {
-    barangay, municipality, diseaseCodes: [diseaseCode],
-    status: "pending", source: "automatic", declaredAt: Date.now(),
+  const outbreakId = await ctx.db.insert("outbreaks", {
+    barangay, municipality, diseaseCodes: [diseaseCode], level,
+    status: "scheduled", source: "automatic", declaredAt: Date.now(), trigger: [trigger],
   });
+  await ctx.scheduler.runAfter(BATCH_DELAY_MS, internal.outbreakAlerts.sendOutbreak, { outbreakId });
+  return outbreakId;
 }
 
 /** Test cleanup (CLI only): `npx convex run outbreakAlerts:deleteOutbreaks "{outbreakIds:[...]}"`. */
@@ -102,24 +155,29 @@ export const deleteOutbreaks = internalMutation({
   },
 });
 
-/** Sends an approved outbreak to the farmers nearby. Scheduled by admin.approveOutbreak (and devAccounts.sendTestAlert for testing). */
+/**
+ * Sends an alert to the farmers in the barangay and the bordering ones, using its level's template.
+ * Scheduled by autoAlert ("scheduled" -> "sent"; skipped if an admin dismissed it in the meantime)
+ * and by devAccounts.sendTestAlert ("approved", custom TEST message).
+ */
 export const sendOutbreak = internalMutation({
   args: { outbreakId: v.id("outbreaks") },
   handler: async (ctx, { outbreakId }) => {
     const outbreak = await ctx.db.get(outbreakId);
-    if (!outbreak || outbreak.status !== "approved") return;
+    if (!outbreak || (outbreak.status !== "scheduled" && outbreak.status !== "approved")) return;
     const { barangay, municipality, diseaseCodes } = outbreak;
+    const level: AlertLevel = outbreak.level ?? "severe";
+    const template = TEMPLATES[level];
     const { nearby, withDevice } = await recipientsFor(ctx, barangay, municipality);
 
     const diseases = diseaseList(diseaseCodes);
     const area = `${barangay}, ${municipality}`;
-    const title = `${diseases} outbreak reported nearby`;
-    const message = outbreak.message?.trim() ||
-      `Multiple corn farms in ${area} have confirmed ${diseases}. Check the outbreak map.`;
+    const title = template.title(diseases, barangay);
+    const message = outbreak.message?.trim() || template.message(diseases, area);
     for (const user of withDevice) {
       const notificationId: Id<"notifications"> = await ctx.db.insert("notifications", {
         recipientUserId: user._id,
-        type: "outbreak_alert",
+        type: template.type,
         title,
         message,
         diseaseCode: diseaseCodes[0],
@@ -127,7 +185,10 @@ export const sendOutbreak = internalMutation({
       });
       await ctx.scheduler.runAfter(0, internal.push.sendNotification, { notificationId });
     }
-    await ctx.db.patch(outbreakId, { recipientsNotified: withDevice.length });
-    console.log(`Outbreak alert: ${diseases} in ${area} -> ${nearby.length} farmer(s) nearby, ${withDevice.length} notified`);
+    await ctx.db.patch(outbreakId, {
+      recipientsNotified: withDevice.length,
+      ...(outbreak.status === "scheduled" ? { status: "sent" as const } : {}),
+    });
+    console.log(`${level} alert: ${diseases} in ${area} -> ${nearby.length} farmer(s) nearby, ${withDevice.length} notified`);
   },
 });

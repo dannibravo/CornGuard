@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "convex dev",
     "deploy": "convex deploy",
-    "typecheck": "tsc --noEmit -p convex"
+    "typecheck": "tsc --noEmit -p convex",
+    "test:rules": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test scripts/outbreak-rules.test.mts"
   },
   "dependencies": {
     "@auth/core": "^0.41.1",
