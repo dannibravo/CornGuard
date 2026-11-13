@@ -13,23 +13,27 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.cornguard.app.BuildConfig
 import com.cornguard.app.R
 import com.cornguard.app.data.model.AuthUser
+import com.cornguard.app.data.model.Farm
 import com.cornguard.app.databinding.FragmentProfileBinding
 import com.cornguard.app.di.ServiceLocator
+import com.cornguard.app.ui.common.runCatchingCancellable
 import com.cornguard.app.ui.onboarding.OnboardingDialogFragment
+import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.Job
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
 /**
- * Profile & Settings (caps 3 design): profile card with an Edit Profile sheet, the farm list from
- * [com.cornguard.app.data.repository.UserFarmRepository], About, and Log Out. Online-only for the
- * profile parts, with a sign-in card when signed out. A new farm reuses the profile's
- * barangay/municipality/province (D-03 is unresolved, so no farm-specific address form).
+ * Profile & Settings (caps 3 design): profile card with an Edit Profile sheet, My Farms (private
+ * farm pins, added with [FarmLocationPickerFragment]), About, and Log Out. Online-only for the
+ * profile parts, with a sign-in card when signed out.
  */
 class ProfileFragment : Fragment() {
 
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
-    private val farmAdapter = FarmAdapter()
+    private val farmAdapter = FarmAdapter(onRemove = ::confirmRemoveFarm)
+    private var farmsJob: Job? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -49,7 +53,7 @@ class ProfileFragment : Fragment() {
         binding.profileEditButton.setOnClickListener {
             EditProfileBottomSheet().show(childFragmentManager, EditProfileBottomSheet.TAG)
         }
-        binding.profileAddFarmButton.setOnClickListener { addFarm() }
+        binding.profileAddFarmButton.setOnClickListener { findNavController().navigate(R.id.farmPickerFragment) }
         binding.profileAboutRow.setOnClickListener { showAbout() }
         // Replays the onboarding guide; finishing it here changes nothing on the account.
         binding.profileTutorialRow.setOnClickListener {
@@ -74,8 +78,12 @@ class ProfileFragment : Fragment() {
                     val signedIn = user != null
                     binding.profileSignedOutCard.visibility = if (signedIn) View.GONE else View.VISIBLE
                     binding.profileContent.visibility = if (signedIn) View.VISIBLE else View.GONE
-                    // loadFarms() is not called while My Farms is hidden (see fragment_profile.xml).
-                    if (user != null) loadProfile(user)
+                    if (user != null) {
+                        loadProfile(user)
+                        observeFarms(user.uid)
+                    } else {
+                        farmsJob?.cancel()
+                    }
                 }
             }
         }
@@ -84,7 +92,7 @@ class ProfileFragment : Fragment() {
     private fun loadProfile(user: AuthUser) {
         binding.profileEmail.text = user.email.orEmpty()
         viewLifecycleOwner.lifecycleScope.launch {
-            val profile = runCatching { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }.getOrNull()
+            val profile = runCatchingCancellable { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }.getOrNull()
             val name = profile?.displayName?.takeIf { it.isNotBlank() } ?: getString(R.string.default_farmer_name)
             binding.profileName.text = name
             binding.profileAvatar.text = name.first().uppercase()
@@ -94,39 +102,32 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun loadFarms(uid: String) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val farms = runCatching { ServiceLocator.userFarmRepository.getFarmsForUser(uid) }.getOrDefault(emptyList())
-            farmAdapter.submitList(farms)
-            binding.profileFarmsEmpty.visibility = if (farms.isEmpty()) View.VISIBLE else View.GONE
+    /** Live list of the farmer's own farms (updates after adding one in the picker or removing one). */
+    private fun observeFarms(uid: String) {
+        farmsJob?.cancel()
+        farmsJob = viewLifecycleOwner.lifecycleScope.launch {
+            ServiceLocator.userFarmRepository.observeFarmsForUser(uid).collect { farms ->
+                if (_binding == null) return@collect
+                farmAdapter.submitList(farms)
+                binding.profileFarmsEmpty.visibility = if (farms.isEmpty()) View.VISIBLE else View.GONE
+            }
         }
     }
 
-    private fun addFarm() {
-        val name = binding.profileFarmNameInput.text.toString().trim()
-        if (name.isEmpty()) return
-        val user = ServiceLocator.authRepository.getCurrentUser() ?: return
-
-        binding.profileAddFarmButton.isEnabled = false
-        viewLifecycleOwner.lifecycleScope.launch {
-            val profile = runCatching { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }.getOrNull()
-            if (profile != null) {
-                runCatching {
-                    ServiceLocator.userFarmRepository.createFarm(
-                        ownerUserId = user.uid,
-                        farmNameOrLabel = name,
-                        barangay = profile.barangay,
-                        municipality = profile.municipality,
-                        province = profile.province,
-                        latitude = null,
-                        longitude = null
-                    )
+    private fun confirmRemoveFarm(farm: Farm) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.farm_remove_title, farm.farmNameOrLabel))
+            .setMessage(R.string.farm_remove_message)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.farm_remove_action) { _, _ ->
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val result = runCatchingCancellable { ServiceLocator.userFarmRepository.deleteFarm(farm.farmId) }
+                    if (result.isFailure && _binding != null) {
+                        Snackbar.make(binding.root, R.string.farm_remove_failed, Snackbar.LENGTH_LONG).show()
+                    }
                 }
-                binding.profileFarmNameInput.text.clear()
-                loadFarms(user.uid)
             }
-            binding.profileAddFarmButton.isEnabled = true
-        }
+            .show()
     }
 
     private fun showAbout() {
@@ -143,7 +144,7 @@ class ProfileFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             if (uid != null) {
                 // Best-effort — a failure here must never block sign-out itself.
-                runCatching { ServiceLocator.gisRepository.deactivateDeviceToken(uid, ServiceLocator.deviceId) }
+                runCatchingCancellable { ServiceLocator.gisRepository.deactivateDeviceToken(uid, ServiceLocator.deviceId) }
             }
             ServiceLocator.authRepository.signOut()
         }

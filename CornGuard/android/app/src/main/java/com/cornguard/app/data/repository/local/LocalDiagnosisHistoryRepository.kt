@@ -31,8 +31,9 @@ class LocalDiagnosisHistoryRepository(
         municipality: String,
         province: String,
         latitude: Double,
-        longitude: Double
-    ) = dao.updateLocation(localId, barangay, municipality, province, latitude, longitude)
+        longitude: Double,
+        farmId: String?
+    ) = dao.updateLocation(localId, barangay, municipality, province, latitude, longitude, farmId)
 
     override suspend fun delete(record: DiagnosisRecordEntity) = dao.delete(record)
 }

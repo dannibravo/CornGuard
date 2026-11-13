@@ -52,6 +52,10 @@ interface UserFarmRepository {
         longitude: Double?
     ): String
 
+    /** Removes one of the signed-in farmer's farms (owner only, enforced by the backend). */
+    suspend fun deleteFarm(farmId: String)
+
+    /** The signed-in farmer's own farms. Farms are private: other users' farms are never returned. */
     suspend fun getFarmsForUser(uid: String): List<Farm>
     fun observeFarmsForUser(uid: String): Flow<List<Farm>>
 }

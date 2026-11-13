@@ -41,10 +41,11 @@ interface DiagnosisRecordDao {
     @Query("UPDATE diagnosis_records SET sharedToCloud = 1, cloudRecordId = :cloudRecordId WHERE localId = :localId")
     suspend fun markShared(localId: Long, cloudRecordId: String)
 
-    /** Manual barangay pick on the result sheet (coordinates = the barangay's centroid). */
+    /** Where a shared scan was filed: its barangay, map point and (if shared from one) the farm. */
     @Query(
         "UPDATE diagnosis_records SET barangay = :barangay, municipality = :municipality, " +
-            "province = :province, latitude = :latitude, longitude = :longitude WHERE localId = :localId"
+            "province = :province, latitude = :latitude, longitude = :longitude, farmId = :farmId " +
+            "WHERE localId = :localId"
     )
     suspend fun updateLocation(
         localId: Long,
@@ -52,7 +53,8 @@ interface DiagnosisRecordDao {
         municipality: String,
         province: String,
         latitude: Double,
-        longitude: Double
+        longitude: Double,
+        farmId: String?
     )
 
     @Delete

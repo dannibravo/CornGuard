@@ -160,6 +160,39 @@
             android:textAppearance="@style/TextAppearance.CornGuard.Meta"
             tools:text="Scanned Sep 27, 2026 8:36 PM · cornguard_mobilenetv2_v3" />
 
+        <!-- My Farms: which saved farm a shared scan is filed at (only for unshared scans). -->
+        <TextView
+            android:id="@+id/resultFarmLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/result_farm_label"
+            android:textColor="@color/cg_text_primary"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/resultFarmChooser"
+            style="@style/Widget.CornGuard.Button.Secondary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:visibility="gone"
+            tools:text="North field · Sugod"
+            tools:visibility="visible" />
+
+        <TextView
+            android:id="@+id/resultFarmHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/result_farm_hint"
+            android:textColor="@color/cg_text_tertiary"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/shareToCommunityButton"
             style="@style/Widget.CornGuard.Button.Primary"

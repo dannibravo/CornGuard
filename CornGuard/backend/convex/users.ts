@@ -1,7 +1,11 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, QueryCtx } from "./_generated/server";
 import { currentUserId, requireActiveUser, requireUser } from "./lib/access";
+import { isKnownBarangay } from "./outbreakAlerts";
+
+/** Most farms one farmer can save (My Farms). */
+const MAX_FARMS = 20;
 
 /** Shape returned to the app for `AuthUser` / `UserProfile`. */
 async function toProfile(ctx: QueryCtx, user: Doc<"users">) {
@@ -92,30 +96,54 @@ export const update = mutation({
   },
 });
 
+/**
+ * Saves a farm (My Farms): a pin dropped in the app plus the Bukidnon barangay it falls in (the app
+ * resolves it from the bundled boundaries and sends the official names). Farms are private: only
+ * their owner can list them, and a farm's location leaves the owner only with a scan they share.
+ */
 export const createFarm = mutation({
   args: {
     name: v.string(),
     barangay: v.string(),
     municipality: v.string(),
     province: v.string(),
-    latitude: v.optional(v.number()),
-    longitude: v.optional(v.number()),
+    latitude: v.number(),
+    longitude: v.number(),
   },
   handler: async (ctx, args) => {
     const user = await requireActiveUser(ctx);
-    return await ctx.db.insert("farms", { ownerId: user._id, ...args });
+    const name = args.name.trim();
+    if (name.length < 1 || name.length > 40) throw new ConvexError("Give the farm a name (up to 40 characters).");
+    if (!isKnownBarangay(args.barangay, args.municipality)) {
+      throw new ConvexError("Pick a spot inside Bukidnon: farms can only be saved on the outbreak map's area.");
+    }
+    const existing = await ctx.db.query("farms").withIndex("by_owner", (q) => q.eq("ownerId", user._id)).take(MAX_FARMS);
+    if (existing.length >= MAX_FARMS) throw new ConvexError(`You can save up to ${MAX_FARMS} farms.`);
+    return await ctx.db.insert("farms", { ownerId: user._id, ...args, name });
   },
 });
 
+/** Removes one of the caller's farms. Scans already shared from it keep their location. */
+export const deleteFarm = mutation({
+  args: { farmId: v.string() },
+  handler: async (ctx, { farmId }) => {
+    const user = await requireUser(ctx);
+    const id = ctx.db.normalizeId("farms", farmId);
+    const farm = id ? await ctx.db.get(id) : null;
+    if (!farm || farm.ownerId !== user._id) throw new ConvexError("That farm isn't yours.");
+    await ctx.db.delete(farm._id);
+  },
+});
+
+/** The caller's own farms. Farm locations are private: asking for another user's farms returns []. */
 export const farmsForUser = query({
   args: { userId: v.string() },
   handler: async (ctx, { userId }) => {
-    if (!(await currentUserId(ctx))) return [];
-    const ownerId = ctx.db.normalizeId("users", userId);
-    if (!ownerId) return [];
+    const me = await currentUserId(ctx);
+    if (!me || me !== userId) return [];
     const farms = await ctx.db
       .query("farms")
-      .withIndex("by_owner", (q) => q.eq("ownerId", ownerId as Id<"users">))
+      .withIndex("by_owner", (q) => q.eq("ownerId", me as Id<"users">))
       .collect();
     return farms.map((f) => ({
       farmId: f._id,

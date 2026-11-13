@@ -75,4 +75,11 @@
         android:label="@string/profile_title"
         tools:layout="@layout/fragment_profile" />
 
+    <!-- My Farms: drop a pin for a new farm. Opened from Settings. -->
+    <fragment
+        android:id="@+id/farmPickerFragment"
+        android:name="com.cornguard.app.ui.profile.FarmLocationPickerFragment"
+        android:label="@string/farm_picker_title"
+        tools:layout="@layout/fragment_farm_picker" />
+
 </navigation>

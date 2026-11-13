@@ -28,7 +28,9 @@ interface DiagnosisHistoryRepository {
         municipality: String,
         province: String,
         latitude: Double,
-        longitude: Double
+        longitude: Double,
+        /** The farm the scan was shared from (My Farms), or null. */
+        farmId: String? = null
     )
     suspend fun delete(record: DiagnosisRecordEntity)
 }

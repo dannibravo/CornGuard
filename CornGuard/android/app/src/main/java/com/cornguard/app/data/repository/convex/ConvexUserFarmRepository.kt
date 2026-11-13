@@ -88,6 +88,10 @@ class ConvexUserFarmRepository(
         )
     )
 
+    override suspend fun deleteFarm(farmId: String) {
+        client.execute("users:deleteFarm", convexArgs("farmId" to farmId))
+    }
+
     override suspend fun getFarmsForUser(uid: String): List<Farm> =
         client.queryOnce<List<FarmDto>>("users:farmsForUser", convexArgs("userId" to uid)).map { it.toFarm() }
 

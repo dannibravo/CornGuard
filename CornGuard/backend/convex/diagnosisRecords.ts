@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import { Doc } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, QueryCtx } from "./_generated/server";
 import { assertOwnerOrAdmin, currentUserId, requireActiveUser } from "./lib/access";
 import { HEALTHY, RECENT_MS, WINDOW_MS, scheduleRecompute } from "./barangayStats";
@@ -59,6 +59,19 @@ export const share = mutation({
   },
   handler: async (ctx, { farmId, ...args }) => {
     const user = await requireActiveUser(ctx);
+    // A scan shared from one of the farmer's farms is filed at that farm: its barangay counts the
+    // report and its pin places the dot. The phone's values are ignored (the farm is the authority).
+    let farm: Doc<"farms"> | null = null;
+    if (farmId) {
+      const id = ctx.db.normalizeId("farms", farmId);
+      farm = id ? await ctx.db.get(id) : null;
+      if (!farm || farm.ownerId !== user._id) throw new ConvexError("That farm isn't yours.");
+      args = {
+        ...args,
+        barangay: farm.barangay, municipality: farm.municipality, province: farm.province,
+        latitude: farm.latitude, longitude: farm.longitude,
+      };
+    }
     const existing = (
       await ctx.db
         .query("diagnosisRecords")
@@ -89,11 +102,10 @@ export const share = mutation({
     // for an admin — but only with a photo (so an admin can check it) and only for recent scans.
     const autoVerify = args.confidence >= AUTO_VERIFY_CONFIDENCE && !!args.imageId &&
       args.capturedAt >= now - AUTO_VERIFY_MAX_AGE_MS;
-    const farm = farmId ? ctx.db.normalizeId("farms", farmId) : null;
     const id = await ctx.db.insert("diagnosisRecords", {
       ...args,
       userId: user._id,
-      farmId: farm ?? undefined,
+      farmId: farm?._id,
       verificationStatus: autoVerify ? "verified" : "unverified",
       source: "ai_scan",
     });
@@ -153,12 +165,13 @@ async function recentDiseaseReports(ctx: QueryCtx, diseaseCode: string | undefin
   return out;
 }
 
-/** "active" reports count toward severity (last 14 days); "recent" ones are shown faded (14-28 days). */
+/** "active" reports count toward the outbreak level (last 7 days); "recent" ones are shown faded (7-28 days). */
 const stageOf = (capturedAt: number) => (capturedAt >= Date.now() - WINDOW_MS ? "active" : "recent");
 
 /**
  * One heatmap marker per verified disease report with coordinates from the last 28 days
  * (signed-in users only: markers are farm locations). Severity comes from barangayStats.getAllStats.
+ * `farmerName` is the reporter's profile name ("Farmer" if unset), as on community posts.
  */
 export const mapReports = query({
   args: {},
@@ -169,19 +182,29 @@ export const mapReports = query({
     // drop expired markers at least once a day — the same schedule on which the levels decay.
     await ctx.db.query("barangayDiseaseStats").collect();
     const records = await recentDiseaseReports(ctx, undefined);
-    return records
-      .filter((r) => r.latitude !== undefined && r.longitude !== undefined)
-      .map((r) => ({
+    const names = new Map<Id<"users">, string>();
+    const out = [];
+    for (const r of records) {
+      if (r.latitude === undefined || r.longitude === undefined) continue;
+      let farmerName = names.get(r.userId);
+      if (farmerName === undefined) {
+        farmerName = (await ctx.db.get(r.userId))?.name ?? "Farmer";
+        names.set(r.userId, farmerName);
+      }
+      out.push({
         stage: stageOf(r.capturedAt),
         recordId: r._id,
         diseaseCode: r.diseaseCode,
         confidence: r.confidence,
         capturedAt: r.capturedAt,
-        latitude: r.latitude!,
-        longitude: r.longitude!,
+        latitude: r.latitude,
+        longitude: r.longitude,
         barangay: r.barangay,
         municipality: r.municipality,
-      }));
+        farmerName,
+      });
+    }
+    return out;
   },
 });
 

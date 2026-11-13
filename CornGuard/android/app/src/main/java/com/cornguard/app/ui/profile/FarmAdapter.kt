@@ -8,7 +8,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.cornguard.app.data.model.Farm
 import com.cornguard.app.databinding.ItemFarmBinding
 
-class FarmAdapter : ListAdapter<Farm, FarmAdapter.ViewHolder>(DIFF) {
+/** My Farms rows: name, barangay, and a remove button ([onRemove]). */
+class FarmAdapter(private val onRemove: (Farm) -> Unit) : ListAdapter<Farm, FarmAdapter.ViewHolder>(DIFF) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemFarmBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -18,7 +19,8 @@ class FarmAdapter : ListAdapter<Farm, FarmAdapter.ViewHolder>(DIFF) {
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val farm = getItem(position)
         holder.binding.farmName.text = farm.farmNameOrLabel
-        holder.binding.farmLocation.text = "${farm.barangay}, ${farm.municipality}, ${farm.province}"
+        holder.binding.farmLocation.text = "${farm.barangay}, ${farm.municipality}"
+        holder.binding.farmRemove.setOnClickListener { onRemove(farm) }
     }
 
     class ViewHolder(val binding: ItemFarmBinding) : RecyclerView.ViewHolder(binding.root)

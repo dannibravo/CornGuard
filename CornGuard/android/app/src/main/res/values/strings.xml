@@ -5,6 +5,8 @@
     <string name="notification_channel_alerts_description">Replies, upvotes, and area disease alerts.</string>
     <string name="notification_channel_outbreak_name">Outbreak Alerts</string>
     <string name="notification_channel_outbreak_description">Severe crop disease outbreaks in or near your barangay.</string>
+    <string name="notification_channel_awareness_name">Disease Awareness</string>
+    <string name="notification_channel_awareness_description">A crop disease rising to a moderate level in or near your barangay.</string>
 
     <!-- Bottom navigation (caps 3 design: Dashboard / History / Settings) -->
     <string name="nav_dashboard">Dashboard</string>
@@ -43,7 +45,7 @@
     <string name="scan_title">Scan Corn Leaf</string>
     <string name="scan_ready_title">Ready to scan</string>
     <string name="scan_ready_subtitle">Take a photo or choose from gallery</string>
-    <string name="scan_area_format">Scans filed under %1$s, %2$s · &lt;u&gt;Change in Settings&lt;/u&gt;</string>
+    <string name="scan_area_format">Scans filed under %1$s, %2$s, or a farm you pick when sharing · &lt;u&gt;Change in Settings&lt;/u&gt;</string>
     <string name="scan_area_not_set"><u>Set your barangay in Settings</u> to share scans to the Outbreak Map</string>
     <string name="scan_area_signed_out"><u>Sign in</u> to share scans to the Outbreak Map</string>
     <string name="scan_open_camera">Open Camera</string>
@@ -76,6 +78,11 @@
     <string name="result_share_requires_location">Set your barangay in Settings first, so this report can appear on the Outbreak Map.</string>
     <string name="result_share_not_owner">This scan belongs to another account on this phone, so it can\'t be shared from this one.</string>
     <string name="result_share_failed">Couldn\'t share this result. Check your connection and try again.</string>
+    <!-- My Farms on the result sheet: which farm a shared scan is filed at. -->
+    <string name="result_farm_label">Which farm is this from?</string>
+    <string name="result_farm_option">%1$s · %2$s</string>
+    <string name="result_farm_none">Not from a saved farm (use my Settings barangay)</string>
+    <string name="result_farm_hint">Add your farms in Settings to file scans by farm.</string>
     <string name="result_no_treatment">No reference content is available for this disease on this device yet.</string>
 
     <!-- Full details sheet -->
@@ -203,7 +210,7 @@
     <string name="onboarding_21_body">Tap the bell on the Dashboard. You\'ll see ② replies to your posts and ③ outbreak alerts for your area. Tap one to open it, or ① mark all as read.</string>
 
     <string name="onboarding_22_title">Your profile</string>
-    <string name="onboarding_22_body">Tap the pencil on your profile card to change your name and barangay. Your barangay decides where scans are filed and what \"near you\" shows. ① Open this guide again, ② see the app version, or ③ sign out. You\'re all set!</string>
+    <string name="onboarding_22_body">Tap the pencil on your profile card to change your name and barangay. ① Under My Farms, add your farms by dropping a pin on the map; only you can see them, and you can file a scan at one of them when you share it. ② Open this guide again, ③ see the app version, or ④ sign out. You\'re all set!</string>
     <string name="edit_post_action">Edit post</string>
     <string name="delete_post_action">Delete post</string>
     <string name="edit_post_title">Edit Post</string>
@@ -258,11 +265,25 @@
     <string name="profile_location_not_set">Location not set</string>
     <string name="profile_edit">Edit profile</string>
     <string name="profile_signed_out_title">You\'re not signed in</string>
-    <string name="profile_signed_out_body">Sign in to manage your profile. Scanning and history work without an account.</string>
+    <string name="profile_signed_out_body">Sign in to manage your profile and farms. Scanning and history work without an account.</string>
     <string name="profile_farms_title">My Farms</string>
-    <string name="profile_farm_name_hint">Add a farm, e.g. North field</string>
-    <string name="profile_add_farm_action">Add</string>
+    <string name="profile_farm_name_hint">Farm name, e.g. North field</string>
+    <string name="profile_add_farm_action">Add farm</string>
     <string name="profile_farms_empty">No farms added yet.</string>
+    <string name="farm_privacy_note">Only you can see your farms. A farm\'s location is shared only with a scan you share from it.</string>
+    <string name="farm_remove_action">Remove</string>
+    <string name="farm_remove_title">Remove %1$s?</string>
+    <string name="farm_remove_message">Scans you already shared from this farm stay on the map.</string>
+    <string name="farm_remove_failed">Couldn\'t remove the farm. Check your connection and try again.</string>
+    <!-- Farm pin picker (FarmLocationPickerFragment). -->
+    <string name="farm_picker_title">Add a farm</string>
+    <string name="farm_picker_no_pin">Tap the map where your farm is</string>
+    <string name="farm_picker_outside">Outside Bukidnon. Pick a spot inside the map\'s boundaries.</string>
+    <string name="farm_picker_use_location">Use my location</string>
+    <string name="farm_picker_save">Save farm</string>
+    <string name="farm_picker_location_denied">Allow location access to use your current location, or tap the map instead.</string>
+    <string name="farm_picker_location_unavailable">Couldn\'t get your location. Turn on location, or tap the map instead.</string>
+    <string name="farm_picker_save_failed">Couldn\'t save the farm. Check your connection and try again.</string>
     <string name="profile_other_title">Other</string>
     <string name="profile_about">About CornGuard</string>
     <string name="profile_about_message">CornGuard %1$s\nDisease model: %2$s\n\nDetects corn leaf diseases on your phone, even offline, and connects you with farmers near you.</string>
