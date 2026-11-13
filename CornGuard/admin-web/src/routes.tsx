@@ -3,10 +3,12 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { useAdmin } from './auth';
 import { PageLoader, Button, Alert } from './components/ui';
 import { AuthShell } from './pages/LoginPage';
+import { useIdleSignOut } from './idleTimeout';
 
 export function ProtectedRoute() {
   const { isLoading, isAuthenticated, isAdmin, viewer } = useAdmin();
   const { signOut } = useAuthActions();
+  useIdleSignOut(isAuthenticated);
 
   if (isLoading) return <div className="fullscreen-center"><PageLoader label="Loading CornGuard Admin…" /></div>;
   if (!isAuthenticated) return <Navigate to="/login" replace />;

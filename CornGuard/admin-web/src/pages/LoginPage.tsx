@@ -1,9 +1,10 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { useConvexAuth } from 'convex/react';
 import { Icon } from '../components/Icon';
 import { Alert, Button } from '../components/ui';
+import { clearIdleSignOutNotice, resetIdleClock, wasSignedOutForIdle } from '../idleTimeout';
 
 /** Signs in with a CornGuard account (the same email/password as the app). Admin role is checked after. */
 export default function LoginPage() {
@@ -14,6 +15,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [idleNotice] = useState(wasSignedOutForIdle);
+  useEffect(clearIdleSignOutNotice, []);
 
   if (isAuthenticated) return <Navigate to="/" replace />;
 
@@ -22,6 +25,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
+      resetIdleClock();
       await signIn('password', { email: email.trim(), password, flow: 'signIn' });
     } catch {
       setError('Incorrect email or password.');
@@ -39,6 +43,9 @@ export default function LoginPage() {
 
       <form onSubmit={handleSubmit} className="auth-form">
         {error && <Alert variant="error">{error}</Alert>}
+        {!error && idleNotice && (
+          <Alert variant="info">You were signed out after 2 hours without activity. Please sign in again.</Alert>
+        )}
 
         <div className="form-group">
           <label htmlFor="email" className="form-label">Email</label>

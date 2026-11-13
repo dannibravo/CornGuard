@@ -13,9 +13,20 @@ import UsersPage from './pages/UsersPage';
 import MapPage from './pages/MapPage';
 import './styles/admin.css';
 
+// Admin sessions end when the tab or browser closes: the auth token lives in sessionStorage,
+// not localStorage (Convex Auth's default, which kept admins signed in across restarts).
+// Remove tokens left in localStorage by builds from before this change.
+try {
+  Object.keys(localStorage)
+    .filter((key) => key.startsWith('__convexAuth'))
+    .forEach((key) => localStorage.removeItem(key));
+} catch {
+  // Storage blocked (private mode etc.): nothing to clean up.
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ConvexAuthProvider client={convex}>
+    <ConvexAuthProvider client={convex} storage={sessionStorage}>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
