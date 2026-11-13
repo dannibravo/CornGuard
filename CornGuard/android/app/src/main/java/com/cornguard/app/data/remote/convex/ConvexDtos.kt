@@ -115,7 +115,14 @@ data class BarangayStatDto(
     val weightedScore: Double,
     val distinctFarms: Double,
     val rawReportCount: Double,
-    val isActiveOutbreak: Boolean
+    val isActiveOutbreak: Boolean,
+    /** "collecting", "provisional" or "established"; absent from older backends. */
+    val monitoringStatus: String = "collecting",
+    val baselineFarms: Double? = null,
+    val lastWeekFarms: Double? = null,
+    val dataWeeks: Double = 0.0,
+    val historyScans: Double = 0.0,
+    val monitoringSince: Double? = null
 )
 
 @Serializable
@@ -129,7 +136,9 @@ data class MapReportDto(
     val latitude: Double,
     val longitude: Double,
     val barangay: String,
-    val municipality: String
+    val municipality: String,
+    /** The reporter's profile name; "Farmer" when unset (or from an older backend). */
+    val farmerName: String = "Farmer"
 )
 
 @Serializable

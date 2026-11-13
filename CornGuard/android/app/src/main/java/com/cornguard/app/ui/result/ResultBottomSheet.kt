@@ -1,5 +1,6 @@
 package com.cornguard.app.ui.result
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,12 +12,15 @@ import androidx.navigation.fragment.findNavController
 import coil.load
 import com.cornguard.app.R
 import com.cornguard.app.data.local.db.entity.DiagnosisRecordEntity
+import com.cornguard.app.data.model.Farm
 import com.cornguard.app.databinding.SheetResultBinding
 import com.cornguard.app.di.ServiceLocator
 import com.cornguard.app.ui.common.CornGuardBottomSheet
+import com.cornguard.app.ui.common.runCatchingCancellable
 import com.cornguard.app.ui.common.TimeFormat
 import com.cornguard.app.ui.treatment.FullDetailsBottomSheet
 import com.cornguard.app.ui.treatment.ReviewLabelBinder
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -26,7 +30,8 @@ import java.io.File
  * Diagnosis result (caps 3 design's result sheet), shown after a scan and from History. Reads the
  * saved record from Room, so it works offline. "Share to Community" is the one online, opt-in
  * action (D-11: a scan is private by default). CornGuard saves every scan automatically, so the
- * design's "Save to History" button becomes a "Saved to History" note.
+ * design's "Save to History" button becomes a "Saved to History" note. A farmer with saved farms
+ * (My Farms) picks which farm the scan is from, and it is filed at that farm.
  */
 class ResultBottomSheet : CornGuardBottomSheet() {
 
@@ -35,6 +40,9 @@ class ResultBottomSheet : CornGuardBottomSheet() {
 
     private val localId: Long get() = requireArguments().getLong(ARG_LOCAL_ID)
     private var sharedToCloud = false
+    /** The farmer's saved farms, and the one this scan will be filed at (null = Settings barangay). */
+    private var farms: List<Farm> = emptyList()
+    private var selectedFarm: Farm? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = SheetResultBinding.inflate(inflater, container, false)
@@ -46,6 +54,7 @@ class ResultBottomSheet : CornGuardBottomSheet() {
         binding.resultThumbnail.clipToOutline = true
         binding.resultCloseButton.setOnClickListener { dismiss() }
         binding.shareToCommunityButton.setOnClickListener { shareToCommunity() }
+        binding.resultFarmChooser.setOnClickListener { chooseFarm() }
 
         viewLifecycleOwner.lifecycleScope.launch {
             val record = ServiceLocator.diagnosisHistoryRepository.getById(localId)
@@ -57,9 +66,55 @@ class ResultBottomSheet : CornGuardBottomSheet() {
             // Refresh the cached Settings area (online), so the location line is current.
             val user = ServiceLocator.authRepository.getCurrentUser() ?: return@launch
             if (record.sharedToCloud) return@launch
-            runCatching { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }
-            if (_binding != null) renderLocation(record)
+            runCatchingCancellable { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }
+            farms = runCatchingCancellable { ServiceLocator.userFarmRepository.getFarmsForUser(user.uid) }
+                .getOrDefault(emptyList())
+            val last = lastFarmId(user.uid)
+            selectedFarm = farms.firstOrNull { it.farmId == last } ?: farms.firstOrNull()
+            if (_binding == null) return@launch
+            renderFarmChoice()
+            renderLocation(record)
         }
+    }
+
+    /** "Which farm is this from?" for an unshared scan; a hint to add farms when there are none. */
+    private fun renderFarmChoice() {
+        val b = _binding ?: return
+        val signedIn = ServiceLocator.authRepository.getCurrentUser() != null
+        val choosing = !sharedToCloud && farms.isNotEmpty()
+        b.resultFarmLabel.visibility = if (choosing) View.VISIBLE else View.GONE
+        b.resultFarmChooser.visibility = if (choosing) View.VISIBLE else View.GONE
+        b.resultFarmHint.visibility = if (!sharedToCloud && signedIn && farms.isEmpty()) View.VISIBLE else View.GONE
+        val label = selectedFarm?.let { farmLabel(it) } ?: getString(R.string.result_farm_none)
+        b.resultFarmChooser.text = "$label  \u25BE"
+    }
+
+    private fun farmLabel(farm: Farm) = getString(R.string.result_farm_option, farm.farmNameOrLabel, farm.barangay)
+
+    private fun chooseFarm() {
+        val labels = farms.map { farmLabel(it) } + getString(R.string.result_farm_none)
+        val checked = selectedFarm?.let { farms.indexOf(it) } ?: farms.size
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.result_farm_label)
+            .setSingleChoiceItems(labels.toTypedArray(), checked) { dialog, which ->
+                selectedFarm = farms.getOrNull(which)
+                dialog.dismiss()
+                renderFarmChoice()
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val record = ServiceLocator.diagnosisHistoryRepository.getById(localId)
+                    if (record != null && _binding != null) renderLocation(record)
+                }
+            }
+            .show()
+    }
+
+    private fun lastFarmId(uid: String): String? =
+        requireContext().getSharedPreferences(PREFS_LAST_FARM, Context.MODE_PRIVATE).getString(uid, null)
+
+    private fun rememberFarm(uid: String, farmId: String?) {
+        val prefs = requireContext().getSharedPreferences(PREFS_LAST_FARM, Context.MODE_PRIVATE).edit()
+        if (farmId == null) prefs.remove(uid) else prefs.putString(uid, farmId)
+        prefs.apply()
     }
 
     private fun bind(record: DiagnosisRecordEntity) {
@@ -89,17 +144,19 @@ class ResultBottomSheet : CornGuardBottomSheet() {
     }
 
     /**
-     * caps 3 location line. A scan is always filed under the farmer's Settings area (the single
-     * source of a scan's location), so this is read-only:
+     * caps 3 location line, read-only:
      *  - shared: the area it was shared under (frozen);
-     *  - unshared: the account's current Settings area, with "Change in Settings";
+     *  - unshared, a farm chosen: that farm's barangay;
+     *  - unshared, no farm: the account's current Settings area, with "Change in Settings";
      *  - no Settings area / signed out: an orange warning linking to Settings / sign-in.
      */
     private fun renderLocation(record: DiagnosisRecordEntity) {
         val user = ServiceLocator.authRepository.getCurrentUser()
+        val farm = if (record.sharedToCloud) null else selectedFarm
         val area = when {
             record.sharedToCloud && !record.barangay.isNullOrBlank() ->
                 getString(R.string.result_location_area, record.barangay, record.municipality.orEmpty())
+            farm != null -> getString(R.string.result_location_area, farm.barangay, farm.municipality)
             user != null -> ServiceLocator.profileAreaStore.get(user.uid)?.let {
                 getString(R.string.result_location_area, it.barangay, it.municipality)
             }
@@ -115,7 +172,7 @@ class ResultBottomSheet : CornGuardBottomSheet() {
         )
 
         val link = binding.resultLocationSettings
-        link.visibility = if (record.sharedToCloud) View.GONE else View.VISIBLE
+        link.visibility = if (record.sharedToCloud || farm != null) View.GONE else View.VISIBLE
         link.setTextColor(ContextCompat.getColor(requireContext(), if (hasArea) R.color.cg_text_secondary else R.color.cg_warning))
         link.setText(
             when {
@@ -138,6 +195,7 @@ class ResultBottomSheet : CornGuardBottomSheet() {
         binding.shareToCommunityButton.setText(
             if (sharedToCloud) R.string.result_shared_action_done else R.string.result_share_action
         )
+        renderFarmChoice()
     }
 
     private fun shareToCommunity() {
@@ -150,22 +208,27 @@ class ResultBottomSheet : CornGuardBottomSheet() {
 
         setSharing(true)
         viewLifecycleOwner.lifecycleScope.launch {
-            val record = runCatching { ServiceLocator.diagnosisHistoryRepository.getById(localId) }.getOrNull()
+            val record = runCatchingCancellable { ServiceLocator.diagnosisHistoryRepository.getById(localId) }.getOrNull()
             if (record == null) {
                 setSharing(false)
                 showShareError(R.string.result_share_failed)
                 return@launch
             }
-            // File the scan under the account's current Settings area, read fresh from the profile
-            // (sharing is online anyway), so an unshared scan always follows Settings.
-            val profile = runCatching { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }
-            if (profile.isFailure) {
-                setSharing(false)
-                showShareError(R.string.result_share_failed)
-                return@launch
-            }
             val resolver = ServiceLocator.barangayResolver
-            val barangay = profile.getOrNull()?.let { resolver.find(it.barangay, it.municipality) }
+            // File the scan at the chosen farm (My Farms). Without one, use the account's current
+            // Settings area, read fresh from the profile (sharing is online anyway).
+            val farm = selectedFarm
+            val barangay = if (farm != null) {
+                resolver.find(farm.barangay, farm.municipality)
+            } else {
+                val profile = runCatchingCancellable { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }
+                if (profile.isFailure) {
+                    setSharing(false)
+                    showShareError(R.string.result_share_failed)
+                    return@launch
+                }
+                profile.getOrNull()?.let { resolver.find(it.barangay, it.municipality) }
+            }
             if (barangay == null) {
                 setSharing(false)
                 renderLocation(record)
@@ -179,27 +242,29 @@ class ResultBottomSheet : CornGuardBottomSheet() {
                 return@launch
             }
             if (record.userId == null) ServiceLocator.diagnosisHistoryRepository.assignOwner(localId, user.uid)
-            // The dot keeps the scan's GPS fix only when it lies inside that barangay.
+            // A farm scan's dot is the farm pin; otherwise it keeps the scan's GPS fix only when that
+            // lies inside the barangay. (The backend files a farm scan at the farm either way.)
             val (lat, lng) = withContext(Dispatchers.Default) {
-                resolver.placeScan(barangay, record.latitude, record.longitude)
+                resolver.placeScan(barangay, farm?.latitude ?: record.latitude, farm?.longitude ?: record.longitude)
             }
             ServiceLocator.diagnosisHistoryRepository.updateLocation(
-                localId, barangay.name, barangay.municipality, barangay.province, lat, lng
+                localId, barangay.name, barangay.municipality, barangay.province, lat, lng, farm?.farmId
             )
             val filed = record.copy(
                 barangay = barangay.name, municipality = barangay.municipality, province = barangay.province,
                 latitude = lat, longitude = lng
             )
-            val result = runCatching {
+            val result = runCatchingCancellable {
                 val cloudRecordId = ServiceLocator.diagnosisSharingRepository.shareScan(
                     record = filed,
                     ownerUserId = user.uid,
-                    farmId = null
+                    farmId = farm?.farmId
                 )
                 ServiceLocator.diagnosisHistoryRepository.markShared(localId, cloudRecordId)
             }
             setSharing(false)
             if (result.isSuccess) {
+                rememberFarm(user.uid, farm?.farmId)
                 sharedToCloud = true
                 renderShareState()
                 renderLocation(filed.copy(sharedToCloud = true))
@@ -226,6 +291,8 @@ class ResultBottomSheet : CornGuardBottomSheet() {
 
     companion object {
         const val TAG = "ResultBottomSheet"
+        /** The farm last chosen per account, so the next scan defaults to it. */
+        private const val PREFS_LAST_FARM = "cornguard_last_farm"
         private const val ARG_LOCAL_ID = "localId"
 
         fun newInstance(localId: Long) = ResultBottomSheet().apply {

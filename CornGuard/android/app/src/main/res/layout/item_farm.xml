@@ -42,4 +42,13 @@
             android:textSize="15sp"
             tools:text="Poblacion, Valencia, Bukidnon" />
     </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/farmRemove"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/farm_remove_action"
+        android:src="@drawable/ic_trash"
+        app:tint="@color/cg_text_secondary" />
 </LinearLayout>
