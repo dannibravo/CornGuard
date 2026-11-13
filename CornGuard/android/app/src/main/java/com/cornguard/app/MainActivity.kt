@@ -48,6 +48,9 @@ class MainActivity : AppCompatActivity() {
         val navController = navHostFragment.navController
         binding.bottomNavigationView.setupWithNavController(navController)
         navController.addOnDestinationChangedListener { _, destination, _ ->
+            // The farm pin picker needs the whole screen (map + name field above the keyboard).
+            binding.bottomNavigationView.visibility =
+                if (destination.id == R.id.farmPickerFragment) android.view.View.GONE else android.view.View.VISIBLE
             if (destination.id in DASHBOARD_CHILDREN) {
                 binding.bottomNavigationView.menu.findItem(R.id.homeFragment).isChecked = true
             }

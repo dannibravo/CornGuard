@@ -15,6 +15,7 @@ import com.cornguard.app.R
 import com.cornguard.app.data.model.AppNotification
 import com.cornguard.app.databinding.FragmentNotificationsBinding
 import com.cornguard.app.di.ServiceLocator
+import com.cornguard.app.ui.common.runCatchingCancellable
 import com.cornguard.app.ui.community.CommunityFragment
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapLatest
@@ -51,7 +52,7 @@ class NotificationsFragment : Fragment() {
         binding.notificationsSignInButton.setOnClickListener { findNavController().navigate(R.id.authFragment) }
         binding.notificationsMarkAllRead.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launch {
-                runCatching { ServiceLocator.notificationRepository.markAllRead() }
+                runCatchingCancellable { ServiceLocator.notificationRepository.markAllRead() }
             }
         }
 
@@ -87,12 +88,13 @@ class NotificationsFragment : Fragment() {
         if (!item.read) {
             // Activity scope: navigating away below destroys this view before the mutation returns.
             requireActivity().lifecycleScope.launch {
-                runCatching { ServiceLocator.notificationRepository.markRead(item.notificationId) }
+                runCatchingCancellable { ServiceLocator.notificationRepository.markRead(item.notificationId) }
             }
         }
         val nav = findNavController()
         when {
-            item.type == AppNotification.TYPE_OUTBREAK_ALERT -> nav.navigate(R.id.mapFragment)
+            item.type == AppNotification.TYPE_OUTBREAK_ALERT ||
+                item.type == AppNotification.TYPE_DISEASE_AWARENESS -> nav.navigate(R.id.mapFragment)
             item.relatedPostId != null ->
                 nav.navigate(R.id.communityFragment, bundleOf(CommunityFragment.ARG_OPEN_POST_ID to item.relatedPostId))
         }

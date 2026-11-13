@@ -2,14 +2,14 @@ package com.cornguard.app.ui.map
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.os.SystemClock
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
-import android.util.Log
 import android.view.ViewGroup
-import android.os.SystemClock
 import android.webkit.ConsoleMessage
-import android.webkit.RenderProcessGoneDetail
 import android.webkit.JavascriptInterface
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -29,11 +29,16 @@ import androidx.webkit.WebViewClientCompat
 import com.cornguard.app.BuildConfig
 import com.cornguard.app.R
 import com.cornguard.app.data.model.BarangayStat
+import com.cornguard.app.data.model.Farm
 import com.cornguard.app.data.model.MapReport
 import com.cornguard.app.databinding.FragmentMapBinding
 import com.cornguard.app.di.ServiceLocator
+import com.cornguard.app.ui.common.runCatchingCancellable
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -60,6 +65,8 @@ class MapFragment : Fragment() {
     private var keyboardOpen = false
     private var latestStats: List<BarangayStat>? = null
     private var latestReports: List<MapReport>? = null
+    /** The signed-in farmer's own farms (My Farms), drawn as private pins. */
+    private var latestFarms: List<Farm> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -103,6 +110,8 @@ class MapFragment : Fragment() {
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
         binding.mapWebView.apply {
             settings.javaScriptEnabled = true
+            // localStorage: the page remembers the Map / Satellite choice (off by default in a WebView).
+            settings.domStorageEnabled = true
             settings.allowFileAccess = false
             settings.allowContentAccess = false
             webViewClient = object : WebViewClientCompat() {
@@ -152,6 +161,7 @@ class MapFragment : Fragment() {
                 pageReady = true
                 pushChrome()
                 pushData(latestStats, latestReports)
+                pushFarms(latestFarms)
             }
         }
     }
@@ -166,6 +176,7 @@ class MapFragment : Fragment() {
         }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private fun observeAuthState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -204,6 +215,21 @@ class MapFragment : Fragment() {
                     }
             }
         }
+        // My Farms pins: only the signed-in farmer's own farms (the backend never returns others').
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                ServiceLocator.authRepository.observeAuthState()
+                    .flatMapLatest { user ->
+                        if (user == null) flowOf(emptyList())
+                        else ServiceLocator.userFarmRepository.observeFarmsForUser(user.uid)
+                    }
+                    .catch { emit(emptyList()) }
+                    .collect { farms ->
+                        latestFarms = farms
+                        pushFarms(farms)
+                    }
+            }
+        }
     }
 
     /**
@@ -235,6 +261,11 @@ class MapFragment : Fragment() {
         evaluate("window.updateMapData($payload)")
     }
 
+    private fun pushFarms(farms: List<Farm>) {
+        if (!pageReady || _binding == null) return
+        evaluate("window.updateMapData(${JSONObject().put("farms", farmsJson(farms))})")
+    }
+
     private fun evaluate(script: String) {
         _binding?.mapWebView?.evaluateJavascript(script, null)
     }
@@ -242,7 +273,7 @@ class MapFragment : Fragment() {
     /** The previous list view, now inside the "Reports near you" sheet. */
     private fun loadGisData(uid: String) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val profile = runCatching { ServiceLocator.userFarmRepository.getUserProfile(uid) }.getOrNull()
+            val profile = runCatchingCancellable { ServiceLocator.userFarmRepository.getUserProfile(uid) }.getOrNull()
             if (_binding == null) return@launch
             if (profile == null || profile.barangay.isBlank()) {
                 binding.mapArea.setText(R.string.map_no_area_profile)
@@ -256,12 +287,12 @@ class MapFragment : Fragment() {
             )
 
             val areaFilter = "barangay" to profile.barangay
-            val occurrences = runCatching {
+            val occurrences = runCatchingCancellable {
                 ServiceLocator.gisRepository.getVerifiedOccurrences(
                     areaFilter, diseaseFilter = null, municipality = profile.municipality.ifBlank { null }
                 )
             }.getOrDefault(emptyList())
-            val nearbyReports = runCatching {
+            val nearbyReports = runCatchingCancellable {
                 ServiceLocator.gisRepository.getNearbyReports(
                     areaFilter, diseaseFilter = null, municipality = profile.municipality.ifBlank { null }
                 )
@@ -303,6 +334,24 @@ class MapFragment : Fragment() {
                     put("distinctFarms", s.distinctFarms)
                     put("rawReportCount", s.rawReportCount)
                     put("isActiveOutbreak", s.isActiveOutbreak)
+                    put("monitoringStatus", s.monitoringStatus)
+                    s.baselineFarms?.let { put("baselineFarms", it) }
+                    s.lastWeekFarms?.let { put("lastWeekFarms", it) }
+                    put("dataWeeks", s.dataWeeks)
+                    put("historyScans", s.historyScans)
+                    s.monitoringSince?.let { put("monitoringSince", it) }
+                })
+            }
+        }
+
+        private fun farmsJson(farms: List<Farm>) = JSONArray().apply {
+            farms.forEach { f ->
+                put(JSONObject().apply {
+                    put("name", f.farmNameOrLabel)
+                    put("barangay", f.barangay)
+                    put("municipality", f.municipality)
+                    f.latitude?.let { put("latitude", it) }
+                    f.longitude?.let { put("longitude", it) }
                 })
             }
         }
@@ -319,6 +368,7 @@ class MapFragment : Fragment() {
                     put("longitude", r.longitude)
                     put("barangay", r.barangay)
                     put("municipality", r.municipality)
+                    put("farmerName", r.farmerName)
                 })
             }
         }
