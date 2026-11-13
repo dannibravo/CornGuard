@@ -20,6 +20,7 @@ import com.cornguard.app.di.ServiceLocator
 import com.cornguard.app.model.DiseaseCode
 import com.cornguard.app.ui.common.CornGuardBottomSheet
 import com.cornguard.app.ui.common.DiseaseStyle
+import com.cornguard.app.ui.common.runCatchingCancellable
 import com.google.android.material.chip.Chip
 import kotlinx.coroutines.launch
 
@@ -132,7 +133,7 @@ class CreatePostBottomSheet : CornGuardBottomSheet() {
 
         setLoading(true)
         viewLifecycleOwner.lifecycleScope.launch {
-            val profile = runCatching { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }.getOrNull()
+            val profile = runCatchingCancellable { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }.getOrNull()
             val draft = DraftPost(
                 title = "",
                 body = body,
@@ -143,7 +144,7 @@ class CreatePostBottomSheet : CornGuardBottomSheet() {
                 municipality = profile?.municipality.orEmpty(),
                 province = profile?.province.orEmpty()
             )
-            val result = runCatching { ServiceLocator.communityRepository.createPost(user.uid, draft) }
+            val result = runCatchingCancellable { ServiceLocator.communityRepository.createPost(user.uid, draft) }
             setLoading(false)
             if (result.isSuccess) {
                 setFragmentResult(CommunityFragment.RESULT_FEED_CHANGED, Bundle())
@@ -157,7 +158,7 @@ class CreatePostBottomSheet : CornGuardBottomSheet() {
     private fun saveEdit(postId: String, body: String) {
         setLoading(true)
         viewLifecycleOwner.lifecycleScope.launch {
-            val result = runCatching {
+            val result = runCatchingCancellable {
                 ServiceLocator.communityRepository.updatePostContent(
                     postId, mapOf("body" to body, "diseaseTag" to selectedDiseaseTag())
                 )

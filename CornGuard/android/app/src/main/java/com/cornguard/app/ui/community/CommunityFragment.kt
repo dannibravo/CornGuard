@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -15,7 +16,7 @@ import com.cornguard.app.data.model.CommunityPost
 import com.cornguard.app.data.model.ReportTarget
 import com.cornguard.app.databinding.FragmentCommunityBinding
 import com.cornguard.app.di.ServiceLocator
-import android.widget.Toast
+import com.cornguard.app.ui.common.runCatchingCancellable
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
@@ -89,7 +90,7 @@ class CommunityFragment : Fragment() {
     private fun loadFeed() {
         binding.communitySwipeRefresh.isRefreshing = true
         viewLifecycleOwner.lifecycleScope.launch {
-            val result = runCatching {
+            val result = runCatchingCancellable {
                 ServiceLocator.communityRepository.getPostsFeed(areaFilter = null, diseaseTag = null)
             }
             binding.communitySwipeRefresh.isRefreshing = false
@@ -120,7 +121,7 @@ class CommunityFragment : Fragment() {
         )
         adapter.submitList(adapter.currentList.map { if (it.postId == post.postId) optimistic else it })
         viewLifecycleOwner.lifecycleScope.launch {
-            runCatching { ServiceLocator.communityRepository.toggleUpvote(post.postId, user.uid) }
+            runCatchingCancellable { ServiceLocator.communityRepository.toggleUpvote(post.postId, user.uid) }
             loadFeed()
         }
     }
@@ -145,7 +146,7 @@ class CommunityFragment : Fragment() {
             .setNegativeButton(R.string.action_cancel, null)
             .setPositiveButton(R.string.action_delete) { _, _ ->
                 viewLifecycleOwner.lifecycleScope.launch {
-                    val result = runCatching { ServiceLocator.communityRepository.deletePost(post.postId) }
+                    val result = runCatchingCancellable { ServiceLocator.communityRepository.deletePost(post.postId) }
                     if (_binding == null) return@launch
                     if (result.isFailure) {
                         Toast.makeText(requireContext(), R.string.delete_post_failed, Toast.LENGTH_LONG).show()

@@ -10,8 +10,9 @@ import androidx.lifecycle.lifecycleScope
 import com.cornguard.app.R
 import com.cornguard.app.databinding.SheetEditProfileBinding
 import com.cornguard.app.di.ServiceLocator
-import com.cornguard.app.ui.common.CornGuardBottomSheet
 import com.cornguard.app.ui.common.BarangayPickerBottomSheet
+import com.cornguard.app.ui.common.CornGuardBottomSheet
+import com.cornguard.app.ui.common.runCatchingCancellable
 import kotlinx.coroutines.launch
 
 /**
@@ -53,7 +54,7 @@ class EditProfileBottomSheet : CornGuardBottomSheet() {
 
         val user = ServiceLocator.authRepository.getCurrentUser() ?: return dismiss()
         viewLifecycleOwner.lifecycleScope.launch {
-            val profile = runCatching { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }.getOrNull()
+            val profile = runCatchingCancellable { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }.getOrNull()
                 ?: return@launch
             binding.editProfileName.setText(profile.displayName)
             binding.editProfileBarangay.setText(profile.barangay)
@@ -80,7 +81,7 @@ class EditProfileBottomSheet : CornGuardBottomSheet() {
         binding.editProfileProgress.visibility = View.VISIBLE
         binding.editProfileSave.isEnabled = false
         viewLifecycleOwner.lifecycleScope.launch {
-            val result = runCatching { ServiceLocator.userFarmRepository.updateUserProfile(user.uid, fields) }
+            val result = runCatchingCancellable { ServiceLocator.userFarmRepository.updateUserProfile(user.uid, fields) }
             binding.editProfileProgress.visibility = View.GONE
             binding.editProfileSave.isEnabled = true
             if (result.isSuccess) {

@@ -16,6 +16,7 @@ import androidx.fragment.app.DialogFragment
 import com.cornguard.app.R
 import com.cornguard.app.databinding.DialogOnboardingBinding
 import com.cornguard.app.di.ServiceLocator
+import com.cornguard.app.ui.common.runCatchingCancellable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -126,7 +127,7 @@ class OnboardingDialogFragment : DialogFragment() {
             markDoneLocally(requireContext(), userId)
             // Not tied to this dialog's lifecycle, so the call survives it closing.
             CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-                runCatching { ServiceLocator.userFarmRepository.completeOnboarding() }
+                runCatchingCancellable { ServiceLocator.userFarmRepository.completeOnboarding() }
             }
         }
         dismissAllowingStateLoss()

@@ -3,6 +3,7 @@ package com.cornguard.app.ui.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cornguard.app.di.ServiceLocator
+import com.cornguard.app.ui.common.runCatchingCancellable
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -92,7 +93,7 @@ class AuthViewModel : ViewModel() {
      * covers the "token rotated while already signed in" case.
      */
     private suspend fun registerFcmTokenBestEffort(uid: String) {
-        runCatching {
+        runCatchingCancellable {
             val token = FirebaseMessaging.getInstance().token.await()
             ServiceLocator.gisRepository.registerDeviceToken(uid, ServiceLocator.deviceId, token)
         }

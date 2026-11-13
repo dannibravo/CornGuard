@@ -15,6 +15,7 @@ import com.cornguard.app.data.model.ReportTarget
 import com.cornguard.app.databinding.SheetCommentsBinding
 import com.cornguard.app.di.ServiceLocator
 import com.cornguard.app.ui.common.CornGuardBottomSheet
+import com.cornguard.app.ui.common.runCatchingCancellable
 import kotlinx.coroutines.launch
 
 /**
@@ -101,7 +102,7 @@ class CommentsBottomSheet : CornGuardBottomSheet() {
         if (body.isEmpty()) return
         binding.commentsSend.isEnabled = false
         viewLifecycleOwner.lifecycleScope.launch {
-            val result = runCatching { ServiceLocator.communityRepository.addComment(postId, user.uid, body) }
+            val result = runCatchingCancellable { ServiceLocator.communityRepository.addComment(postId, user.uid, body) }
             binding.commentsSend.isEnabled = true
             if (result.isSuccess) {
                 binding.commentsInput.text.clear()
