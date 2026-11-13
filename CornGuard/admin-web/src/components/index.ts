@@ -4,3 +4,7 @@ export * from './ConfirmDialog';
 export * from './DataTable';
 export * from './ImageThumb';
 export * from './Tabs';
+export * from './Modal';
+export * from './Icon';
+export * from './ui';
+export * from './useDialog';
