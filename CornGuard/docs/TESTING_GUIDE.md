@@ -3,7 +3,7 @@
 This guide explains how to test **every feature** of CornGuard:
 
 - 📱 **Mobile app** — the CornGuard Android app farmers use to scan corn leaves, see outbreaks and talk to other farmers.
-- 💻 **Web** — the CornGuard Admin website, used by admins (for example a DA technician) to review scans, approve outbreak alerts, moderate posts and manage users.
+- 💻 **Web** — the CornGuard Admin website, used by admins (for example a DA technician) to review scans, follow the automatic outbreak alerts, moderate posts and manage users.
 
 You do not need to know how the app works. Follow the steps exactly, compare what you see with the **Expected result**, and tick **Pass** or **Fail**.
 
@@ -87,8 +87,9 @@ You may also create new accounts during testing (see M-AUTH tests). Use made-up 
 
 The project owner (or a tester with the code) can load demo outbreak data from the `backend` folder:
 
-- Add demo reports: `node scripts/seed-map-demo.mjs` — creates one **Severe** outbreak (Poblacion, City of Valencia), one **Moderate** (Barangay 1, City of Malaybalay) and one **Mild** (North Poblacion, Maramag).
+- Add demo reports: `node scripts/seed-map-demo.mjs` — first gives each demo barangay 6 weeks of past healthy scans (so it has left "collecting data"), then creates one **Severe** outbreak (Poblacion, City of Valencia, 5 farms), one **Moderate** (Barangay 1, City of Malaybalay, 3 farms) and one **Mild** (North Poblacion, Maramag).
 - Remove them again: `node scripts/seed-map-demo.mjs --clear`
+- Give any barangay past data by hand (alert tests): `node scripts/alert-scenarios.mjs history "<barangay>" "<municipality>" [weeks] [healthy per week] [disease] [farms per week]`, then share scans as demo accounts 1–6 with `node scripts/alert-scenarios.mjs scan <1-6> "<barangay>" "<municipality>" [disease]`.
 
 ---
 
@@ -468,6 +469,14 @@ The result sheet slides up after every scan, and when a History item is tapped.
 **Explanation:** Outbreaks are counted per barangay, so a report without one couldn't count anywhere. The server refuses such shares too.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
+#### M-RES-10 · Share from one of my farms
+**Platform:** 📱 Mobile app
+**Steps:** 1. Add a farm in Sugod, City of Valencia (M-SET-05); keep your Settings barangay somewhere else. 2. Scan a leaf. 3. On the result sheet, check "Which farm is this from?" and pick the farm. 4. Tap "Share to Community".
+**Expected result:** Step 3: the button shows "North field · Sugod ▾" and the location line shows "Sugod, City of Valencia" (no "Change in Settings" link). Choosing "Not from a saved farm (use my Settings barangay)" switches the line back to the Settings barangay. Step 4: the report appears on the Outbreak Map in Sugod, at the farm pin. The next scan's sheet starts with the same farm selected.
+**Explanation:** A scan counts where the farm is, not where the farmer lives. A farmer still counts once per barangay, however many of his farms are there.
+**Error/edge cases:** With no saved farms the sheet shows "Add your farms in Settings to file scans by farm." and shares under the Settings barangay as before.
+**Result:** ☐ Pass ☐ Fail — Notes: ____________
+
 ---
 
 ### 3.6 History
@@ -615,20 +624,20 @@ The result sheet slides up after every scan, and when a History item is tapped.
 #### M-MAP-04 · Collapsible legend
 **Platform:** 📱 Mobile app
 **Steps:** 1. Tap the legend box. 2. Tap "Legend ▸".
-**Expected result:** Tap 1 shrinks it to a small "Legend ▸" button (uncovering the map). Tap 2 expands it again: "Severity" (Severe Outbreak, Moderate Threat, Mild Detection, Reported 2–4 weeks ago) and "Disease (shape)".
+**Expected result:** Tap 1 shrinks it to a small "Legend ▸" button (uncovering the map). Tap 2 expands it again: "Outbreak level" (Severe Outbreak, Moderate Threat, Mild Detection, Reported 2–4 weeks ago) and "Disease (shape)".
 **Explanation:** On a phone the full legend can cover dots.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### M-MAP-05 · Dot popup
 **Platform:** 📱 Mobile app
 **Steps:** 1. Tap a dot.
-**Expected result:** A dark popup: disease name, "Barangay, Municipality", "Severity: SEVERE/MODERATE/MILD" in the matching colour, "Confidence: NN%" and "Reported: <date>". For a faded grey marker the severity line reads "Reported N days ago · no longer counted in the outbreak level". Tapping elsewhere or the popup's "×" closes it.
+**Expected result:** A dark popup: disease name, "Barangay, Municipality", "Outbreak level: SEVERE/MODERATE/MILD" in the matching colour, "Confidence: NN%" and "Reported: <date>". For a faded grey marker the severity line reads "Reported N days ago · no longer counted in the outbreak level". Tapping elsewhere or the popup's "×" closes it.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### M-MAP-06 · Barangay popup
 **Platform:** 📱 Mobile app
 **Steps:** 1. Tap inside a barangay outline that has a dot. 2. Tap a barangay with no reports.
-**Expected result:** 1: barangay and municipality name, then for each active disease "Active Disease", "Severity", "Farms Affected" and "Total Reports". 2: the name plus "No active disease reports".
+**Expected result:** 1: barangay and municipality name, then for each active disease "Active Disease", "Outbreak level", "Usual: N farms / week" (with "(provisional)" during the first 12 weeks of data), "Farms (7 days)" with "· last week N", and "Total Reports". In a barangay still collecting data, "Outbreak level" is replaced by "Outbreak status: UNDETERMINED — Collecting data for this area's baseline (X of 4 weeks, Y of 10 earlier scans)". 2: the name plus "No active disease reports".
 **Explanation:** Shows the outbreak status of a whole barangay.
 **Error/edge cases:** Barangays with the same name in different towns (e.g. "Poblacion") show their own separate data.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
@@ -655,6 +664,13 @@ The result sheet slides up after every scan, and when a History item is tapped.
 **Explanation:** The map receives updates live from the server.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
+#### M-MAP-09B · My farm pins
+**Platform:** 📱 Mobile app
+**Steps:** 1. Add a farm (M-SET-05). 2. Open the Outbreak Map. 3. Tap the green farm pin.
+**Expected result:** The farm appears as a green pin with a house, drawn above the report markers and not affected by the filters. The legend shows "Your farm (only you see it)". The popup shows "Your farm: North field", its barangay, "Outbreak level here" (each disease's level in that barangay, or "No active disease reports in this barangay") and "Only you can see this farm."
+**Explanation:** Farmers can see at a glance whether reports are near their farms.
+**Result:** ☐ Pass ☐ Fail — Notes: ____________
+
 #### M-MAP-10 · Old reports fade, then disappear
 **Platform:** 📱 Mobile app (+ 💻 Web, same behaviour)
 **Steps:**
@@ -662,7 +678,7 @@ The result sheet slides up after every scan, and when a History item is tapped.
 2. On a computer with the project, in `backend/`, run `npx convex run devAccounts:backdateRecord "{recordId:'<id>', daysAgo:20}"`.
 3. Reopen the map. Then run the command again with `daysAgo:35` and reopen the map.
 **Expected result:** After step 2 the report is a small, faded grey marker (same shape and letter); its popup says "Reported 20 days ago · no longer counted in the outbreak level", and the barangay's severity no longer counts it. After step 3 the marker is gone.
-**Explanation:** Severity counts the last 14 days. Reports 14–28 days old stay visible but faded, so an outbreak doesn't vanish overnight if farmers stop scanning; after 28 days they disappear. During a long outbreak, new reports keep the area coloured.
+**Explanation:** The outbreak level counts the last 7 days. Reports 7–28 days old stay visible but faded, so an outbreak doesn't vanish overnight if farmers stop scanning; after 28 days they disappear. During a long outbreak, new reports keep the area coloured.
 **Error/edge cases:** Open maps update when data changes and at least once a day (the nightly recalculation at 2 am).
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
@@ -680,7 +696,7 @@ The result sheet slides up after every scan, and when a History item is tapped.
 #### M-SET-01 · Signed-out card
 **Platform:** 📱 Mobile app
 **Steps:** 1. Sign out. 2. Tap "Settings".
-**Expected result:** "You're not signed in" with "Sign in to manage your profile. Scanning and history work without an account." and a "Sign In" button.
+**Expected result:** "You're not signed in" with "Sign in to manage your profile and farms. Scanning and history work without an account." and a "Sign In" button.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### M-SET-02 · Profile information
@@ -704,11 +720,32 @@ The result sheet slides up after every scan, and when a History item is tapped.
 **Error/edge cases:** Empty name → "Please fill in all required fields." and nothing is saved. Offline → "Couldn't save your profile. Check your connection and try again."
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
-#### M-SET-05 · My Farms is hidden
+#### M-SET-05 · My Farms — add a farm with a pin
 **Platform:** 📱 Mobile app
-**Steps:** 1. Sign in as the demo farmer. 2. Tap "Settings".
-**Expected result:** No "MY FARMS" section: the profile card is followed directly by "OTHER".
-**Explanation:** Saved farms aren't linked to scans yet, so the section is hidden (since v0.2.4.1) until that is built.
+**Steps:** 1. Settings → under "MY FARMS" tap "Add farm". 2. On "Add a farm", tap the map inside Bukidnon (e.g. in Sugod, City of Valencia). 3. Type `North field` in "Farm name". 4. Tap "Save farm".
+**Expected result:** Step 2: a green farm pin appears and the line below shows the barangay in green ("Sugod, City of Valencia"). "Save farm" is enabled only when there is a pin inside Bukidnon and a name. Step 4: back in Settings, "North field" is listed with "Sugod, City of Valencia". Before adding any farm the list says "No farms added yet." The note reads "Only you can see your farms. A farm's location is shared only with a scan you share from it."
+**Explanation:** Farmers mark their farms privately so a scan can be filed at the right farm and they can see outbreaks near their farms.
+**Error/edge cases:** "Use my location" puts the pin at the phone's location (asks for location permission first; if denied or unavailable, a message suggests tapping the map). Offline → "Couldn't save the farm. Check your connection and try again."
+**Result:** ☐ Pass ☐ Fail — Notes: ____________
+
+#### M-SET-05B · My Farms — pin outside Bukidnon
+**Platform:** 📱 Mobile app
+**Steps:** 1. Settings → "Add farm". 2. Pan out and tap outside the Bukidnon boundaries (e.g. Cagayan de Oro).
+**Expected result:** The line turns orange: "Outside Bukidnon. Pick a spot inside the map's boundaries." and "Save farm" stays disabled.
+**Explanation:** Farms only work inside the outbreak map's area; the server refuses them too.
+**Result:** ☐ Pass ☐ Fail — Notes: ____________
+
+#### M-SET-05C · My Farms — remove a farm
+**Platform:** 📱 Mobile app
+**Steps:** 1. Tap the bin icon on a farm. 2. Tap "Remove" in "Remove North field?".
+**Expected result:** The farm disappears from the list and from the Outbreak Map. The dialog says "Scans you already shared from this farm stay on the map."
+**Result:** ☐ Pass ☐ Fail — Notes: ____________
+
+#### M-SET-05D · My Farms are private
+**Platform:** 📱 Mobile app
+**Steps:** 1. As farmer A, add a farm. 2. Sign in as farmer B and open Settings and the Outbreak Map.
+**Expected result:** B sees none of A's farms anywhere.
+**Explanation:** Farm locations are visible only to their owner (the server never returns another user's farms).
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### M-SET-06 · About CornGuard
@@ -730,20 +767,37 @@ The result sheet slides up after every scan, and when a History item is tapped.
 
 ### 3.10 Notifications
 
-#### M-NOTIF-01 · Outbreak alert (arrives only after admin approval)
+#### M-NOTIF-01 · Automatic alerts: Moderate (awareness) and Severe (potential-outbreak warning)
 **Platform:** 📱 Mobile app + 💻 Web
 **Steps:**
 1. On the phone, sign in as the demo farmer (profile barangay Poblacion, Valencia), then go to the phone's home screen.
-2. Create a Severe outbreak in Poblacion, City of Valencia (run the demo script, section 2.5, or follow E-01).
-3. Wait 30 seconds and check the phone — **no** outbreak notification yet.
-4. On the website, approve the outbreak (W-OUT-02).
-5. Check the phone; then tap the notification.
-**Expected result:** After step 4 a notification arrives: "Northern Leaf Blight outbreak reported nearby — Multiple corn farms in Poblacion, City of Valencia have confirmed Northern Leaf Blight. Check the outbreak map." It pops up (high priority) with a leaf icon. Tapping it opens CornGuard on the Outbreak Map.
-**Explanation:** Severe outbreaks are checked by an admin first so farmers never get false alarms.
+2. Give Poblacion past data (section 2.5): `node scripts/alert-scenarios.mjs history Poblacion "City of Valencia"` (6 weeks of healthy scans: baseline 0 for every disease).
+3. Share confident (80%+) scans of one disease in Poblacion from **three** demo accounts (`scan 1`, `scan 3`, `scan 4` …), so the barangay reaches **Moderate**. Wait about a minute and check the phone.
+4. Share from **two more** accounts (five farms in total) so it reaches **Severe**. Wait about a minute and check the phone again.
+5. Tap each notification.
+**Expected result:**
+- After step 3: "Northern Leaf Blight cases rising in Poblacion — More corn farms than usual in Poblacion, City of Valencia, near you, have reported Northern Leaf Blight this week. Check your field and the outbreak map." It uses the "Disease Awareness" channel (normal priority, amber).
+- After step 4: "Potential outbreak: Northern Leaf Blight near you — Reports of Northern Leaf Blight in Poblacion, City of Valencia, close to your farm, are far above the usual level for this area. Inspect your crops and take precautions. See the outbreak map for details." It pops up (high priority, red, "Outbreak Alerts" channel).
+- Tapping either opens CornGuard on the Outbreak Map. In the app's notification inbox the awareness notice has an amber warning icon and the warning a red one.
+**Explanation:** Alerts are sent automatically, with no admin step, once the barangay has a baseline. Only verified scans count toward a level, so the evidence is checked before the level is reached.
 **Error/edge cases:**
-- Farmers in neighbouring barangays (e.g. Lumbo) also get it; farmers far away do not.
-- A logged-out phone does not get it.
-- If several diseases turned Severe in the same barangay, one combined alert is sent ("Northern Leaf Blight and Gray Leaf Spot outbreak…").
+- **Without step 2** (a barangay with no history), the same scans leave its outbreak status **Undetermined** and **no notification** is sent (M-NOTIF-04).
+- Where a disease is normally reported, more farms are needed: with a baseline of 2 farms a week, Moderate needs 4 farms and Severe 6.
+- Farmers in barangays bordering Poblacion (e.g. Lumbo), including border barangays of a neighbouring town, also get both; farmers farther away do not.
+- A logged-out phone does not get them.
+- More scans at the same level send nothing new. The same level isn't repeated for that barangay and disease within 14 days, even if the level dips and rises again.
+- Going down a level (e.g. Severe → Moderate) sends nothing.
+- If several diseases reach the same level in the same barangay within a minute, one combined alert is sent ("Northern Leaf Blight and Gray Leaf Spot…").
+**Result:** ☐ Pass ☐ Fail — Notes: ____________
+
+#### M-NOTIF-04 · No alerts while a barangay is collecting data
+**Platform:** 📱 Mobile app
+**Steps:**
+1. On the phone, sign in as the demo farmer (Poblacion, Valencia) and go to the home screen.
+2. Pick a barangay bordering Poblacion that has no reports yet (e.g. Sugod, City of Valencia). Share confident scans of one disease there from five demo accounts (`node scripts/alert-scenarios.mjs scan <1-5> Sugod "City of Valencia"`).
+3. Wait two minutes. Open the Outbreak Map and tap the new markers and the Sugod outline.
+**Expected result:** No notification arrives. The popups say "Outbreak status: UNDETERMINED — Collecting data for this area's baseline (0 of 4 weeks, … of 10 earlier scans)"; the markers use the small Mild style.
+**Explanation:** Without at least 4 weeks and 10 verified scans of history, nothing is known about what is normal in that barangay, so no outbreak is claimed.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### M-NOTIF-02 · Community reply notification
@@ -790,7 +844,7 @@ The result sheet slides up after every scan, and when a History item is tapped.
 #### W-LOGIN-04 · Non-admin account is refused
 **Platform:** 💻 Web
 **Steps:** 1. Sign in with `demo@cornguard.app` / `demo1234`. 2. Click "Sign out".
-**Expected result:** A lock screen "Admins only" — "demo@cornguard.app is not an admin. Ask an existing admin to promote it in Users." — with a "Sign out" button that returns to the login page.
+**Expected result:** A lock screen "Admins only" — "demo@cornguard.app is not an admin. Admin access is granted by the CornGuard team." — with a "Sign out" button that returns to the login page.
 **Explanation:** Farmers' accounts work in the app but cannot use admin tools. The server also blocks them, not just the page.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
@@ -820,53 +874,68 @@ The result sheet slides up after every scan, and when a History item is tapped.
 #### W-NAV-01 · Sidebar links and badges
 **Platform:** 💻 Web
 **Steps:** 1. Click each sidebar link in turn.
-**Expected result:** Each opens its page and is highlighted in the sidebar; the page title at the top changes ("Dashboard", "Outbreak Alerts", "Review & Moderation", "User Management", "Outbreak Map"). Orange number badges appear next to "Outbreaks" (pending outbreaks) and "Review" (scans awaiting review) when there is something to do.
+**Expected result:** Each opens its page and is highlighted in the sidebar; the page title at the top changes ("Dashboard", "Outbreak Alerts", "Review & Moderation", "User Management", "Outbreak Map"). An orange number badge appears next to "Review" (scans awaiting review) when there is something to do. "Outbreaks" has no badge: alerts are sent automatically, so nothing waits there.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### W-DASH-01 · Dashboard cards
 **Platform:** 💻 Web
 **Steps:** 1. Open the Dashboard. 2. Click each card that is a link.
-**Expected result:** Eight cards: "Outbreaks awaiting review", "Scans awaiting review", "Unverified posts", "Severe barangay / disease", "Users", "Shared scans", "Verified scans", "Suspended accounts". The first two get an orange outline when their number is above 0. Clickable cards open Outbreaks, Review, Map or Users.
+**Expected result:** Eight cards: "Alerts sent (14 days)", "Scans awaiting review", "Unverified posts", "Severe barangay / disease", "Users", "Shared scans", "Verified scans", "Suspended accounts". "Scans awaiting review" gets an orange outline when its number is above 0. Clickable cards open Outbreaks, Review, Map or Users.
 **Explanation:** A quick view of what needs attention.
-**Error/edge cases:** Numbers update by themselves when data changes (e.g. after approving an outbreak the first card drops to 0).
+**Error/edge cases:** Numbers update by themselves when data changes (e.g. when an automatic alert goes out, the first card goes up by 1).
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### W-DASH-02 · "How alerts work" box
 **Platform:** 💻 Web
 **Steps:** 1. Read the "How alerts work" box. 2. Click the "Outbreaks" and "Review" links in it.
-**Expected result:** It explains the Severe rule and that farmers are notified only after approval. The links open those pages.
+**Expected result:** It explains that alerts go out automatically (Moderate = awareness notice, Severe = outbreak warning) to farmers in the barangay and the bordering ones, and that a level isn't repeated within 14 days. The links open those pages.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 ---
 
 ### 4.3 Outbreaks
 
-#### W-OUT-01 · Pending outbreak card
+#### W-OUT-01 · Automatic alert log
 **Platform:** 💻 Web
-**Steps:** 1. Load demo data (section 2.5). 2. Open "Outbreaks".
-**Expected result:** Under "Awaiting review (1)" a card "Poblacion, City of Valencia", "Declared <date>", "Would notify N farmer(s) with the app", a table (Disease, Severity now = SEVERE, Farms 3, Reports 4, Score 4.0), a "Note" box, "Approve & notify farmers" and "Dismiss".
-**Explanation:** The admin sees the evidence before deciding.
-**Error/edge cases:** If severity drops after declaring (e.g. scans rejected), the card shows "Severity has dropped since this was declared… consider dismissing."
+**Steps:** 1. Load demo data (section 2.5), or follow E-01. 2. Open "Outbreaks".
+**Expected result:** "Automatic alerts" lists one row per alert: Sent time, Level (amber MODERATE or red SEVERE), Area "Poblacion, City of Valencia", Disease(s), Why it fired, Level now, Notified (number of farmers), Status ("SENDING" for its first minute, then green "SENT"), and a "False alarm" button. A barangay that went Mild → Moderate → Severe has two rows, one per level.
+**Explanation:** Alerts go out by themselves; this page is the record of what was sent and to how many farmers.
+**Error/edge cases:** If the level drops after the alert (e.g. scans rejected), "Level now" shows the lower level.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
-#### W-OUT-02 · Approve an outbreak
-**Platform:** 💻 Web (+ 📱 to check the alert)
-**Steps:** 1. Type `Confirmed by DA technician` in the note box. 2. Click "Approve & notify farmers". 3. In the dialog, click "Send alert".
-**Expected result:** A dialog "Send outbreak alert?" says how many farmers will be notified and about which disease. After "Send alert" the card leaves the pending list and appears in "History" with status "SENT", the number notified, "Reviewed by" and your note. Signed-in farmers in that barangay and the neighbouring ones get the push (M-NOTIF-01). The "Push delivery log" shows "outbreak_alert" rows with "sent".
-**Error/edge cases:** "Cancel" in the dialog (or pressing Esc, or clicking outside it) sends nothing. An outbreak cannot be approved twice.
+#### W-OUT-02 · Mark an alert as a false alarm
+**Platform:** 💻 Web
+**Steps:** 1. On a row, click "False alarm". 2. Confirm with "Mark false alarm".
+**Expected result:** A dialog "Mark as false alarm?". For a SENT alert it says farmers won't be messaged again and suggests rejecting the scans behind it in Review. For an alert still SENDING (its first minute) it says the alert will be cancelled, and no phone receives it. After confirming, the row shows grey "FALSE ALARM" and your name as the reviewer, and the button disappears.
+**Explanation:** For false alarms (e.g. wrong photos). The same level isn't re-sent for that barangay and disease within 14 days.
+**Error/edge cases:** "Cancel" in the dialog (or Esc, or clicking outside it) changes nothing.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
-#### W-OUT-03 · Dismiss an outbreak
+#### W-OUT-03 · Tabs and delivery log
 **Platform:** 💻 Web
-**Steps:** 1. With a pending outbreak, click "Dismiss". 2. Confirm with "Dismiss".
-**Expected result:** A dialog "Dismiss outbreak?" — "Nobody will be notified…". After confirming, it moves to History as "DISMISSED". No phone receives a notification.
-**Explanation:** For false alarms (e.g. wrong photos).
+**Steps:** 1. Click "All", "Severe", "Moderate", "False alarms". 2. Scroll to "Push delivery log".
+**Expected result:** Each tab filters the list. With nothing to show: "No alerts yet…". The delivery log lists each push with time, type ("disease_awareness" for Moderate, "outbreak_alert" for Severe), title and a badge: green "sent", red "failed" (e.g. the phone had no app installed), orange "pending".
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
-#### W-OUT-04 · History tabs and delivery log
+#### W-OUT-04 · Why an alert fired
 **Platform:** 💻 Web
-**Steps:** 1. In "History", click "All", "Sent", "Dismissed". 2. Scroll to "Push delivery log".
-**Expected result:** Each tab filters the list. With nothing to show: "No Data — No reviewed outbreaks yet." The delivery log lists each push with time, type, title and a badge: green "sent", red "failed" (e.g. the phone had no app installed), orange "pending".
+**Steps:** 1. Seed a baseline, e.g. from `backend/`: `npx convex run devAccounts:seedAreaHistory "{barangay:'Casisang', municipality:'City of Malaybalay (Capital)', weeks:4, healthyPerWeek:0, clear:true, diseaseTotals:{gray_leaf_spot:10}}"` (usual 2.5 farms/week). 2. Have 5 demo accounts report Gray Leaf Spot there (`node scripts/alert-scenarios.mjs scan 3 "Casisang" "City of Malaybalay (Capital)" gray_leaf_spot`, then 4, 5, 6, 7). 3. Open "Outbreaks".
+**Expected result:** The new MODERATE row's "Why it fired" reads "Gray Leaf Spot: **5 farms** vs usual 2.5/week (Moderate at 5, provisional baseline)". Rows from before this feature, and test alerts, show "—".
+**Explanation:** These are the numbers at the moment the alert fired. They don't change afterwards, unlike "Level now", which follows the rolling 7-day window.
+**Result:** ☐ Pass ☐ Fail — Notes: ____________
+
+#### W-OUT-05 · Borrowed baseline (nearby areas)
+**Platform:** 💻 Web
+**Steps:** 1. From `backend/`, give two neighbours of Barangay 8 (Malaybalay) history: `npx convex run devAccounts:seedAreaHistory "{barangay:'Casisang', municipality:'City of Malaybalay (Capital)', weeks:4, healthyPerWeek:1, clear:true, diseaseTotals:{gray_leaf_spot:10}}"`, and the same for `'Barangay 1'`. 2. Barangay 8 itself has no history. Have 5 demo accounts report Gray Leaf Spot there (`node scripts/alert-scenarios.mjs scan 3 "Barangay 8" "City of Malaybalay (Capital)" gray_leaf_spot`, then 4–7). 3. Open "Outbreaks" and "Outbreak Map".
+**Expected result:** After 3–4 farms the level is Mild (not Undetermined). At 5 farms a MODERATE alert appears; "Why it fired" reads "Gray Leaf Spot: **5 farms** vs usual 2.5/week from nearby areas (Moderate at 5, provisional baseline)". On the map, Barangay 8's "Usual levels" says "baseline from nearby areas (2 barangays)".
+**Explanation:** A barangay without enough data of its own borrows the average of its bordering barangays.
+**Result:** ☐ Pass ☐ Fail — Notes: ____________
+
+#### W-OUT-06 · Cluster in an area without a baseline
+**Platform:** 💻 Web + 📱 App
+**Steps:** 1. Pick a barangay where neither it nor its neighbours have any scans (e.g. Adtuyon, Pangantucan). 2. Have 5 demo accounts report the same disease there. 3. Open the Dashboard and "Outbreaks".
+**Expected result:** No alert is created and no phone is notified; the area stays Undetermined on the map. The Dashboard tile "Clusters without a baseline" shows 1 (amber outline), and "Outbreaks" shows the card "Clusters in areas without a baseline (no alert sent)" with Adtuyon, Pangantucan, the disease and 5 farms.
+**Explanation:** Without any baseline there is no basis for an automatic warning, but a cluster this large is shown to admins for review.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 ---
@@ -938,10 +1007,10 @@ The result sheet slides up after every scan, and when a History item is tapped.
 **Error/edge cases:** There is no Suspend button on your own row (you cannot suspend yourself). Nothing is permanently deleted.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
-#### W-USR-04 · Make admin
+#### W-USR-04 · No way to grant admin from the website
 **Platform:** 💻 Web
-**Steps:** 1. Click "Make admin" on a test account you created, then confirm. 2. Log out and sign in to the website with that account.
-**Expected result:** The role badge changes to "admin" and the "Make admin" button disappears for that row. The account can now use the website.
+**Steps:** 1. Look at the Actions column for a farmer account in Users.
+**Expected result:** Only "Scans" and "Suspend"/"Reactivate" are shown. There is no "Make admin" button; admin access is granted from the terminal only (see admin-web/README.md).
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 ---
@@ -951,7 +1020,14 @@ The result sheet slides up after every scan, and when a History item is tapped.
 #### W-MAP-01 · Web map
 **Platform:** 💻 Web
 **Steps:** 1. Open "Outbreak Map". 2. Click a dot and a barangay. 3. Read the card below the map.
-**Expected result:** The same map as the app (boundaries, severity-coloured markers with disease shapes, faded grey markers for 2–4-week-old reports, legend, popups) with "Individual verified reports across Bukidnon — N plotted". Below: "How severity is assigned" explaining Severe, Moderate and Mild.
+**Expected result:** The same map as the app (boundaries, severity-coloured markers with disease shapes, faded grey markers for 1–4-week-old reports, legend, popups) with "Individual verified reports across Bukidnon — N plotted". Below: "How the outbreak level is assigned" explaining the collecting-data period (Undetermined), the weekly baseline, Severe (3×), Moderate (2×) and Mild, and the cut-off examples.
+**Result:** ☐ Pass ☐ Fail — Notes: ____________
+
+#### W-MAP-02 · Usual levels (admin only)
+**Platform:** 💻 Web + 📱 App
+**Steps:** 1. Seed a baseline with no reports this week (W-OUT-04 step 1, e.g. `diseaseTotals:{northern_leaf_blight:15, gray_leaf_spot:10, common_rust:12}`). 2. On the web "Outbreak Map", find Casisang (search) and click it. 3. Clear the search. 4. Open the same barangay in the app's map.
+**Expected result:** On the web, Casisang has a **teal outline** (legend: "Baseline set"). Its popup says "No active disease reports this week", then "Usual levels (baseline from 4 weeks, provisional)" with, per disease, the usual farms/week and "this week 0 · Moderate at N · Severe at N" (here NLB 3.8 · 8 · 12, GLS 2.5 · 5 · 8, Common Rust 3.0 · 6 · 9). After clearing the search the outline is still teal. In the **app**, the same barangay has a plain outline and only "No active disease reports".
+**Explanation:** Admins check alerts against the usual level; farmers' map stays simple.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### W-GEN-01 · Loading, empty and error states
@@ -970,16 +1046,17 @@ The result sheet slides up after every scan, and when a History item is tapped.
 
 ## 5. End-to-end scenarios 📱 + 💻
 
-#### E-01 · From scans to an approved outbreak alert
+#### E-01 · From scans to automatic alerts
 **Platform:** 📱 Mobile app + 💻 Web
 **Steps:**
 1. Phone: sign in as `demo@cornguard.app`, stay signed in, leave the phone on the home screen.
-2. Using three accounts (demo, demo2, demo3), share confident (80%+) scans of the same disease with a location in Poblacion, City of Valencia — four scans in total, at least one from each account. (Shortcut: run `node scripts/seed-map-demo.mjs`.)
-3. Phone: open the Outbreak Map — red, softly pulsing "B" markers appear in Valencia. No notification has arrived.
-4. Website: the Dashboard shows "1 Outbreaks awaiting review". Open Outbreaks → Approve & notify farmers → Send alert.
-5. Phone: the outbreak notification arrives; tap it.
-**Expected result:** Each step behaves as described; the notification opens the Outbreak Map.
-**Explanation:** This is the core flow: scans → automatic severity → admin check → farmers warned.
+2. Website or app: open the map popup for Poblacion, City of Valencia. If it has no history yet, its status is "Undetermined · Collecting data". Give it past data: `node scripts/alert-scenarios.mjs history Poblacion "City of Valencia"`. The popup now shows a level and "Usual: 0.0 farms / week (provisional)".
+3. From three demo accounts (demo2, demo3, demo4), share one confident (80%+) scan each of the same disease in Poblacion. Wait about a minute. Phone: the awareness notice arrives ("… cases rising in Poblacion").
+4. From two more accounts (demo5, demo6), share one more each (five farms in total). Wait about a minute. (Shortcut for steps 2–4: run `node scripts/seed-map-demo.mjs`; it may send only the Severe warning if the level jumps straight from Mild.)
+5. Phone: the potential-outbreak warning arrives; tap it. The Outbreak Map shows red, softly pulsing "B" markers in Valencia.
+6. Website: Outbreaks lists a MODERATE and a SEVERE alert for Poblacion, both SENT, and the Dashboard's "Alerts sent (14 days)" counts them.
+**Expected result:** Each step behaves as described. Nobody had to approve anything on the website.
+**Explanation:** This is the core flow: history → baseline → verified scans this week compared with it → automatic alerts to farmers nearby.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### E-02 · Moderation round trip
@@ -991,7 +1068,7 @@ The result sheet slides up after every scan, and when a History item is tapped.
 #### E-03 · Rejecting scans lowers severity
 **Platform:** 📱 + 💻
 **Steps:** 1. With the demo Severe outbreak loaded, website: Review → Leaf scans → All → reject two of the Poblacion (Valencia) scans. 2. App: look at the Valencia dot and barangay popup.
-**Expected result:** The severity drops (Severe → Moderate or Mild); the remaining markers get smaller and change colour, and the rejected scans' markers disappear. A still-pending outbreak card on the website shows the "Severity has dropped…" hint.
+**Expected result:** The outbreak level drops (Severe → Moderate or Mild); the remaining markers get smaller and change colour, and the rejected scans' markers disappear. On the website's Outbreaks page, "Level now" for that alert shows the lower level. No new notification is sent when a level goes down.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### E-04 · Suspended user
@@ -1026,29 +1103,43 @@ The result sheet slides up after every scan, and when a History item is tapped.
 | "Couldn't save your profile. Check your connection and try again." | 📱 | Edit Profile | Save fails |
 | "You're offline. Scanning and history still work…" | 📱 | Any screen | No internet |
 | "Admins only" | 💻 | After sign in | Account is not an admin, or is suspended |
-| "Send outbreak alert?" / "Dismiss outbreak?" | 💻 | Outbreaks | Before approving or dismissing an outbreak |
+| "Mark as false alarm?" | 💻 | Outbreaks | Before marking an automatic alert as a false alarm |
 | "No location" (red badge; Verify greyed out) | 💻 | Review → Leaf scans | A scan has no barangay |
 | "This scan has no location, so it can't be placed on the map. Reject it instead." | 💻 | Review → Leaf scans | Verifying a scan with no location (if attempted) |
 
-### 6.2 Outbreak severity rules
+### 6.2 Outbreak level rules
 
-Only **verified** scans from the last **14 days** in the same barangay count. Each scan adds weight by confidence: 80%+ = 1.0, 60–79% = 0.6, below 60% = 0.3.
+Only **verified** scans from the last **7 days** in the same barangay count. Each scan adds weight by confidence (evidence strength): 80%+ = 1.0, 60–79% = 0.6, below 60% = 0.3. The level is the **outbreak level in the area**, not how badly a leaf is affected.
+
+Following the WHO and DA-BPI definitions of an outbreak (disease above its normal level):
+- **Collecting data:** until a barangay has at least **4 weeks** since its first verified scan **and 10 verified scans** of any kind (healthy included), its outbreak status is **Undetermined** and no alerts are sent.
+- **Baseline:** after that, the farms reporting a disease this week are compared with the barangay's **baseline**: the average farms reporting it per week over up to 12 earlier weeks (weeks with no scans at all are skipped). It is "provisional" until it has 12 weeks of data.
+
+Method and sources: [OUTBREAK_DETECTION_METHOD.md](OUTBREAK_DETECTION_METHOD.md).
 
 | Level | Rule | Map dot |
 |---|---|---|
-| **Severe** | Weighted score 4 or more **and** 3 or more different farmers | Large red marker, softly pulsing — creates a pending outbreak for admin review |
-| **Moderate** | Weighted score 2 or more **or** 2 or more different farmers | Medium amber marker |
-| **Mild** | Any verified report | Small green marker |
-| *(2–4 weeks old)* | No longer counted | Small faded grey marker; gone after 4 weeks |
+| **Severe** | At least **3×** the baseline **and** at least 5 different farms, weighted score 4 or more | Large red marker, softly pulsing — reaching it sends an automatic potential-outbreak warning |
+| **Moderate** | At least **2×** the baseline **and** at least 3 different farms, weighted score 2 or more | Medium amber marker — reaching it sends an automatic awareness notice |
+| **Mild** | Verified reports below those levels | Small green marker |
+| **Undetermined** | The barangay is still collecting data | Small green marker; popup says "Outbreak status: UNDETERMINED" |
+| *(1–4 weeks old)* | No longer counted | Small faded grey marker; gone after 4 weeks |
+
+| Baseline (farms / week) | 0–1.5 | 2 | 2.5 | 3 | 5 |
+|---|---|---|---|---|---|
+| Moderate at | 3 | 4 | 5 | 6 | 10 |
+| Severe at | 5 | 6 | 8 | 9 | 15 |
+
+One farmer's repeat scans can never raise the level, because Moderate and Severe both need several farms.
 
 Marker shape and letter show the disease: circle "B" Northern Leaf Blight, square "R" Common Rust, diamond "G" Gray Leaf Spot. Healthy scans and scans from suspended accounts never count and are never shown.
-An outbreak alert is only ever sent after an admin approves a pending outbreak — there is no manual alert. These thresholds are development values, pending validation by agricultural experts.
+Alerts are sent automatically when a level goes **up** (Moderate → awareness notice, Severe → potential-outbreak warning), never while a barangay is collecting data, to farmers in that barangay and the ones bordering it, and the same level isn't repeated there for that disease within 14 days. There is no manual alert. These thresholds are development values, pending validation by agricultural experts (D-07).
 
 ### 6.3 Glossary
 
 - **Barangay** — the smallest local government area in the Philippines (a village or district). Bukidnon has 464.
 - **Verified** — a shared scan accepted as real: automatically at 60%+ confidence with a photo, or by an admin.
-- **Pending** — a Severe outbreak waiting for an admin to approve or dismiss it.
+- **Awareness notice / Outbreak warning** — the automatic push sent when a barangay reaches Moderate / Severe for a disease.
 - **Push notification** — a message that appears on the phone even when the app is closed.
 - **Admin** — a trusted account (e.g. DA technician) that can use the CornGuard Admin website.
 
@@ -1065,12 +1156,12 @@ An outbreak alert is only ever sent after an admin approves a pending outbreak �
 | 3.7 Community (M-COM) | 7 | | | | |
 | 3.8 Outbreak Map (M-MAP) | 11 | | | | |
 | 3.9 Settings (M-SET) | 7 | | | | |
-| 3.10 Notifications (M-NOTIF) | 3 | | | | |
+| 3.10 Notifications (M-NOTIF) | 4 | | | | |
 | 4.1 Web login (W-LOGIN) | 7 | | | | |
 | 4.2 Layout & Dashboard (W-NAV, W-DASH) | 3 | | | | |
-| 4.3 Outbreaks (W-OUT) | 4 | | | | |
+| 4.3 Outbreaks (W-OUT) | 6 | | | | |
 | 4.4 Review (W-REV) | 6 | | | | |
 | 4.5 Users (W-USR) | 4 | | | | |
-| 4.6 Web map & general (W-MAP, W-GEN) | 3 | | | | |
+| 4.6 Web map & general (W-MAP, W-GEN) | 4 | | | | |
 | 5 End-to-end (E) | 4 | | | | |
 | **Total** | **102** | | | | |

@@ -1,8 +1,8 @@
 # CornGuard
 
 Corn leaf disease detection for farmers in Bukidnon: scan a leaf with your phone (works offline), get the disease and
-treatment guidance, share reports with nearby farmers, and see outbreaks on a map. Admins review reports and approve
-outbreak alerts on a website.
+treatment guidance, share reports with nearby farmers, and see outbreaks on a map. Farmers nearby are alerted automatically when a
+disease reaches a moderate or severe level. Admins review reports and follow the alerts on a website.
 
 | Folder | What it is | Docs |
 |---|---|---|

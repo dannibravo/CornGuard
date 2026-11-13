@@ -84,7 +84,11 @@ showing Bukidnon's barangay boundaries over OpenStreetMap, with one dot per veri
   | `map/leaflet/` | Leaflet 1.9.4 (`leaflet.js`, `leaflet.css`, marker images) |
   | `geo/bukidnon-barangays.json` | 464 barangay polygons, 22 municipalities (433 KB) |
 
-  Boundaries and dots draw without internet; only the OpenStreetMap basemap tiles need it.
+  Boundaries and dots draw without internet; only the basemap tiles need it.
+- **Basemap:** OpenStreetMap by default. A **Map / Satellite** icon button (bottom-left, above zoom)
+  switches to Esri World Imagery with place labels. The tiles are streamed, not bundled, so the APK
+  size doesn't change. The choice is remembered in the page's `localStorage`, which is why
+  `MapFragment` enables DOM storage. In satellite mode the barangay outlines turn light.
 - **Markers:** colour = the barangay's severity tier for that disease (red severe, amber moderate,
   green mild); shape + letter = disease (circle B Northern Leaf Blight, square R Common Rust, diamond G
   Gray Leaf Spot). Reports 14–28 days old are drawn small and faded grey (no longer counted); older
@@ -92,11 +96,14 @@ showing Bukidnon's barangay boundaries over OpenStreetMap, with one dot per veri
   diseases, severity, farms affected and report count.
 - **Data:** `MapFragment` collects two live Convex queries and pushes them into the page with
   `window.updateMapData({stats, detections})`:
-  - `barangayStats:getAllStats`: the severity engine (`backend/convex/barangayStats.ts`, ported from
-    caps 3). It covers the last 14 days. Each report is weighted by confidence (80%+ = 1, 60–79% = 0.6, below 60% = 0.3).
-    Severe is a score of at least 4 from at least 3 farms; moderate is a score of at least 2, or 2 farms.
+  - `barangayStats:getAllStats`: the outbreak-level engine (`backend/convex/barangayStats.ts`). Each row
+    has a `monitoringStatus`: "collecting" (under 4 weeks / 10 scans of history: outbreak status
+    Undetermined, no alerts), then "provisional" / "established". The farms reporting a disease in the
+    last 7 days are compared with the barangay's weekly `baselineFarms`: Moderate at 2× (min. 3 farms),
+    Severe at 3× (min. 5 farms). Method: `docs/OUTBREAK_DETECTION_METHOD.md`.
   - `diagnosisRecords:mapReports`: verified disease scans with coordinates from the last 28 days,
-    each tagged `stage` "active" (≤ 14 days, counted) or "recent" (14–28 days, faded). It also reads the
+    each tagged `stage` "active" (≤ 7 days, counted) or "recent" (7–28 days, faded) and carrying the
+    reporter's `farmerName` (profile name, "Farmer" if unset) for the dot's popup. It also reads the
     severity rows so the nightly decay job refreshes open maps.
   - "Reports near you" (`diagnosisRecords:verifiedOccurrences`, `posts:nearbyReports`) is limited to the
     farmer's barangay **in their own municipality** (names matched loosely) and the last 28 days.
@@ -138,6 +145,7 @@ the Python toolchain. So it isn't copied into this repo. Licences and credits ar
 - PSA and NAMRIA for the boundary data, also shown in the map's attribution
 - BSD-2 for Leaflet
 - ODbL for the OpenStreetMap tiles
+- Esri World Imagery for the satellite view, credited in the map's attribution
 
 ## Cloud backend: Convex (migrated from Firebase)
 
