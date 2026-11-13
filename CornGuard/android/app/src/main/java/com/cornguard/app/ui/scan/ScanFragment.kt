@@ -22,11 +22,12 @@ import com.cornguard.app.di.ServiceLocator
 import com.cornguard.app.model.DetectionResult
 import com.cornguard.app.model.ModelNotReadyException
 import com.cornguard.app.permissions.AppPermission
+import com.cornguard.app.ui.common.runCatchingCancellable
 import com.cornguard.app.ui.result.ResultBottomSheet
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /**
  * Camera capture / gallery selection, classification, and local save. Entirely offline — never
@@ -102,7 +103,7 @@ class ScanFragment : Fragment() {
         // Refresh the cached Settings area when online, so a change made elsewhere shows up here.
         val user = ServiceLocator.authRepository.getCurrentUser() ?: return
         viewLifecycleOwner.lifecycleScope.launch {
-            runCatching { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }
+            runCatchingCancellable { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }
             if (_binding != null) renderArea()
         }
     }
@@ -227,7 +228,7 @@ class ScanFragment : Fragment() {
             locationPermissionLauncher.launch(AppPermission.LOCATION.manifestPermissions.toTypedArray())
             return null
         }
-        return runCatching { ServiceLocator.locationHelper.getLastKnownLocation() }.getOrNull()
+        return runCatchingCancellable { ServiceLocator.locationHelper.getLastKnownLocation() }.getOrNull()
     }
 
     private fun persistImage(bitmap: Bitmap): String {

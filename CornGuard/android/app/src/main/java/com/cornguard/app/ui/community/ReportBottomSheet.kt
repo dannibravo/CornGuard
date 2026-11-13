@@ -18,6 +18,7 @@ import com.cornguard.app.data.model.ReportTarget
 import com.cornguard.app.databinding.SheetReportBinding
 import com.cornguard.app.di.ServiceLocator
 import com.cornguard.app.ui.common.CornGuardBottomSheet
+import com.cornguard.app.ui.common.runCatchingCancellable
 import kotlinx.coroutines.launch
 
 /**
@@ -79,7 +80,7 @@ class ReportBottomSheet : CornGuardBottomSheet() {
         binding.reportSubmit.isEnabled = false
         binding.reportError.visibility = View.GONE
         viewLifecycleOwner.lifecycleScope.launch {
-            val result = runCatching { ServiceLocator.communityRepository.report(target, targetId, reason, note) }
+            val result = runCatchingCancellable { ServiceLocator.communityRepository.report(target, targetId, reason, note) }
             if (_binding == null) return@launch
             if (result.isSuccess) {
                 Toast.makeText(requireContext(), R.string.report_thanks, Toast.LENGTH_LONG).show()
