@@ -1,10 +1,9 @@
 import { ConvexError, v } from "convex/values";
-import { internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx, internalMutation, mutation, query } from "./_generated/server";
 import { scheduleRecompute } from "./barangayStats";
 import { requireAdmin } from "./lib/access";
-import { recipientsFor } from "./outbreakAlerts";
+import { isDataPoorCluster } from "./lib/outbreakRules";
 import { resolveOpenReports } from "./reports";
 import { moderationStatus, reportTargetType, verificationStatus } from "./schema";
 
@@ -147,6 +146,32 @@ export const updateDiseaseReference = mutation({
 const nameOf = (u: Doc<"users"> | null) => u?.name ?? u?.email ?? "Unknown";
 
 /** Dashboard counters. */
+/** A stats row that is a data-poor cluster (lib/outbreakRules.isDataPoorCluster). */
+function isClusterRow(s: Doc<"barangayDiseaseStats">) {
+  return isDataPoorCluster({
+    farms: s.distinctFarms, score: s.weightedScore, status: s.monitoringStatus ?? "collecting",
+  });
+}
+
+/**
+ * Clusters in areas with no baseline, not even one borrowed from the bordering barangays: as many
+ * farms in 7 days as Severe needs, but nothing is known about what is normal there, so no alert was
+ * sent automatically. Listed for an admin to review the scans.
+ */
+export const dataPoorClusters = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    return (await ctx.db.query("barangayDiseaseStats").collect())
+      .filter(isClusterRow)
+      .sort((a, b) => b.distinctFarms - a.distinctFarms)
+      .map((s) => ({
+        barangay: s.barangay, municipality: s.municipality, diseaseCode: s.diseaseCode,
+        farms: s.distinctFarms, reports: s.rawReportCount, score: s.weightedScore, lastUpdated: s.lastUpdated,
+      }));
+  },
+});
+
 export const stats = query({
   args: {},
   handler: async (ctx) => {
@@ -155,7 +180,7 @@ export const stats = query({
       ctx.db.query("users").collect(),
       ctx.db.query("diagnosisRecords").collect(),
       ctx.db.query("communityPosts").collect(),
-      ctx.db.query("outbreaks").withIndex("by_status", (q) => q.eq("status", "pending")).collect(),
+      ctx.db.query("outbreaks").withIndex("by_status", (q) => q.eq("status", "sent")).collect(),
       ctx.db.query("barangayDiseaseStats").collect(),
       ctx.db.query("reports").withIndex("by_status", (q) => q.eq("status", "open")).collect(),
     ]);
@@ -170,8 +195,11 @@ export const stats = query({
       scansRejected: count(records, (r) => r.verificationStatus === "rejected"),
       posts: posts.length,
       postsUnverified: count(posts, (p) => p.verificationStatus === "unverified" && p.moderationStatus === "visible"),
-      pendingOutbreaks: outbreaks.length,
+      // Automatic alerts sent in the last 14 days (informational: nothing waits for an admin).
+      alertsSent: count(outbreaks, (o) => o.declaredAt >= Date.now() - 14 * 24 * 60 * 60 * 1000),
       severeAreas: count(sev, (s) => s.severityTier === "severe" && s.rawReportCount > 0),
+      // Clusters in areas with no baseline (not even borrowed): no alert was sent, an admin should look.
+      dataPoorClusters: count(sev, isClusterRow),
       // Distinct reported items awaiting review, not individual reports.
       reportsOpen: new Set(openReports.map((r) => `${r.targetType}:${r.targetId}`)).size,
     };
@@ -282,9 +310,13 @@ export const listUsers = query({
   },
 });
 
-/** Outbreak review queue / history, with the current severity numbers for each disease. */
+/** Automatic alert log (newest first), with the current severity numbers for each disease. */
 export const listOutbreaks = query({
-  args: { status: v.optional(v.union(v.literal("pending"), v.literal("approved"), v.literal("dismissed"))) },
+  args: {
+    status: v.optional(v.union(
+      v.literal("scheduled"), v.literal("sent"), v.literal("dismissed"), v.literal("pending"), v.literal("approved"),
+    )),
+  },
   handler: async (ctx, { status }) => {
     await requireAdmin(ctx);
     const rows = status
@@ -295,19 +327,22 @@ export const listOutbreaks = query({
       for (const code of o.diseaseCodes) {
         const s = await ctx.db.query("barangayDiseaseStats").withIndex("by_area_disease", (q) =>
           q.eq("barangay", o.barangay).eq("municipality", o.municipality).eq("diseaseCode", code)).unique();
-        severity.push({ diseaseCode: code, tier: s?.severityTier ?? null, farms: s?.distinctFarms ?? 0,
-          reports: s?.rawReportCount ?? 0, score: s?.weightedScore ?? 0 });
+        // A row left with no reports in the window (all deleted or rejected) has no level, not "mild".
+        severity.push({ diseaseCode: code, tier: s && s.rawReportCount > 0 ? s.severityTier : null, farms: s?.distinctFarms ?? 0,
+          reports: s?.rawReportCount ?? 0, score: s?.weightedScore ?? 0,
+          baselineFarms: s?.baselineFarms ?? null, lastWeekFarms: s?.lastWeekFarms ?? null,
+          monitoringStatus: s?.monitoringStatus ?? null, severeAt: s?.severeAt ?? null });
       }
       const reviewer = o.reviewedBy ? await ctx.db.get(o.reviewedBy) : null;
-      const { nearby, withDevice } = o.status === "pending"
-        ? await recipientsFor(ctx, o.barangay, o.municipality)
-        : { nearby: [], withDevice: [] };
       return {
         outbreakId: o._id, barangay: o.barangay, municipality: o.municipality, diseaseCodes: o.diseaseCodes,
-        status: o.status, source: o.source, declaredAt: o.declaredAt, message: o.message ?? null,
+        level: o.level ?? "severe",
+        // Old admin-approved rows read as sent; leftover "pending" ones never went out.
+        status: o.status === "approved" ? "sent" : o.status,
+        source: o.source, declaredAt: o.declaredAt, message: o.message ?? null,
         reviewedBy: reviewer ? nameOf(reviewer) : null, reviewedAt: o.reviewedAt ?? null, note: o.note ?? null,
         recipientsNotified: o.recipientsNotified ?? null,
-        wouldNotify: o.status === "pending" ? { farmersNearby: nearby.length, withDevice: withDevice.length } : null,
+        trigger: o.trigger ?? null,
         severity,
       };
     }));
@@ -316,21 +351,11 @@ export const listOutbreaks = query({
 
 const outbreakId = v.string();
 
-/** Approve a pending outbreak: farmers nearby are notified (one combined alert). */
-export const approveOutbreak = mutation({
-  args: { outbreakId, note: v.optional(v.string()) },
-  handler: async (ctx, { outbreakId, note }) => {
-    const admin = await requireAdmin(ctx);
-    const id = ctx.db.normalizeId("outbreaks", outbreakId);
-    const o = id ? await ctx.db.get(id) : null;
-    if (!id || !o) throw new ConvexError("Outbreak not found.");
-    if (o.status !== "pending") throw new ConvexError(`This outbreak was already ${o.status}.`);
-    await ctx.db.patch(id, { status: "approved", reviewedBy: admin._id, reviewedAt: Date.now(), note });
-    await ctx.scheduler.runAfter(0, internal.outbreakAlerts.sendOutbreak, { outbreakId: id });
-  },
-});
-
-/** Dismiss a pending outbreak (false alarm): nobody is notified. */
+/**
+ * Mark an alert as a false alarm. If it is still "scheduled" (the first minute) it is cancelled and
+ * nobody is notified; if it was already sent, this records the review (farmers are not messaged
+ * again). Either way the cooldown keeps the same level from re-alerting for 14 days.
+ */
 export const dismissOutbreak = mutation({
   args: { outbreakId, note: v.optional(v.string()) },
   handler: async (ctx, { outbreakId, note }) => {
@@ -338,7 +363,7 @@ export const dismissOutbreak = mutation({
     const id = ctx.db.normalizeId("outbreaks", outbreakId);
     const o = id ? await ctx.db.get(id) : null;
     if (!id || !o) throw new ConvexError("Outbreak not found.");
-    if (o.status !== "pending") throw new ConvexError(`This outbreak was already ${o.status}.`);
+    if (o.status === "dismissed") throw new ConvexError("This alert was already dismissed.");
     await ctx.db.patch(id, { status: "dismissed", reviewedBy: admin._id, reviewedAt: Date.now(), note });
   },
 });

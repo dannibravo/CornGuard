@@ -1,7 +1,7 @@
 import { modifyAccountCredentials } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { internalAction, internalMutation, type MutationCtx } from "./_generated/server";
 import { DISEASE_LABEL, isKnownBarangay } from "./outbreakAlerts";
 import { scheduleRecompute } from "./barangayStats";
@@ -186,5 +186,82 @@ export const backdateRecord = internalMutation({
     await ctx.db.patch(recordId, { capturedAt });
     await scheduleRecompute(ctx, record);
     return `${record.diseaseCode} in ${record.barangay}, ${record.municipality} now dated ${new Date(capturedAt).toISOString().slice(0, 10)}`;
+  },
+});
+
+const DEMO_EMAILS = ["demo@cornguard.app", ...[2, 3, 4, 5, 6].map((n) => `demo${n}@cornguard.app`)];
+
+/**
+ * Gives a barangay past data, so its outbreak monitoring leaves "collecting" without waiting 4 weeks
+ * (testing and the defense demo). For each of the `weeks` weeks before the current 7 days it adds
+ * `healthyPerWeek` verified healthy scans and, optionally, `diseaseFarmsPerWeek` verified reports of
+ * `diseaseCode` from different demo accounts (that becomes the disease's baseline). Uses the demo
+ * accounts demo@ .. demo6@cornguard.app that exist (create them with scripts/alert-scenarios.mjs).
+ * `clear: true` first removes this barangay's earlier seeded history. CLI only:
+ *
+ *   npx convex run devAccounts:seedAreaHistory "{barangay:'Poblacion', municipality:'City of Valencia', weeks:6, healthyPerWeek:3, diseaseCode:'common_rust', diseaseFarmsPerWeek:1}"
+ */
+export const seedAreaHistory = internalMutation({
+  args: {
+    barangay: v.string(),
+    municipality: v.string(),
+    weeks: v.number(),
+    healthyPerWeek: v.number(),
+    diseaseCode: v.optional(v.string()),
+    diseaseFarmsPerWeek: v.optional(v.number()),
+    clear: v.optional(v.boolean()),
+    /** Total reports per disease over the whole period, e.g. {northern_leaf_blight: 5}; spread over the weeks, one farm each. */
+    diseaseTotals: v.optional(v.record(v.string(), v.number())),
+  },
+  handler: async (ctx, { barangay, municipality, weeks, healthyPerWeek, diseaseCode, diseaseFarmsPerWeek = 0, clear, diseaseTotals = {} }) => {
+    if (!isKnownBarangay(barangay, municipality)) throw new ConvexError("Unknown barangay / municipality.");
+    if (diseaseCode && !(diseaseCode in DISEASE_LABEL)) throw new ConvexError("Unknown disease code.");
+    const users: Doc<"users">[] = [];
+    for (const email of DEMO_EMAILS) {
+      const u = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", email)).unique();
+      if (u) users.push(u);
+    }
+    if (users.length === 0) throw new ConvexError("No demo accounts yet: run scripts/alert-scenarios.mjs status first.");
+    if (diseaseFarmsPerWeek > users.length) throw new ConvexError(`Only ${users.length} demo account(s) exist.`);
+    for (const [code, total] of Object.entries(diseaseTotals)) {
+      if (!(code in DISEASE_LABEL)) throw new ConvexError(`Unknown disease code: ${code}`);
+      if (Math.ceil(total / weeks) > users.length) throw new ConvexError(`Only ${users.length} demo account(s) exist.`);
+    }
+
+    let removed = 0;
+    if (clear) {
+      for (const u of users) {
+        for (const r of await ctx.db.query("diagnosisRecords").withIndex("by_user", (q) => q.eq("userId", u._id)).collect()) {
+          if (r.localId.startsWith("history-") && r.barangay === barangay && r.municipality === municipality) {
+            await ctx.db.delete(r._id);
+            removed++;
+          }
+        }
+      }
+    }
+    const DAY = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    let added = 0;
+    const add = async (userIndex: number, code: string, capturedAt: number) => {
+      await ctx.db.insert("diagnosisRecords", {
+        userId: users[userIndex % users.length]._id, localId: `history-${capturedAt}-${added}`, diseaseCode: code,
+        confidence: 0.9, capturedAt, barangay, municipality, province: "Bukidnon",
+        modelVersion: "cornguard_mobilenetv2_v3", verificationStatus: "verified", source: "dev_seed",
+      });
+      added++;
+    };
+    // Week w covers 7*w .. 7*(w+1) days ago; scans are spread through the middle of it.
+    for (let w = 1; w <= weeks; w++) {
+      const mid = now - (7 * w + 3.5) * DAY;
+      for (let i = 0; i < healthyPerWeek; i++) await add(i, "healthy", mid + i * 60_000);
+      if (diseaseCode) for (let f = 0; f < diseaseFarmsPerWeek; f++) await add(f, diseaseCode, mid + (f + 30) * 60_000);
+      // Totals: week w gets total/weeks, the remainder going to the most recent weeks first.
+      for (const [code, total] of Object.entries(diseaseTotals)) {
+        const inWeek = Math.floor(total / weeks) + (w - 1 < total % weeks ? 1 : 0);
+        for (let f = 0; f < inWeek; f++) await add(f, code, mid + (f + 60) * 60_000);
+      }
+    }
+    for (const code of Object.keys(DISEASE_LABEL)) await scheduleRecompute(ctx, { barangay, municipality, diseaseCode: code });
+    return `${barangay}, ${municipality}: removed ${removed}, added ${added} verified scans over ${weeks} week(s)`;
   },
 });

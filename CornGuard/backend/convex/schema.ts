@@ -112,20 +112,45 @@ export default defineSchema({
     weightedScore: v.number(),
     distinctFarms: v.number(),
     rawReportCount: v.number(),
+    // Old rule (usual farms per 14 days); no longer written.
+    usualFarms: v.optional(v.number()),
+    // Baseline monitoring (lib/outbreakRules); optional for rows written before it existed.
+    // "collecting" = not enough data yet (outbreak status Undetermined, no alerts).
+    monitoringStatus: v.optional(v.union(v.literal("collecting"), v.literal("provisional"), v.literal("established"))),
+    baselineFarms: v.optional(v.number()),   // usual farms reporting this disease per week
+    excludedWeeks: v.optional(v.number()),   // outbreak weeks left out of that baseline
+    // "neighbours" = borrowed from the barangay + its bordering barangays (not enough data of its own);
+    // neighbourAreas = how many of them had data.
+    baselineSource: v.optional(v.union(v.literal("own"), v.literal("neighbours"))),
+    neighbourAreas: v.optional(v.number()),
+    lastWeekFarms: v.optional(v.number()),   // farms in the 7 days before the current 7 (trend)
+    dataWeeks: v.optional(v.number()),       // baseline weeks in which the barangay shared any scan
+    historyScans: v.optional(v.number()),    // verified scans of any kind in those weeks (warm-up)
+    monitoringSince: v.optional(v.number()), // the barangay's first verified scan
+    // Farm cut-offs from the baseline (lib/outbreakRules.classifyOutbreak).
+    moderateAt: v.optional(v.number()),
+    severeAt: v.optional(v.number()),
+    // Outbreak level in the area (not how badly a leaf is affected).
     severityTier: v.union(v.literal("mild"), v.literal("moderate"), v.literal("severe")),
     isActiveOutbreak: v.boolean(),
     outbreakDeclaredAt: v.optional(v.number()),
     lastUpdated: v.number(),
   }).index("by_area_disease", ["barangay", "municipality", "diseaseCode"]),
 
-  // Outbreak alerts awaiting / after admin review (outbreakAlerts.ts). A barangay turning severe
-  // creates a "pending" row; farmers are only notified once an admin approves it. Several diseases
-  // turning severe in the same barangay share one pending row, so approval sends one combined alert.
+  // Automatic disease-level alerts (outbreakAlerts.ts). A barangay + disease rising to moderate or
+  // severe creates a "scheduled" row, sent a minute later ("sent") to farmers in that barangay and the
+  // bordering ones; diseases crossing the same level there within that minute share one alert.
+  // "pending" / "approved" are rows from the old admin-approval flow (and "approved" = CLI test alerts).
   outbreaks: defineTable({
     barangay: v.string(),
     municipality: v.string(),
     diseaseCodes: v.array(v.string()),
-    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("dismissed")),
+    // Missing on rows from before moderate alerts existed: those were all severe.
+    level: v.optional(v.union(v.literal("moderate"), v.literal("severe"))),
+    status: v.union(
+      v.literal("scheduled"), v.literal("sent"), v.literal("dismissed"),
+      v.literal("pending"), v.literal("approved"),
+    ),
     // "manual" = a CLI test alert (devAccounts.sendTestAlert); admins can no longer raise alerts by hand.
     source: v.union(v.literal("automatic"), v.literal("manual")),
     declaredAt: v.number(),
@@ -134,9 +159,19 @@ export default defineSchema({
     reviewedAt: v.optional(v.number()),
     note: v.optional(v.string()),
     recipientsNotified: v.optional(v.number()),
+    // Why it fired, per disease, as of the moment it fired (missing on older rows and test alerts).
+    trigger: v.optional(v.array(v.object({
+      diseaseCode: v.string(),
+      farms: v.number(),
+      baselineFarms: v.number(),
+      threshold: v.number(),
+      monitoringStatus: v.string(),
+      baselineSource: v.optional(v.string()),
+    }))),
   })
     .index("by_status", ["status"])
-    .index("by_area_status", ["barangay", "municipality", "status"]),
+    .index("by_area_status", ["barangay", "municipality", "status"])
+    .index("by_area_level", ["barangay", "municipality", "level", "declaredAt"]),
 
   communityPosts: defineTable({
     userId: v.id("users"),

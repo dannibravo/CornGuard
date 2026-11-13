@@ -94,11 +94,12 @@ const refreshed = await new ConvexHttpClient(url).action(api.auth.signIn, { refr
 check("refresh token yields new JWT", !!refreshed?.tokens?.token && refreshed.tokens.token !== a.tokens.token);
 
 // --- Farms ----------------------------------------------------------------------------------
-const farmId = await a.client.mutation(api.users.createFarm, {
-  name: "North field", barangay: "Poblacion", municipality: "Valencia", province: "Bukidnon",
-});
+// A farm is a pin plus the official Bukidnon barangay it falls in (resolved by the app).
+const FARM = { barangay: "Poblacion", municipality: "City of Valencia", province: "Bukidnon", latitude: 7.9063, longitude: 125.0917 };
+const farmId = await a.client.mutation(api.users.createFarm, { name: "  North field  ", ...FARM });
 const farms = await a.client.query(api.users.farmsForUser, { userId: viewerA.userId });
-check("farm created and listed", farms.length === 1 && farms[0].farmId === farmId);
+check("farm created and listed (name trimmed, pin kept)",
+  farms.length === 1 && farms[0].farmId === farmId && farms[0].name === "North field" && farms[0].latitude === FARM.latitude);
 
 // --- Image upload + post --------------------------------------------------------------------
 const jpeg = Buffer.from(
@@ -154,10 +155,10 @@ const upload = async (client) => {
   return (await res.json()).storageId;
 };
 // Like the app: every share carries its photo (auto-verify requires one).
-const shareScan = async (client, localId, confidence, diseaseCode = "northern_leaf_blight", withImage = true, capturedAt = Date.now()) => {
+const shareScan = async (client, localId, confidence, diseaseCode = "northern_leaf_blight", withImage = true, capturedAt = Date.now(), barangay = TEST_BRGY) => {
   const id = await client.mutation(api.diagnosisRecords.share, {
     localId, diseaseCode, confidence, capturedAt, imageId: withImage ? await upload(client) : undefined,
-    barangay: TEST_BRGY, municipality: "Valencia", province: "Bukidnon", modelVersion: "cornguard_mobilenetv2_v3",
+    barangay, municipality: "Valencia", province: "Bukidnon", modelVersion: "cornguard_mobilenetv2_v3",
   });
   created.push([client, id]);
   return id;
@@ -179,19 +180,24 @@ const statFor = async (client) => {
   return stats.find((s) => s.barangay === TEST_BRGY && s.diseaseCode === "northern_leaf_blight");
 };
 let stat = await statFor(b.client);
-check("one farm's report -> mild", stat?.severityTier === "mild", stat && `score ${stat.weightedScore}, farms ${stat.distinctFarms}`);
+const statText = (s) => s && `${s.monitoringStatus}, score ${s.weightedScore}, farms ${s.distinctFarms}, ` +
+  `baseline ${s.baselineFarms}, moderate at ${s.moderateAt}, severe at ${s.severeAt}`;
+check("one farm's report -> mild", stat?.severityTier === "mild", statText(stat));
+const newProfile = async (letter) => {
+  const f = await signIn(`farmer-${letter}-${run}@test.dev`, "signUp");
+  await f.client.mutation(api.users.createProfile, {
+    displayName: `Farmer ${letter.toUpperCase()}`, barangay: "Poblacion", municipality: "Valencia", province: "Bukidnon",
+  });
+  return f;
+};
+const c = await newProfile("c");
 await shareScan(b.client, "44", 0.95);
-stat = await statFor(b.client);
-check("two farms -> moderate", stat?.severityTier === "moderate", stat && `score ${stat.weightedScore}, farms ${stat.distinctFarms}`);
-const c = await signIn(`farmer-c-${run}@test.dev`, "signUp");
-await c.client.mutation(api.users.createProfile, {
-  displayName: "Farmer C", barangay: "Poblacion", municipality: "Valencia", province: "Bukidnon",
-});
 await shareScan(c.client, "45", 0.96);
 await shareScan(a.client, "46", 0.91);
 stat = await statFor(b.client);
-check("3 farms + score >= 4 -> SEVERE outbreak", stat?.severityTier === "severe" && stat?.isActiveOutbreak,
-  stat && `score ${stat.weightedScore}, farms ${stat.distinctFarms}, reports ${stat.rawReportCount}`);
+// The barangay has no history, so nothing is known about what is normal there yet.
+check("no history: 3 farms + score 4 stay MILD, outbreak status Undetermined (collecting data)",
+  stat?.severityTier === "mild" && stat?.monitoringStatus === "collecting", statText(stat));
 
 // --- Anti-spam rules on share ---------------------------------------------------------------
 const noPhotoId = await shareScan(a.client, "47", 0.97, "gray_leaf_spot", false);
@@ -205,6 +211,30 @@ const d = await signIn(`farmer-d-${run}@test.dev`, "signUp");
 await d.client.mutation(api.users.createProfile, { displayName: "Farmer D", barangay: TEST_BRGY, municipality: "Valencia", province: "Bukidnon" });
 for (let i = 0; i < 30; i++) await shareScan(d.client, `rl-${i}`, 0.5, "common_rust", false);
 await expectError("31st share within 24 h rejected (rate limit)", () => shareScan(d.client, "rl-30", 0.5, "common_rust", false));
+
+// --- My Farms: private pins, scans filed at the farm ----------------------------------------
+await expectError("farm outside the Bukidnon boundaries rejected", () => a.client.mutation(api.users.createFarm, {
+  ...FARM, name: "Elsewhere", barangay: "Nowhere", municipality: "Cagayan de Oro",
+}));
+check("another user can't see your farms", (await b.client.query(api.users.farmsForUser, { userId: viewerA.userId })).length === 0);
+await expectError("can't share a scan from someone else's farm", () => b.client.mutation(api.diagnosisRecords.share, {
+  localId: "farm-x", farmId, diseaseCode: "healthy", confidence: 0.9, capturedAt: Date.now(),
+  barangay: TEST_BRGY, municipality: "Valencia", province: "Bukidnon", modelVersion: "cornguard_mobilenetv2_v3",
+}));
+// Healthy, so this never touches the map; the phone sends another barangay on purpose.
+const farmScanId = await a.client.mutation(api.diagnosisRecords.share, {
+  localId: "farm-1", farmId, diseaseCode: "healthy", confidence: 0.9, capturedAt: Date.now(),
+  barangay: TEST_BRGY, municipality: "Valencia", province: "Bukidnon", latitude: 1, longitude: 1,
+  modelVersion: "cornguard_mobilenetv2_v3",
+});
+created.push([a.client, farmScanId]);
+const farmScan = (await a.client.query(api.diagnosisRecords.listForUser, { userId: viewerA.userId })).find((r) => r.recordId === farmScanId);
+check("scan shared from a farm is filed in the farm's barangay",
+  farmScan?.farmId === farmId && farmScan?.barangay === FARM.barangay && farmScan?.municipality === FARM.municipality,
+  farmScan && `${farmScan.barangay}, ${farmScan.municipality}`);
+await expectError("can't remove someone else's farm", () => b.client.mutation(api.users.deleteFarm, { farmId }));
+await a.client.mutation(api.users.deleteFarm, { farmId });
+check("owner removes a farm", (await a.client.query(api.users.farmsForUser, { userId: viewerA.userId })).length === 0);
 
 // --- Devices --------------------------------------------------------------------------------
 await a.client.mutation(api.devices.registerToken, { deviceId: "dev-1", fcmToken: "fake-token" });
@@ -245,33 +275,97 @@ created.push([a.client, healthyId]);
 const markers = await b.client.query(api.diagnosisRecords.mapReports, {});
 check("Healthy scans never appear on the map", !markers.some((m) => m.recordId === healthyId));
 check("map markers are tagged active / recent", markers.every((m) => m.stage === "active" || m.stage === "recent"));
+check("map markers carry the reporter's name", markers.every((m) => typeof m.farmerName === "string" && m.farmerName.length > 0));
 
-// --- Outbreak review (admin confirms before farmers are notified) ------------------------------
+// --- Baseline monitoring: history makes a barangay leave "collecting data" ---------------------
+// Backdated shares aren't auto-verified, so the admin verifies them. Two verified scans a week for
+// the 5 weeks before this one = 10 scans over more than 4 weeks: enough for detection to start.
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const DAY = 24 * 60 * 60 * 1000;
+const h1 = await newProfile("h1");
+const h2 = await newProfile("h2");
+const backdated = async (client, localId, diseaseCode, week, barangay) => {
+  const id = await shareScan(client, localId, 0.93, diseaseCode, true, Date.now() - (7 * week + 3.5) * DAY, barangay);
+  await admin.mutation(api.admin.setRecordVerification, { recordId: id, status: "verified" });
+};
+const statIn = async (barangay) => {
+  await sleep(2500); // recompute runs as a scheduled mutation
+  return (await b.client.query(api.barangayStats.getAllStats, {}))
+    .find((s) => s.barangay === barangay && s.diseaseCode === "northern_leaf_blight");
+};
+
+// Where the disease is normally reported (2 farms a week), 3 farms this week are not unusual.
+const BUSY_BRGY = `${TEST_BRGY}-b2`;
+for (let week = 1; week <= 5; week++) {
+  await backdated(h1.client, `b2-h1-${week}`, "northern_leaf_blight", week, BUSY_BRGY);
+  await backdated(h2.client, `b2-h2-${week}`, "northern_leaf_blight", week, BUSY_BRGY);
+}
+for (const [f, n] of [[a, "a"], [b, "b"], [c, "c"]]) await shareScan(f.client, `b2-now-${n}`, 0.95, "northern_leaf_blight", true, Date.now(), BUSY_BRGY);
+const busyStat = await statIn(BUSY_BRGY);
+check("usually present (baseline 2 farms/week): 3 farms -> only MILD (Moderate needs 4, Severe 6)",
+  busyStat?.monitoringStatus === "provisional" && busyStat?.severityTier === "mild" && busyStat?.baselineFarms === 2 &&
+  busyStat?.moderateAt === 4 && busyStat?.severeAt === 6 && busyStat?.lastWeekFarms === 2, statText(busyStat));
+
+// Where the barangay scans regularly but has never reported this disease (baseline 0), a spike
+// raises the level: 3 farms -> Moderate, 5 farms -> Severe.
+const SPIKE_BRGY = `${TEST_BRGY}-b0`;
+for (let week = 1; week <= 5; week++) {
+  await backdated(h1.client, `b0-h1-${week}`, "healthy", week, SPIKE_BRGY);
+  await backdated(h2.client, `b0-h2-${week}`, "healthy", week, SPIKE_BRGY);
+}
+for (const [f, n] of [[a, "a"], [b, "b"], [c, "c"]]) await shareScan(f.client, `b0-now-${n}`, 0.95, "northern_leaf_blight", true, Date.now(), SPIKE_BRGY);
+let spikeStat = await statIn(SPIKE_BRGY);
+check("baseline 0: 3 farms this week -> MODERATE", spikeStat?.monitoringStatus === "provisional" &&
+  spikeStat?.severityTier === "moderate" && spikeStat?.baselineFarms === 0 && spikeStat?.dataWeeks === 5, statText(spikeStat));
+const e = await newProfile("e");
+const f = await newProfile("f");
+for (const [x, n] of [[e, "e"], [f, "f"]]) await shareScan(x.client, `b0-now-${n}`, 0.95, "northern_leaf_blight", true, Date.now(), SPIKE_BRGY);
+spikeStat = await statIn(SPIKE_BRGY);
+check("baseline 0: 5 farms this week -> SEVERE", spikeStat?.severityTier === "severe" && spikeStat?.isActiveOutbreak, statText(spikeStat));
+
+// --- Automatic alerts: Moderate = awareness, Severe = potential-outbreak warning, no admin step --
+// Each goes out a minute after it is raised (diseases crossing the same level together share one alert).
 const testOutbreakIds = [];
-const pending = (await admin.query(api.admin.listOutbreaks, { status: "pending" })).find((o) => o.barangay === TEST_BRGY);
-if (pending) testOutbreakIds.push(pending.outbreakId);
-check("SEVERE barangay is queued as a PENDING outbreak", pending?.diseaseCodes.includes("northern_leaf_blight") && pending.recipientsNotified === null,
-  pending && `diseases ${pending.diseaseCodes.join(",")}`);
-const outbreakPushes = async () => (await admin.query(api.admin.recentNotifications, { limit: 100 }))
-  .filter((n) => n.type === "outbreak_alert" && n.createdAt > run).length;
-check("no outbreak push is sent before approval", (await outbreakPushes()) === 0);
-await expectError("non-admin cannot list outbreaks", () => b.client.query(api.admin.listOutbreaks, {}));
-await expectError("non-admin cannot approve an outbreak", () => b.client.mutation(api.admin.approveOutbreak, { outbreakId: pending.outbreakId }));
-await expectError("non-admin cannot read admin lists", () => b.client.query(api.admin.listRecords, {}));
-await admin.mutation(api.admin.approveOutbreak, { outbreakId: pending.outbreakId, note: "smoke test" });
+const allAlerts = async () => (await admin.query(api.admin.listOutbreaks, {})).filter((o) => o.barangay.startsWith(TEST_BRGY));
+check("no alert while a barangay is collecting data, or at its usual level",
+  !(await allAlerts()).some((o) => o.barangay === TEST_BRGY || o.barangay === BUSY_BRGY));
+const alertsHere = async () => (await allAlerts())
+  .filter((o) => o.barangay === SPIKE_BRGY && o.diseaseCodes.includes("northern_leaf_blight"));
+let alerts = await alertsHere();
+testOutbreakIds.push(...alerts.map((o) => o.outbreakId));
+check("rising to moderate and to severe raised one alert each (automatic)",
+  alerts.length === 2 && alerts.some((o) => o.level === "moderate") && alerts.some((o) => o.level === "severe") &&
+  alerts.every((o) => o.source === "automatic"), alerts.map((o) => `${o.level}:${o.status}`).join(", "));
+const deadline = Date.now() + 90_000;
+while (Date.now() < deadline && alerts.some((o) => o.status !== "sent")) {
+  await sleep(5000);
+  alerts = await alertsHere();
+}
+check("both alerts are sent without an admin approving them",
+  alerts.length === 2 && alerts.every((o) => o.status === "sent" && o.recipientsNotified !== null && o.reviewedBy === null),
+  alerts.map((o) => `${o.level}:${o.status}, notified ${o.recipientsNotified}`).join("; "));
+await shareScan(h1.client, "b0-after-severe", 0.95, "northern_leaf_blight", true, Date.now(), SPIKE_BRGY);
 await sleep(2500);
-const approved = (await admin.query(api.admin.listOutbreaks, { status: "approved" })).find((o) => o.outbreakId === pending.outbreakId);
-check("approval sends the alert (recipients recorded)", approved?.recipientsNotified !== null && approved?.reviewedBy !== null,
-  approved && `notified ${approved.recipientsNotified}`);
-await expectError("an outbreak can't be approved twice", () => admin.mutation(api.admin.approveOutbreak, { outbreakId: pending.outbreakId }));
+check("another report at the same level sends nothing new", (await alertsHere()).length === 2);
+await expectError("non-admin cannot list outbreaks", () => b.client.query(api.admin.listOutbreaks, {}));
+await expectError("non-admin cannot read admin lists", () => b.client.query(api.admin.listRecords, {}));
+if (alerts[0]) {
+  const { outbreakId } = alerts[0];
+  await expectError("non-admin cannot dismiss an alert", () => b.client.mutation(api.admin.dismissOutbreak, { outbreakId }));
+  await expectError("there is no approve step any more (no admin.approveOutbreak)",
+    () => admin.mutation(api.admin.approveOutbreak, { outbreakId }));
+  await admin.mutation(api.admin.dismissOutbreak, { outbreakId, note: "smoke test" });
+  const dismissed = (await alertsHere()).find((o) => o.outbreakId === outbreakId);
+  check("admin can mark an alert a false alarm", dismissed?.status === "dismissed" && dismissed?.reviewedBy !== null);
+}
 await expectError("admins can no longer raise alerts by hand (no admin.raiseAlert)",
   () => admin.mutation(api.admin.raiseAlert, {}));
 const st = await admin.query(api.admin.stats, {});
 const recs = await admin.query(api.admin.listRecords, { status: "unverified" });
 const usersList = await admin.query(api.admin.listUsers, {});
 check("admin stats + lists work", st.users >= 3 && recs.some((r) => r.recordId === noPhotoId) &&
-  usersList.some((u) => u.email === emailA), `users ${st.users}, scans ${st.scans}, pending outbreaks ${st.pendingOutbreaks}`);
+  usersList.some((u) => u.email === emailA) && typeof st.alertsSent === "number",
+  `users ${st.users}, scans ${st.scans}, alerts sent ${st.alertsSent}`);
 
 const notifications = await admin.query(api.admin.recentNotifications, { limit: 10 });
 const reply = notifications.find((n) => n.type === "community_reply" && n.recipientUserId === viewerA.userId);
@@ -320,11 +414,16 @@ await shareScan(b.client, "1", 0.99, "healthy");
 await expectError("user cannot delete another user's record", () =>
   b.client.mutation(api.diagnosisRecords.remove, { recordId }));
 
-for (const [client, id] of created) {
+// Newest first: deleting the backdated "usual level" scans before the current ones would lower the
+// usual level while current reports remain, raising the level and sending real (test) alerts.
+for (const [client, id] of [...created].reverse()) {
   await client.mutation(api.diagnosisRecords.remove, { recordId: id });
 }
 stat = await statFor(b.client);
 check("deleting the reports clears the severity row", !stat);
+// Any alert this run raised anywhere (its barangays all start with TEST_BRGY), not only the ones checked above.
+testOutbreakIds.push(...(await admin.query(api.admin.listOutbreaks, {}))
+  .filter((o) => o.barangay.startsWith(TEST_BRGY) && !testOutbreakIds.includes(o.outbreakId)).map((o) => o.outbreakId));
 try {   // remove this run's outbreak rows so the admin history only shows real ones
   execSync(`npx convex run outbreakAlerts:deleteOutbreaks "{outbreakIds:[${testOutbreakIds.map((i) => `'${i}'`).join(",")}]}"`,
     { stdio: "ignore", env: process.env });
