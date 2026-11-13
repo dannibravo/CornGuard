@@ -1,9 +1,14 @@
-import { useEffect, useRef } from 'react';
+import { useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useDialog } from './useDialog';
+import { Icon } from './Icon';
+import { Button } from './ui';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  /** May return a promise: the confirm button then shows a spinner and the dialog closes once it settles. */
+  onConfirm: () => void | Promise<unknown>;
   title: string;
   message: string;
   confirmText?: string;
@@ -21,55 +26,55 @@ export function ConfirmDialog({
   cancelText = 'Cancel',
   variant = 'danger',
 }: ConfirmDialogProps) {
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const cancelBtnRef = useRef<HTMLButtonElement>(null);
-  const confirmBtnRef = useRef<HTMLButtonElement>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const [busy, setBusy] = useState(false);
+  const titleId = useId();
+  const messageId = useId();
+  const busyRef = useRef(false);
+  busyRef.current = busy;
 
-  useEffect(() => {
-    if (isOpen) {
-      previousFocusRef.current = document.activeElement as HTMLElement;
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') onClose();
-        if (e.key === 'Tab') {
-          const focusable = overlayRef.current?.querySelectorAll<HTMLElement>(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-          );
-          if (!focusable || focusable.length === 0) return;
-          const first = focusable[0];
-          const last = focusable[focusable.length - 1];
-          if (e.shiftKey && document.activeElement === first) {
-            e.preventDefault();
-            last.focus();
-          } else if (!e.shiftKey && document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
-      };
-      document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
-      cancelBtnRef.current?.focus();
-      return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-        document.body.style.overflow = '';
-        previousFocusRef.current?.focus();
-      };
-    }
-  }, [isOpen, onClose]);
+  // Cancel gets initial focus, so Enter never confirms a destructive action by accident.
+  useDialog(isOpen, onClose, ref, { initialFocusRef: cancelRef, canClose: () => !busyRef.current });
 
   if (!isOpen) return null;
 
-  return (
-    <div className="dialog-overlay" ref={overlayRef} onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="dialog-title">
-      <div className="dialog-content" onClick={(e) => e.stopPropagation()}>
-        <h2 id="dialog-title" className="dialog-title">{title}</h2>
-        <p className="dialog-message">{message}</p>
-        <div className="dialog-actions">
-          <button ref={cancelBtnRef} className="btn btn-secondary" onClick={onClose} autoFocus>{cancelText}</button>
-          <button ref={confirmBtnRef} className={`btn ${variant === 'danger' ? 'btn-danger' : 'btn-primary'}`} onClick={() => { onConfirm(); onClose(); }}>{confirmText}</button>
+  const confirm = async () => {
+    setBusy(true);
+    try {
+      await onConfirm();
+    } finally {
+      setBusy(false);
+      onClose();
+    }
+  };
+
+  return createPortal(
+    <div className="overlay" onClick={() => { if (!busy) onClose(); }}>
+      <div
+        ref={ref}
+        className="modal modal-sm dialog"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={messageId}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="dialog-main">
+          <span className={`dialog-icon dialog-icon-${variant}`} aria-hidden="true">
+            <Icon name={variant === 'danger' ? 'warning' : 'info'} size={22} />
+          </span>
+          <div>
+            <h2 id={titleId} className="dialog-title">{title}</h2>
+            <p id={messageId} className="dialog-message">{message}</p>
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button ref={cancelRef} type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>{cancelText}</button>
+          <Button variant={variant === 'danger' ? 'danger' : 'primary'} busy={busy} onClick={confirm}>{confirmText}</Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

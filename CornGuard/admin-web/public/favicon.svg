@@ -1,4 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="50" fill="#2e7d32"/>
-  <text x="50" y="68" font-size="55" text-anchor="middle" fill="white">🌽</text>
+  <!-- CornGuard mark: same corn silhouette as the `corn` icon in src/components/Icon.tsx. -->
+  <rect width="100" height="100" rx="22" fill="#2e7d32"/>
+  <svg x="15" y="13" width="70" height="74" viewBox="0 0 24 24" fill="#fff">
+    <path fill-rule="evenodd" d="M12 1.5c2.9 0 4.6 3.4 4.6 8.1 0 4.2-1.6 7.3-4.6 7.3s-4.6-3.1-4.6-7.3C7.4 4.9 9.1 1.5 12 1.5zM11.35 3.1h1.3v12.3h-1.3zM8.3 6.3h7.4v1.2H8.3zM7.95 9.4h8.1v1.2H7.95zM8.3 12.5h7.4v1.2H8.3z"/>
+    <path d="M12 22.7c-4.1-.4-7.9-3.6-8.8-9.9 3.5.7 6.4 3.3 7.8 6.9l1 3z"/>
+    <path d="M12 22.7c4.1-.4 7.9-3.6 8.8-9.9-3.5.7-6.4 3.3-7.8 6.9l-1 3z"/>
+  </svg>
 </svg>
