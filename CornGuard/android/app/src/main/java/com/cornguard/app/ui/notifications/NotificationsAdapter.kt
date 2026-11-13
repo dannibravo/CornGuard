@@ -15,7 +15,10 @@ import com.cornguard.app.data.model.AppNotification
 import com.cornguard.app.databinding.ItemNotificationBinding
 import com.cornguard.app.ui.common.TimeFormat
 
-/** Inbox rows: outbreak alerts get the warning icon in red, community replies the chat icon in green. */
+/**
+ * Inbox rows: outbreak warnings (Severe) get the warning icon in red, awareness notices (Moderate) in
+ * amber, community replies the chat icon in green.
+ */
 class NotificationsAdapter(
     private val onClick: (AppNotification) -> Unit
 ) : ListAdapter<AppNotification, NotificationsAdapter.ViewHolder>(DIFF) {
@@ -31,9 +34,14 @@ class NotificationsAdapter(
 
         fun bind(item: AppNotification, onClick: (AppNotification) -> Unit) {
             val context = binding.root.context
-            val isOutbreak = item.type == AppNotification.TYPE_OUTBREAK_ALERT
-            val iconColor = ContextCompat.getColor(context, if (isOutbreak) R.color.cg_danger else R.color.cg_primary)
-            binding.notificationIcon.setImageResource(if (isOutbreak) R.drawable.ic_warning else R.drawable.ic_chat)
+            val colorRes = when (item.type) {
+                AppNotification.TYPE_OUTBREAK_ALERT -> R.color.cg_danger
+                AppNotification.TYPE_DISEASE_AWARENESS -> R.color.cg_accent_amber
+                else -> R.color.cg_primary
+            }
+            val isDiseaseAlert = colorRes != R.color.cg_primary
+            val iconColor = ContextCompat.getColor(context, colorRes)
+            binding.notificationIcon.setImageResource(if (isDiseaseAlert) R.drawable.ic_warning else R.drawable.ic_chat)
             binding.notificationIcon.imageTintList = ColorStateList.valueOf(iconColor)
             binding.notificationIcon.backgroundTintList =
                 ColorStateList.valueOf(ColorUtils.setAlphaComponent(iconColor, 0x20))

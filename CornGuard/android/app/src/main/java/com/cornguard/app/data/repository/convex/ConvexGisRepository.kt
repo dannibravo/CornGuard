@@ -106,7 +106,13 @@ class ConvexGisRepository(
                         weightedScore = it.weightedScore,
                         distinctFarms = it.distinctFarms.toInt(),
                         rawReportCount = it.rawReportCount.toInt(),
-                        isActiveOutbreak = it.isActiveOutbreak
+                        isActiveOutbreak = it.isActiveOutbreak,
+                        monitoringStatus = it.monitoringStatus,
+                        baselineFarms = it.baselineFarms,
+                        lastWeekFarms = it.lastWeekFarms?.toInt(),
+                        dataWeeks = it.dataWeeks.toInt(),
+                        historyScans = it.historyScans.toInt(),
+                        monitoringSince = it.monitoringSince?.toLong()
                     )
                 }
             }
@@ -124,7 +130,8 @@ class ConvexGisRepository(
                         longitude = it.longitude,
                         barangay = it.barangay,
                         municipality = it.municipality,
-                        stage = it.stage
+                        stage = it.stage,
+                        farmerName = it.farmerName
                     )
                 }
             }
