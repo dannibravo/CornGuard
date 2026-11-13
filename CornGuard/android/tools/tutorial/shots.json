@@ -918,41 +918,52 @@
    "raw": "18_settings.png",
    "crop": [
     0,
-    320,
+    310,
     1080,
-    1180
+    1250
    ],
    "marks": [
     {
      "box": [
       50,
-      890,
+      316,
       980,
-      180
+      498
      ],
      "n": 1,
-     "label": "This guide",
-     "side": "above"
+     "label": "My Farms",
+     "side": "below"
     },
     {
      "box": [
       50,
-      1082,
+      984,
       980,
-      180
+      186
      ],
      "n": 2,
+     "label": "This guide",
+     "side": "inside"
+    },
+    {
+     "box": [
+      50,
+      1176,
+      980,
+      186
+     ],
+     "n": 3,
      "label": "App version",
      "side": "inside"
     },
     {
      "box": [
       50,
-      1274,
+      1368,
       980,
-      180
+      186
      ],
-     "n": 3,
+     "n": 4,
      "label": "Sign out",
      "side": "inside"
     }

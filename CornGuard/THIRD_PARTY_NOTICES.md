@@ -82,3 +82,20 @@ https://www.openstreetmap.org/copyright. The attribution is shown on the map.
 Tiles come from `tile.openstreetmap.org`, which is fine for development and light use under the
 OSM Tile Usage Policy (https://operations.osmfoundation.org/policies/tiles/). A production release
 with many users should switch to a tile provider with a suitable plan.
+
+## Esri World Imagery satellite tiles (loaded at runtime, not bundled)
+
+The optional Satellite view on the outbreak maps uses Esri's World Imagery and World Boundaries and
+Places services from `server.arcgisonline.com`. Credit, as shown on the map: Tiles © Esri — Source:
+Esri, Maxar, Earthstar Geographics, and the GIS User Community. Esri's terms of use apply
+(https://www.esri.com/en-us/legal/terms/full-master-agreement). The tiles are streamed only, never
+cached for offline use or redistributed. A production release with many users should check Esri's
+licensing for that level of traffic.
+
+## Lucide icons (map basemap toggle)
+
+The "satellite" and "map" icons on the Map / Satellite button (inlined in
+`android/app/src/main/assets/map/outbreak-map.html` and `admin-web/src/pages/MapPage.tsx`) are from
+Lucide (https://lucide.dev), ISC License, Copyright (c) for portions of Lucide are held by Cole
+Bemis 2013-2022 as part of Feather (MIT); all other copyright (c) for Lucide are held by Lucide
+Contributors 2022.
