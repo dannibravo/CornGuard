@@ -32,6 +32,9 @@ This plan converts the manuscript's month-level Agile timeline into developer-or
 - Prepare Storage folder/path rules.
 - Prepare FCM setup plan.
 - Define cloud repository interfaces independent of final Firestore/Realtime Database decision.
+  (D-01 later resolved in favor of Convex, superseding both — see `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`.
+  This interface-independence goal held up in practice: the repositories were swapped to Convex behind the
+  same interfaces without a rewrite.)
 - Draft GIS/location service interface without locking an unapproved map provider.
 
 ### Acenas

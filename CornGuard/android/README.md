@@ -1,5 +1,15 @@
 # CORNGUARD — Android Application (Ligue)
 
+> **Status note (added later):** this file documents the Sprint 0 drop and is kept as that
+> historical record — most of it, including the Firebase BoM/Auth/Firestore dependency list and
+> the "Map screen is a placeholder with no map dependency" line under D-10 further down, describes
+> that specific point in time, not the current app. Since then: the backend moved from Firestore
+> to **Convex** (D-01, resolved — see `backend/README.md` and `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`),
+> and the Map screen shipped as a real WebView + bundled Leaflet map
+> (`ui.map.MapFragment`, `assets/map/outbreak-map.html`), not a placeholder. `data.repository`
+> now has both `.convex` (live) and `.local` implementations; there is no `.firebase` package in
+> the current source tree. Treat the sections below as sprint history, not a current reference.
+
 This directory holds the Sprint 0 deliverables owned by the Android Mobile & Integration Lead,
 per `claude/05_DEVELOPMENT_PLAN.md` (Sprint 0) and `claude/13_DEVELOPMENT_PHASE_GUIDE.md`
 (Phase 0). It is a standard Kotlin/Android Studio Gradle project (Kotlin, XML layouts, Android

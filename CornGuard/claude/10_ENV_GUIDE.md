@@ -25,12 +25,17 @@ Possible locations:
 
 ## Firebase Configuration
 
+> **D-01 resolved:** Authentication, database, and Cloud Storage moved to **Convex** — see
+> `backend/README.md` for first-time setup. Only Cloud Messaging is still Firebase (push delivery
+> only); its config is `android/app/google-services.json`. The list below is the original,
+> pre-D-01 manuscript requirement, kept for history.
+
 Required services from the manuscript:
 
-- Authentication
-- Firestore or Realtime Database — final choice pending D-01
-- Cloud Storage
-- Cloud Messaging
+- ~~Authentication~~ → Convex Auth
+- ~~Firestore or Realtime Database — final choice pending D-01~~ → Convex (resolved)
+- ~~Cloud Storage~~ → Convex file storage
+- Cloud Messaging — kept, push delivery only
 
 ### Rules
 
