@@ -64,9 +64,11 @@ data class MapReport(
     val barangay: String,
     val municipality: String,
     /** "active" (last 14 days, counted in the level) or "recent" (14-28 days, drawn faded). */
-    val stage: String = "active",
-    /** Who reported it, shown in the dot's popup. */
-    val farmerName: String = "Farmer"
+    val stage: String = "active"
+    // No reporter identity here by design: the backend's general mapReports query no longer
+    // returns it (privacy fix — see backend/convex/diagnosisRecords.ts). Coordinates on this
+    // model are the exact pin only for the viewer's own reports; everyone else's are already
+    // coarsened to a barangay-level point server-side before they ever reach the app.
 )
 
 /**

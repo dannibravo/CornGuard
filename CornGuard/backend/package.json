@@ -6,7 +6,7 @@
     "dev": "convex dev",
     "deploy": "convex deploy",
     "typecheck": "tsc --noEmit -p convex",
-    "test:rules": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test scripts/outbreak-rules.test.mts"
+    "test:rules": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test scripts/outbreak-rules.test.mts scripts/map-privacy.test.mts"
   },
   "dependencies": {
     "@auth/core": "^0.41.1",

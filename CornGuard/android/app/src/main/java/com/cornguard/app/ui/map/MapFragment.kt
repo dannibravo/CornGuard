@@ -368,7 +368,6 @@ class MapFragment : Fragment() {
                     put("longitude", r.longitude)
                     put("barangay", r.barangay)
                     put("municipality", r.municipality)
-                    put("farmerName", r.farmerName)
                 })
             }
         }
