@@ -5,8 +5,9 @@ import { useAuthActions } from '@convex-dev/auth/react';
  * Admin sessions end after IDLE_LIMIT_MS without mouse, keyboard, touch or scroll activity.
  * Admin web only: Convex Auth's server-side session length is shared with the farmers' app,
  * so shortening it there would sign phones out too.
- * The last-activity time is kept in sessionStorage next to the auth token, so a page refresh
- * doesn't reset the clock and a tab left closed past the limit starts signed out.
+ * The last-activity time is kept in localStorage next to the auth token, so it survives closed tabs:
+ * reopening within the limit stays signed in, reopening after it starts signed out. All tabs share
+ * the one clock, so a quiet background tab never signs out an admin who is active in another tab.
  */
 export const IDLE_LIMIT_MS = 2 * 60 * 60 * 1000;
 
@@ -17,12 +18,12 @@ const WRITE_THROTTLE_MS = 15 * 1000;
 const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'wheel', 'scroll'] as const;
 
 function read(key: string): string | null {
-  try { return sessionStorage.getItem(key); } catch { return null; }
+  try { return localStorage.getItem(key); } catch { return null; }
 }
 function write(key: string, value: string | null) {
   try {
-    if (value === null) sessionStorage.removeItem(key);
-    else sessionStorage.setItem(key, value);
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
   } catch { /* storage blocked: the in-memory timer still works for this page */ }
 }
 
@@ -44,12 +45,14 @@ export function useIdleSignOut(enabled: boolean) {
       void signOut();
     };
     const check = () => {
+      // Another tab may have seen activity more recently.
+      lastActivity = Math.max(lastActivity, Number(read(LAST_ACTIVITY_KEY)) || 0);
       if (Date.now() - lastActivity >= IDLE_LIMIT_MS) expire();
     };
     const onActivity = () => {
       const now = Date.now();
       // A laptop waking from sleep fires activity events; check before counting them.
-      if (now - lastActivity >= IDLE_LIMIT_MS) return expire();
+      if (now - lastActivity >= IDLE_LIMIT_MS) return check();
       lastActivity = now;
       if (now - lastWrite >= WRITE_THROTTLE_MS) {
         lastWrite = now;
