@@ -27,6 +27,9 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       { path: '/outbreaks', label: 'Outbreaks', icon: 'alert' },
       { path: '/moderation', label: 'Review', icon: 'shield', count: toReview },
     ] },
+    { label: 'Content', items: [
+      { path: '/guides', label: 'Treatment Guides', icon: 'book' },
+    ] },
     { label: 'Administration', items: [
       { path: '/users', label: 'Users', icon: 'users' },
     ] },

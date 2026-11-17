@@ -6,6 +6,22 @@ export const DISEASE_LABEL: Record<string, string> = {
   healthy: 'Healthy',
 };
 
+/** The classes the model detects: one treatment guide each (backend diseaseReferences.GUIDE_CODES). */
+export const GUIDE_CODES = ['northern_leaf_blight', 'common_rust', 'gray_leaf_spot', 'healthy'] as const;
+
+// Treatment guide review tiers. KEEP IN SYNC with backend schema guideReviewStatus and the app's ReviewStatus.
+export type GuideReviewStatus = 'unreviewed' | 'sources_reviewed' | 'expert_verified';
+export const REVIEW_STATUS_LABEL: Record<GuideReviewStatus, string> = {
+  unreviewed: 'Unreviewed',
+  sources_reviewed: 'Sources reviewed',
+  expert_verified: 'Expert verified',
+};
+export const REVIEW_STATUS_BADGE: Record<GuideReviewStatus, string> = {
+  unreviewed: 'badge-gray',
+  sources_reviewed: 'badge-blue',
+  expert_verified: 'badge-green',
+};
+
 export const diseaseLabel = (code: string) => DISEASE_LABEL[code] ?? code;
 export const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
 export const date = (ms: number | null | undefined) => (ms ? new Date(ms).toLocaleString() : '—');

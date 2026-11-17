@@ -159,6 +159,27 @@ data class NotificationDto(
     val createdAt: Double
 )
 
+/**
+ * A row of `diseaseReferences:list` — one admin-managed treatment guide. The app's bundled
+ * snapshot (assets/treatment/guides-snapshot.json) is a list of the same shape.
+ */
+@Serializable
+data class TreatmentGuideDto(
+    val diseaseCode: String,
+    val displayName: String,
+    val symptoms: String = "",
+    val causes: String = "",
+    val treatmentSteps: String = "",
+    val duration: String = "",
+    val preventionSteps: String = "",
+    val sourceReference: String = "",
+    val contentVersion: String = "",
+    val updatedAt: Double = 0.0,
+    val reviewStatus: String = "unreviewed",
+    val reviewedBy: String = "",
+    val reviewedAt: Double = 0.0
+)
+
 /** A row of `notifications:mine` — the farmer's own inbox, unlike the admin [NotificationDto]. */
 @Serializable
 data class InboxNotificationDto(

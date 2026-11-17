@@ -29,9 +29,6 @@ export default function DashboardPage() {
   const val = (key: string): number => (stats?.[key] ?? 0) as number;
 
   const attentionTotal = ATTENTION.reduce((n, t) => n + val(t.key), 0);
-  const scans = val('scans');
-  const verified = val('scansVerified');
-  const rate = scans > 0 ? verified / scans : null;
 
   return (
     <div className="page-stack">
@@ -53,25 +50,8 @@ export default function DashboardPage() {
         <div className="section-heading">
           <h2 id="overview-title">Overview</h2>
         </div>
-        <div className="overview-layout">
-          <div className="tile-grid">
-            {OVERVIEW.map((t) => <StatTile key={t.key} tile={t} value={loading ? null : val(t.key)} />)}
-          </div>
-          <div className="card rate-card">
-            <div className="rate-head">
-              <span className="rate-label">Scan verification</span>
-              <span className="rate-value">{loading ? <span className="skeleton skeleton-text" /> : rate === null ? '—' : `${Math.round(rate * 100)}%`}</span>
-            </div>
-            <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={rate === null ? undefined : Math.round(rate * 100)} aria-label="Share of shared scans verified">
-              <span style={{ width: `${(rate ?? 0) * 100}%` }} />
-            </div>
-            <p className="rate-desc">
-              {loading ? ' ' : scans === 0
-                ? 'No scans shared yet.'
-                : `${verified.toLocaleString()} of ${scans.toLocaleString()} shared scans are verified. Only verified scans count toward outbreak levels.`}
-            </p>
-            <Link to="/moderation" className="link-arrow">Open Review <Icon name="arrowRight" size={14} /></Link>
-          </div>
+        <div className="tile-grid">
+          {OVERVIEW.map((t) => <StatTile key={t.key} tile={t} value={loading ? null : val(t.key)} />)}
         </div>
       </section>
 

@@ -1,8 +1,13 @@
 # Treatment content: sources and review record
 
-The source of truth for the treatment guidance in
-`android/app/src/main/java/com/cornguard/app/data/local/db/DiseaseReferenceSeedData.kt`
-(content version `2026-10-evidence-v1`).
+The evidence behind the treatment guides (content version `2026-10-evidence-v1`).
+
+**Where the guides live:** admins manage them in the admin website → **Treatment Guides** (one guide
+per disease the model detects). Saving publishes immediately; farmers' apps keep an offline copy and
+update it whenever they are online, so no app update is needed. A new install that has never been
+online shows the snapshot bundled with the app (`android/app/src/main/assets/treatment/guides-snapshot.json`).
+Before each release, refresh that snapshot from the server: `cd backend && node scripts/guides-snapshot.mjs export`.
+Changing a guide's text resets its review to *Unreviewed* unless the editor re-marks it.
 
 ## Review status
 
@@ -25,9 +30,9 @@ labels and local practice.
 |---|---|---|---|---|
 | | | | | |
 
-After sign-off, in `DiseaseReferenceSeedData.kt`, set each reviewed entry to
-`ReviewStatus.EXPERT_VERIFIED`, set `reviewedBy` to the reviewer's name and office, and set
-`reviewedAt` to the sign-off date. The label then reads "Verified by an agricultural expert · {name},
+After sign-off, open each reviewed guide in the admin website → Treatment Guides, set **Review** to
+*Expert verified* and enter the reviewer's name and office, then save (the review date is the save
+date). The label then reads "Verified by an agricultural expert · {name},
 {Mon YYYY}" and the disclaimer is hidden. A blank `reviewedBy` keeps the lower tier, by design.
 
 ## Evidence grades

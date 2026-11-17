@@ -18,8 +18,9 @@ import kotlinx.coroutines.launch
 
 /**
  * "Full Details" sheet (caps 3 design): the offline disease reference for one disease code —
- * treatment, causes, duration, prevention and symptoms — from Room, never the network. Content is
- * seeded by DiseaseReferenceSeedData. The Treatment section carries a review label when the content
+ * treatment, causes, duration, prevention and symptoms — from Room, never the network. Admins manage
+ * the content in the admin website; TreatmentGuideSync copies it into Room (the bundled snapshot
+ * before the first sync). The Treatment section carries a review label when the content
  * has been reviewed (ReviewLabelBinder); the disclaimer stays until an expert has verified it.
  */
 class FullDetailsBottomSheet : CornGuardBottomSheet() {

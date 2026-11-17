@@ -11,6 +11,8 @@ import OutbreaksPage from './pages/OutbreaksPage';
 import ModerationPage from './pages/ModerationPage';
 import UsersPage from './pages/UsersPage';
 import MapPage from './pages/MapPage';
+import TreatmentGuidesPage from './pages/TreatmentGuidesPage';
+import TreatmentGuideEditorPage from './pages/TreatmentGuideEditorPage';
 import './styles/admin.css';
 
 // Admin sessions end when the tab or browser closes: the auth token lives in sessionStorage,
@@ -37,6 +39,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <Route path="/moderation" element={<ModerationPage />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/map" element={<MapPage />} />
+              <Route path="/guides" element={<TreatmentGuidesPage />} />
+              <Route path="/guides/:code" element={<TreatmentGuideEditorPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
