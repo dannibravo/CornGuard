@@ -8,7 +8,9 @@ import androidx.room.PrimaryKey
  * Local persistence for `LocalDiseaseReference` (claude/08_DATA_AND_INTEGRATION_CONTRACT.md).
  * Must remain readable offline — the model only classifies the leaf; this table is the sole
  * source of treatment/prevention guidance shown to the farmer
- * (claude/15_CLAUDE.md Treatment Rule).
+ * (claude/15_CLAUDE.md Treatment Rule). It is an offline copy of the treatment guides admins
+ * manage in the admin website (backend/convex/diseaseReferences.ts), kept current by
+ * [com.cornguard.app.data.repository.TreatmentGuideSync].
  */
 @Entity(tableName = "disease_references")
 data class DiseaseReferenceEntity(

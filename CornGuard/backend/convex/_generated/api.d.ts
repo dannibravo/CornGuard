@@ -16,6 +16,7 @@ import type * as crons from "../crons.js";
 import type * as devAccounts from "../devAccounts.js";
 import type * as devices from "../devices.js";
 import type * as diagnosisRecords from "../diagnosisRecords.js";
+import type * as diseaseReferences from "../diseaseReferences.js";
 import type * as http from "../http.js";
 import type * as lib_access from "../lib/access.js";
 import type * as lib_outbreakRules from "../lib/outbreakRules.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   devAccounts: typeof devAccounts;
   devices: typeof devices;
   diagnosisRecords: typeof diagnosisRecords;
+  diseaseReferences: typeof diseaseReferences;
   http: typeof http;
   "lib/access": typeof lib_access;
   "lib/outbreakRules": typeof lib_outbreakRules;

@@ -4,13 +4,14 @@ import android.content.Context
 import android.provider.Settings
 import com.cornguard.app.data.local.ProfileAreaStore
 import com.cornguard.app.data.local.db.AppDatabase
-import com.cornguard.app.data.local.db.DiseaseReferenceSeedData
+import com.cornguard.app.data.local.TreatmentGuideSyncMarker
 import com.cornguard.app.data.repository.AdminRepository
 import com.cornguard.app.data.repository.AuthRepository
 import com.cornguard.app.data.repository.CommunityRepository
 import com.cornguard.app.data.repository.DiagnosisHistoryRepository
 import com.cornguard.app.data.repository.DiagnosisSharingRepository
 import com.cornguard.app.data.repository.DiseaseReferenceRepository
+import com.cornguard.app.data.repository.TreatmentGuideSync
 import com.cornguard.app.data.repository.GisRepository
 import com.cornguard.app.data.repository.NotificationRepository
 import com.cornguard.app.data.repository.UserFarmRepository
@@ -23,6 +24,7 @@ import com.cornguard.app.data.repository.convex.ConvexDiagnosisSharingRepository
 import com.cornguard.app.data.repository.convex.ConvexGisRepository
 import com.cornguard.app.data.repository.convex.ConvexNotificationRepository
 import com.cornguard.app.data.repository.convex.ConvexUserFarmRepository
+import com.cornguard.app.data.repository.convex.observeTreatmentGuides
 import com.cornguard.app.data.repository.local.LocalDiagnosisHistoryRepository
 import com.cornguard.app.data.repository.local.LocalDiseaseReferenceRepository
 import com.cornguard.app.location.BarangayResolver
@@ -157,9 +159,17 @@ object ServiceLocator {
     fun init(context: Context) {
         appContext = context.applicationContext
         appScope.launch {
-            // Upserted every launch so updated reference content replaces older copies. See
-            // DiseaseReferenceSeedData's doc comment — source-reviewed, not yet expert-verified.
-            diseaseReferenceRepository.upsertAll(DiseaseReferenceSeedData.all)
+            // Treatment guides are managed in the admin website. Before this install's first sync
+            // the bundled snapshot fills the offline store; after that the server's live list does.
+            val sync = TreatmentGuideSync(diseaseReferenceRepository, TreatmentGuideSyncMarker(appContext))
+            val readSnapshot = {
+                appContext.assets.open(TreatmentGuideSync.SNAPSHOT_ASSET).bufferedReader().use { it.readText() }
+            }
+            if (BuildConfig.CONVEX_URL.isNotBlank()) {
+                sync.run(readSnapshot, convexBackend.client.observeTreatmentGuides())
+            } else {
+                sync.loadSnapshotIfNeverSynced(readSnapshot)
+            }
         }
         if (BuildConfig.CONVEX_URL.isNotBlank()) {
             // Keeps a signed-in user signed in across restarts (refresh-token exchange).

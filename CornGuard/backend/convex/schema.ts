@@ -14,6 +14,13 @@ export const moderationStatus = v.union(
   v.literal("removed"),
 );
 export const reportTargetType = v.union(v.literal("post"), v.literal("comment"));
+
+/** Treatment guide review tier; KEEP IN SYNC with the app's model/ReviewStatus.kt stored values. */
+export const guideReviewStatus = v.union(
+  v.literal("unreviewed"),
+  v.literal("sources_reviewed"),
+  v.literal("expert_verified"),
+);
 // KEEP IN SYNC with the app's ReportReason and admin-web's REPORT_REASON_LABEL.
 export const reportReason = v.union(
   v.literal("wrong_info"),
@@ -252,7 +259,8 @@ export default defineSchema({
     readAt: v.optional(v.number()),
   }).index("by_recipient", ["recipientUserId"]),
 
-  // Admin-published reference content (the app itself reads its bundled Room copy offline).
+  // Treatment guides, one per class the model can detect, managed in the admin website
+  // (diseaseReferences.ts). The app syncs them into its Room cache and reads that offline.
   diseaseReferences: defineTable({
     diseaseCode: v.string(),
     displayName: v.string(),
@@ -263,6 +271,13 @@ export default defineSchema({
     duration: v.string(),
     sourceReference: v.string(),
     contentVersion: v.string(),
+    /** Last change (epoch ms); the app shows it as the guide's updatedAt. */
     publishedAt: v.number(),
+    /** How far the content has been checked; KEEP IN SYNC with the app's model/ReviewStatus.kt. */
+    reviewStatus: guideReviewStatus,
+    reviewedBy: v.string(),
+    /** Epoch ms; 0 = never reviewed. */
+    reviewedAt: v.number(),
+    updatedBy: v.optional(v.id("users")),
   }).index("by_code", ["diseaseCode"]),
 });

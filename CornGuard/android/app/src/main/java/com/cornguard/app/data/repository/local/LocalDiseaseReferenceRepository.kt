@@ -16,4 +16,7 @@ class LocalDiseaseReferenceRepository(
 
     override suspend fun upsertAll(references: List<DiseaseReferenceEntity>) =
         dao.upsertAll(references)
+
+    override suspend fun replaceAll(references: List<DiseaseReferenceEntity>) =
+        dao.replaceAll(references)
 }

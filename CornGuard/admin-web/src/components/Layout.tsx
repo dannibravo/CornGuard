@@ -15,14 +15,16 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   '/moderation': { title: 'Review & Moderation', subtitle: 'Verify leaf scans and moderate community content' },
   '/users': { title: 'User Management', subtitle: 'Farmer and admin accounts' },
   '/map': { title: 'Outbreak Map', subtitle: 'Verified reports and outbreak levels across Bukidnon' },
+  '/guides': { title: 'Treatment Guides', subtitle: 'The guidance farmers see after a scan' },
 };
+const GUIDE_EDITOR_META = { title: 'Edit Treatment Guide', subtitle: "Changes reach farmers' apps as soon as you save" };
 
 export function Layout() {
   const { pathname } = useLocation();
   const [navOpen, setNavOpen] = useState(false);
   // Same subscription as the Sidebar's badge; Convex shares it.
   const stats = useQuery(api.admin.stats);
-  const meta = PAGE_META[pathname] ?? { title: 'Admin', subtitle: '' };
+  const meta = PAGE_META[pathname] ?? (pathname.startsWith('/guides/') ? GUIDE_EDITOR_META : { title: 'Admin', subtitle: '' });
   const toReview = stats ? (stats.scansUnverified ?? 0) + (stats.reportsOpen ?? 0) : 0;
 
   useEffect(() => { setNavOpen(false); }, [pathname]);

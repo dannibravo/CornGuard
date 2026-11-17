@@ -100,45 +100,6 @@ export const bootstrapFirstAdmin = internalMutation({
   },
 });
 
-/** Upserts published reference content for one disease. */
-export const updateDiseaseReference = mutation({
-  args: {
-    diseaseCode: v.string(),
-    displayName: v.optional(v.string()),
-    symptoms: v.optional(v.string()),
-    treatmentSteps: v.optional(v.string()),
-    preventionSteps: v.optional(v.string()),
-    causes: v.optional(v.string()),
-    duration: v.optional(v.string()),
-    sourceReference: v.optional(v.string()),
-    contentVersion: v.optional(v.string()),
-  },
-  handler: async (ctx, { diseaseCode, ...fields }) => {
-    await requireAdmin(ctx);
-    const defined = Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
-    const existing = await ctx.db
-      .query("diseaseReferences")
-      .withIndex("by_code", (q) => q.eq("diseaseCode", diseaseCode))
-      .unique();
-    if (existing) {
-      await ctx.db.patch(existing._id, { ...defined, publishedAt: Date.now() });
-    } else {
-      await ctx.db.insert("diseaseReferences", {
-        diseaseCode,
-        displayName: fields.displayName ?? diseaseCode,
-        symptoms: fields.symptoms ?? "",
-        treatmentSteps: fields.treatmentSteps ?? "",
-        preventionSteps: fields.preventionSteps ?? "",
-        causes: fields.causes ?? "",
-        duration: fields.duration ?? "",
-        sourceReference: fields.sourceReference ?? "",
-        contentVersion: fields.contentVersion ?? "1",
-        publishedAt: Date.now(),
-      });
-    }
-  },
-});
-
 // ------------------------------------------------------------------------------------------------
 // Admin website (admin-web/) — lists and outbreak review. Everything requires an admin account.
 // ------------------------------------------------------------------------------------------------
