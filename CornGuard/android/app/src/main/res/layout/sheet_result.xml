@@ -158,7 +158,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:textAppearance="@style/TextAppearance.CornGuard.Meta"
-            tools:text="Scanned Sep 27, 2026 8:36 PM · cornguard_mobilenetv2_v3" />
+            tools:text="Scanned Sep 27, 2026 8:36 PM · cornguard_mobilenetv2_v4" />
 
         <!-- My Farms: which saved farm a shared scan is filed at (only for unshared scans). -->
         <TextView

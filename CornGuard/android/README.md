@@ -46,7 +46,7 @@ The app bundles four files in `app/src/main/assets/`, read by `TfliteCornLeafCla
 
 | File | Contents |
 |---|---|
-| `model.tflite` | `cornguard_mobilenetv2_v3`: MobileNetV2 transfer model, dynamic-range quantised |
+| `model.tflite` | `cornguard_mobilenetv2_v4`: MobileNetV2 transfer model, dynamic-range quantised |
 | `labels.json` | Output index → disease code: 0 `northern_leaf_blight`, 1 `common_rust`, 2 `gray_leaf_spot`, 3 `healthy` |
 | `model_config.json` | `input_size` 224, `normalization` `minus_one_to_one` |
 | `model_version.txt` | Version string saved with every scan |
