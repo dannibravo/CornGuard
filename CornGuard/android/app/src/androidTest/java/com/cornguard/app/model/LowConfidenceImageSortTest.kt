@@ -153,7 +153,7 @@ class LowConfidenceImageSortTest {
         const val SOURCE_ROOT = "Pictures/CornGuard/"
         const val TARGET_ROOT = "Pictures/CornGuard_Below60/"
         const val TARGET_SUFFIX = "_Below60"
-        const val EXPECTED_MODEL_VERSION = "cornguard_mobilenetv2_v3"
+        const val EXPECTED_MODEL_VERSION = "cornguard_mobilenetv2_v4"
 
         /** The dataset folder names; the model's "Blight" class is Northern Leaf Blight. */
         val FOLDER_TO_CODE = mapOf(

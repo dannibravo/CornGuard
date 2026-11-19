@@ -155,7 +155,7 @@ class EmulatorLeafImagesTest {
          * Previous release (caps 3 `cornguard_model.tflite`, v2): 1B568531…E96D26.
          */
         const val EXPECTED_MODEL_NAME = "cornguard_v3_model.tflite"
-        const val EXPECTED_MODEL_VERSION = "cornguard_mobilenetv2_v3"
+        const val EXPECTED_MODEL_VERSION = "cornguard_mobilenetv2_v4"
         const val EXPECTED_MODEL_SHA256 = "DFE14EFC796C04729B77DAB416052FA5BB772CA35D516DD7E265A80B50CB47D1"
 
         /** Model output order, as in assets/labels.json. */
