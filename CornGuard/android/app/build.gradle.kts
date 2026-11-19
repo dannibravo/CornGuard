@@ -34,8 +34,8 @@ android {
         // manuscript's API-24-vs-8.0 wording is formally harmonized.
         minSdk = 26
         targetSdk = 34
-        versionCode = 9
-        versionName = "0.2.5.1"
+        versionCode = 10
+        versionName = "0.2.5.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
