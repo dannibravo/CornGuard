@@ -4,14 +4,17 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.cornguard.app.R
+import com.cornguard.app.data.model.Farm
 import com.cornguard.app.databinding.FragmentDiagnosisResultBinding
 import com.cornguard.app.di.ServiceLocator
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.text.DateFormat
 import java.util.Date
 import kotlin.math.roundToInt
@@ -25,6 +28,9 @@ import kotlin.math.roundToInt
  *
  * "Share to Community" is the one action here that does touch Firebase — an explicit, opt-in
  * action per D-11 (a scan is local/private by default, claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md).
+ * Per D-03 (resolved 2026-10-30), a shared record should be linked to the farm it came from: if
+ * the signed-in farmer has more than one farm, sharing asks which one before uploading; with
+ * exactly one farm it's used automatically; with none, sharing proceeds without a farm link.
  */
 class DiagnosisResultFragment : Fragment() {
 
@@ -112,10 +118,11 @@ class DiagnosisResultFragment : Fragment() {
             }
 
             val result = runCatching {
+                val farmId = resolveFarmIdForSharing(user.uid)
                 val cloudRecordId = ServiceLocator.diagnosisSharingRepository.shareScan(
                     record = record,
                     ownerUserId = user.uid,
-                    farmId = null
+                    farmId = farmId
                 )
                 ServiceLocator.diagnosisHistoryRepository.markShared(localId, cloudRecordId)
             }
@@ -129,6 +136,28 @@ class DiagnosisResultFragment : Fragment() {
                 binding.shareError.text = getString(R.string.result_share_failed)
             }
         }
+    }
+
+    /** Null means "share without a farm link" — a deliberate, valid choice, not a failure. */
+    private suspend fun resolveFarmIdForSharing(uid: String): String? {
+        val farms = runCatching { ServiceLocator.userFarmRepository.getFarmsForUser(uid) }.getOrDefault(emptyList())
+        return when (farms.size) {
+            0 -> null
+            1 -> farms[0].farmId
+            else -> promptFarmSelection(farms)
+        }
+    }
+
+    private suspend fun promptFarmSelection(farms: List<Farm>): String? = suspendCancellableCoroutine { cont ->
+        val names = farms.map { it.farmNameOrLabel }.toTypedArray()
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle(R.string.result_select_farm_title)
+            .setItems(names) { _, index -> cont.resume(farms[index].farmId, null) }
+            .setNegativeButton(R.string.result_select_farm_skip) { _, _ -> cont.resume(null, null) }
+            .setOnCancelListener { cont.resume(null, null) }
+            .create()
+        cont.invokeOnCancellation { dialog.dismiss() }
+        dialog.show()
     }
 
     private fun setSharing(sharing: Boolean) {

@@ -24,6 +24,66 @@
             android:textSize="@dimen/text_title"
             android:textStyle="bold" />
 
+        <!--
+            Phase 3 base map (D-10: osmdroid/OpenStreetMap). Fixed height rather than match_parent
+            since this screen also hosts the existing verified/nearby lists below. No markers/
+            heatmap overlay yet — see MapFragment's doc comment.
+        -->
+        <org.osmdroid.views.MapView
+            android:id="@+id/mapView"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/map_base_height"
+            android:layout_marginTop="@dimen/spacing_md" />
+
+        <!-- Phase 4 marker legend — shape-coded, not color-only, so it still reads without color
+             perception (see ic_marker_verified.xml / ic_marker_unverified.xml doc comments). -->
+        <LinearLayout
+            android:id="@+id/mapLegend"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_marker_verified" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_xs"
+                android:layout_marginEnd="@dimen/spacing_md"
+                android:text="@string/map_legend_verified"
+                android:textSize="@dimen/text_body" />
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_marker_unverified" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_xs"
+                android:text="@string/map_legend_unverified"
+                android:textSize="@dimen/text_body" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/mapMarkersError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:text="@string/map_markers_error"
+            android:textColor="#B3261E"
+            android:textSize="@dimen/text_body"
+            android:visibility="gone" />
+
         <TextView
             android:id="@+id/mapListViewNote"
             android:layout_width="match_parent"

@@ -120,6 +120,11 @@ dependencies {
     // the .tflite file this loads from assets/.
     implementation(libs.tensorflow.lite)
 
+    // Phase 3 (map base layer), D-10 resolved 2026-10-30: osmdroid/OpenStreetMap — no billing
+    // account needed, unlike Google Maps Platform or Mapbox. Base map only this phase; no
+    // markers/heatmap overlay yet (claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md).
+    implementation(libs.osmdroid.android)
+
     // Firebase BoM controls Firebase library versions — do not add version numbers to the
     // individual firebase-* dependencies below, they're resolved through this platform.
     implementation(platform(libs.firebase.bom))

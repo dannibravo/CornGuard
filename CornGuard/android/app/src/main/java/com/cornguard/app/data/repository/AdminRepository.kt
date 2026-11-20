@@ -1,6 +1,8 @@
 package com.cornguard.app.data.repository
 
+import com.cornguard.app.data.model.DiagnosisRecordCloud
 import com.cornguard.app.data.model.NotificationLogEntry
+import com.cornguard.app.data.model.VerificationHistoryEntry
 
 /**
  * Admin authorization checks, moderation, user management, disease-reference maintenance, and
@@ -20,8 +22,22 @@ import com.cornguard.app.data.model.NotificationLogEntry
  */
 interface AdminRepository {
 
-    suspend fun verifyDiagnosisRecord(recordId: String, adminUid: String)
-    suspend fun rejectDiagnosisRecord(recordId: String, adminUid: String)
+    /**
+     * Verifies/rejects [recordId] and appends exactly one entry to its
+     * diagnosisRecordsCloud/{recordId}/verificationHistory subcollection, atomically (same
+     * WriteBatch) — see [FirebaseAdminRepository][com.cornguard.app.data.repository.firebase.FirebaseAdminRepository]
+     * for why atomicity matters here: the record's verification_status must never be able to
+     * change without a corresponding, permanent history entry, and vice versa. [note] is an
+     * optional free-text reason (e.g. why a record was rejected); never required.
+     */
+    suspend fun verifyDiagnosisRecord(recordId: String, adminUid: String, note: String? = null)
+    suspend fun rejectDiagnosisRecord(recordId: String, adminUid: String, note: String? = null)
+
+    /** Every diagnosisRecordsCloud document with verification_status == "unverified", for the Admin Review queue. */
+    suspend fun getPendingDiagnosisRecords(limit: Int = 100): List<DiagnosisRecordCloud>
+
+    /** Oldest-first. Empty (not an error) for a record with no history yet. */
+    suspend fun getVerificationHistory(recordId: String): List<VerificationHistoryEntry>
 
     suspend fun verifyPost(postId: String, adminUid: String)
     suspend fun rejectPost(postId: String, adminUid: String)

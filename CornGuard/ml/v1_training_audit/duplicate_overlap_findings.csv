@@ -1,0 +1,13 @@
+overlap_type,sample_id_a,split_a,class_a,path_a,sample_id_b,split_b,class_b,path_b,hamming_distance
+exact_sha256_cross_split,Corn_Gray_Spot (564),test,gray_leaf_spot,data\raw\gray_leaf_spot\public\Corn_Gray_Spot (564).jpg,Corn_Blight (1104),train,northern_leaf_blight,data\raw\northern_leaf_blight\public\Corn_Blight (1104).jpg,0
+near_duplicate_phash_cross_split,Corn_Common_Rust (48),train,common_rust,data\raw\common_rust\public\Corn_Common_Rust (48).jpg,Corn_Common_Rust (53),test,common_rust,data\raw\common_rust\public\Corn_Common_Rust (53).jpg,2
+near_duplicate_phash_cross_split,Corn_Gray_Spot (29),test,gray_leaf_spot,data\raw\gray_leaf_spot\public\Corn_Gray_Spot (29).jpg,Corn_Blight (106),train,northern_leaf_blight,data\raw\northern_leaf_blight\public\Corn_Blight (106).jpg,0
+near_duplicate_phash_cross_split,Corn_Blight (206),train,northern_leaf_blight,data\raw\northern_leaf_blight\public\Corn_Blight (206).JPG,Corn_Blight (286),val,northern_leaf_blight,data\raw\northern_leaf_blight\public\Corn_Blight (286).jpg,6
+near_duplicate_phash_cross_split,Corn_Blight (43),test,northern_leaf_blight,data\raw\northern_leaf_blight\public\Corn_Blight (43).jpg,Corn_Blight (62),train,northern_leaf_blight,data\raw\northern_leaf_blight\public\Corn_Blight (62).jpg,4
+near_duplicate_phash_cross_split,Corn_Blight (442),val,northern_leaf_blight,data\raw\northern_leaf_blight\public\Corn_Blight (442).JPG,Corn_Blight (756),train,northern_leaf_blight,data\raw\northern_leaf_blight\public\Corn_Blight (756).JPG,6
+near_duplicate_phash_cross_split,Corn_Blight (53),train,northern_leaf_blight,data\raw\northern_leaf_blight\public\Corn_Blight (53).jpg,Corn_Blight (74),val,northern_leaf_blight,data\raw\northern_leaf_blight\public\Corn_Blight (74).jpg,4
+near_duplicate_phash_cross_split,Corn_Blight (661),test,northern_leaf_blight,data\raw\northern_leaf_blight\public\Corn_Blight (661).jpg,Corn_Blight (791),train,northern_leaf_blight,data\raw\northern_leaf_blight\public\Corn_Blight (791).JPG,2
+near_duplicate_phash_cross_split,Corn_Health (1113),val,healthy,data\raw\healthy\public\Corn_Health (1113).jpg,Corn_Health (964),train,healthy,data\raw\healthy\public\Corn_Health (964).jpg,4
+near_duplicate_phash_cross_split,Corn_Health (199),val,healthy,data\raw\healthy\public\Corn_Health (199).JPG,Corn_Health (372),train,healthy,data\raw\healthy\public\Corn_Health (372).jpg,4
+near_duplicate_phash_cross_split,Corn_Health (250),test,healthy,data\raw\healthy\public\Corn_Health (250).jpg,Corn_Health (453),train,healthy,data\raw\healthy\public\Corn_Health (453).jpg,0
+near_duplicate_phash_cross_split,Corn_Health (440),val,healthy,data\raw\healthy\public\Corn_Health (440).jpg,Corn_Health (724),train,healthy,data\raw\healthy\public\Corn_Health (724).jpg,6

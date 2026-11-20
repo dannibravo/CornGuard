@@ -34,17 +34,23 @@ interface GisRepository {
      * Aggregated occurrence counts by area, for the heatmap. Sourced only from
      * diagnosisRecordsCloud where verification_status="verified" — per D-08, "unverified posts
      * must not be treated as confirmed outbreaks," and per D-07, no production outbreak signal
-     * may go out without expert-approved validation. Nothing currently has an authorized path to
-     * set verification_status="verified" (D-02 is unresolved), so **this correctly returns empty
-     * until that's resolved** — that's the intended safeguard, not a bug to "fix" by loosening
-     * the filter.
+     * may go out without expert-approved validation. D-02 is now resolved (Admin verifies, via
+     * AdminRepository.verifyDiagnosisRecord) so this empties only once nothing has actually been
+     * verified yet, not because the verification path itself is unauthorized — it stays empty in
+     * a fresh/dev environment until an Admin exercises that path, which is the intended
+     * safeguard, not a bug to "fix" by loosening the filter.
      */
     suspend fun getHeatmapAggregates(areaField: String, diseaseFilter: String?): List<HeatmapAggregate>
 
     /**
      * Individual verified occurrences for map markers (as opposed to [getHeatmapAggregates]'s
-     * blob-level counts) — same "verified" scope, same D-08 reasoning: empty until verification
-     * exists.
+     * blob-level counts). Sourced from the redacted `verifiedOccurrences` projection (Phase 4,
+     * resolved 2026-10-30), not diagnosisRecordsCloud directly — that collection is owner/admin
+     * read-only, so a community-wide map could never query it; every entry returned here already
+     * has coordinates rounded to ~110m and carries no farmer-identifying fields, by construction
+     * of how the projection is written (FirebaseAdminRepository.setDiagnosisVerification). Empty
+     * until an admin has actually verified something with a location on it — that's the intended
+     * safeguard (D-08), not a bug.
      */
     suspend fun getVerifiedOccurrences(
         areaFilter: Pair<String, String>,

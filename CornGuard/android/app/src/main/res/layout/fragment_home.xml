@@ -16,6 +16,19 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Entry point to profileFragment (sign-in, profile, farm management) — otherwise unreachable
+         from any navigation destination (nav_graph.xml declares it but nothing links to it). -->
+    <TextView
+        android:id="@+id/homeProfileLink"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/spacing_sm"
+        android:text="@string/home_profile_link"
+        android:textSize="@dimen/text_body"
+        app:layout_constraintBottom_toBottomOf="@id/homeTitle"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/homeTitle" />
+
     <!--
         Primary "Scan Corn Leaf" call-to-action. One tap from Home reaches the camera screen,
         satisfying the "camera reachable within three taps" NFR

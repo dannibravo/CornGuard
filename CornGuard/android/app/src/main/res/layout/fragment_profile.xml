@@ -109,6 +109,17 @@
                 android:minHeight="@dimen/touch_target_min"
                 android:text="@string/profile_add_farm_action" />
 
+            <!-- Shown only once ServiceLocator.authRepository.isCurrentUserAdmin() resolves true. -->
+            <Button
+                android:id="@+id/profileAdminReviewButton"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_lg"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/profile_admin_review_link"
+                android:visibility="gone" />
+
         </LinearLayout>
 
     </LinearLayout>
