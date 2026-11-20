@@ -3,14 +3,16 @@
 // Status: illustrative draft implementing security/access-control-matrix.md.
 // This does NOT resolve D-01 (Firestore vs Realtime Database) — it is written so the
 // team can evaluate a concrete Firestore binding without treating it as the final decision.
-// Do not deploy to a production project until D-01, D-02, D-03, D-07 have team-recorded
-// decisions (per claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md) and this file has been
-// peer-reviewed per claude/04_DEVELOPMENT_RULES.md #13.
+// Do not deploy to a production project until D-01 has a team-recorded decision (per
+// claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md) and this file has been peer-reviewed per
+// claude/04_DEVELOPMENT_RULES.md #13. D-02, D-03, and D-07 are resolved (2026-10-30 Team
+// Decisions in the same file) and already match the rules below unchanged.
 //
 // Role model: `role` is NEVER a client-writable Firestore field. Admin status is asserted only
 // via a custom auth claim (request.auth.token.role == 'admin'), which is set exclusively by a
-// trusted backend process using the Admin SDK. A `technician` claim is intentionally never
-// checked here — that role stays disabled until D-02 is resolved.
+// trusted backend process using the Admin SDK. Per D-02 (resolved 2026-10-30), Agricultural
+// Technician is removed from MVP scope — a `technician` claim is intentionally never checked
+// here; verification is Admin-only, permanently, not pending a future role decision.
 
 rules_version = '2';
 
@@ -78,8 +80,52 @@ service cloud.firestore {
             && unchanged('verified_by')
             && unchanged('verified_at'));
 
+      // Deleting the source record must never leave its verifiedOccurrences projection
+      // (if one exists) behind: existsAfter() reflects the projection's existence once every
+      // write in this same atomic operation (batch or transaction) has applied, not just its
+      // state right now. If no projection exists, existsAfter() is false and a plain single
+      // delete still works unchanged. If a projection exists, this delete is only allowed when
+      // the SAME commit also removes it (FirebaseDiagnosisSharingRepository.deleteSharedRecord's
+      // WriteBatch does this unconditionally) — a bare single-document delete that would leave it
+      // behind is rejected. Applies to both owner and admin: the no-orphan invariant doesn't
+      // depend on who is deleting.
+      allow delete: if (isAdmin() || (isSignedIn() && resource.data.user_id == request.auth.uid))
+        && !existsAfter(/databases/$(database)/documents/verifiedOccurrences/$(recordId));
+
+      // ---------- diagnosisRecordsCloud/{recordId}/verificationHistory/{entryId} ----------
+      // Append-only audit trail (Phase 2, resolved 2026-10-30 — see D-02 in
+      // claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md). Only an admin verification/rejection
+      // action creates an entry (written in the same WriteBatch as the parent record's
+      // verification fields — FirebaseAdminRepository.setDiagnosisVerification). Entries are
+      // never editable or deletable by anyone, including admins, once written.
+      match /verificationHistory/{entryId} {
+        allow read: if isAdmin()
+          || (isSignedIn() && get(/databases/$(database)/documents/diagnosisRecordsCloud/$(recordId)).data.user_id == request.auth.uid);
+        allow create: if isAdmin();
+        allow update, delete: if false;
+      }
+    }
+
+    // ---------- verifiedOccurrences/{recordId} ----------
+    // Redacted, public-safe projection of an admin-verified diagnosisRecordsCloud document
+    // (Phase 4, resolved 2026-10-30). Same doc ID as its source record. Written only by the admin
+    // verify/reject WriteBatch (FirebaseAdminRepository.setDiagnosisVerification) — never contains
+    // user_id, farm_id, verified_by, or un-rounded coordinates; see
+    // firebase/schema/logical-schema.md for the exact field list. access-control-matrix.md Rule #9
+    // ("public-facing surfaces read from barangay/municipality/province, not raw lat/lng, unless a
+    // future approved design says otherwise") is what this collection is that approved design for.
+    //
+    // Delete is also allowed to the ORIGINAL record's owner, not just admin: diagnosisRecordsCloud
+    // already allows an owner to delete their own record regardless of verification status, and
+    // this must never be able to leave an orphaned, still-publicly-readable projection behind.
+    // FirebaseDiagnosisSharingRepository.deleteSharedRecord deletes both documents in one
+    // WriteBatch — this rule is what makes that batch valid for a non-admin owner.
+    match /verifiedOccurrences/{recordId} {
+      allow read: if isSignedIn();
+      allow create, update: if isAdmin();
       allow delete: if isAdmin()
-        || (isSignedIn() && resource.data.user_id == request.auth.uid);
+        || (isSignedIn()
+            && get(/databases/$(database)/documents/diagnosisRecordsCloud/$(recordId)).data.user_id == request.auth.uid);
     }
 
     // ---------- communityPosts/{postId} ----------
@@ -147,7 +193,10 @@ service cloud.firestore {
     }
 
     // ---------- outbreakRules/{ruleId} ----------
-    // Not publicly readable — avoids leaking un-approved thresholds (D-07).
+    // Not publicly readable — admin-only, by design, even now that D-07 has an initial resolved
+    // threshold (2026-10-30 Team Decision): those numbers are explicitly a project-defined
+    // operational starting point, not scientifically validated, so they stay reviewable/editable
+    // by Admin only rather than exposed as if they were settled public criteria.
     match /outbreakRules/{ruleId} {
       allow read, create, update, delete: if isAdmin();
     }

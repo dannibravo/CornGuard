@@ -33,6 +33,9 @@ class HomeFragment : Fragment() {
         binding.scanCtaButton.setOnClickListener {
             findNavController().navigate(R.id.action_home_to_scan)
         }
+        binding.homeProfileLink.setOnClickListener {
+            findNavController().navigate(R.id.profileFragment)
+        }
     }
 
     override fun onDestroyView() {

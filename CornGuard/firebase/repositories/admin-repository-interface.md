@@ -27,13 +27,37 @@ this repository's verification methods produce).
 ## Operations
 
 ```
-verifyDiagnosisRecord(recordId: string, adminUid: string) -> void
-rejectDiagnosisRecord(recordId: string, adminUid: string) -> void
+verifyDiagnosisRecord(recordId: string, adminUid: string, note: string? = null) -> void
+rejectDiagnosisRecord(recordId: string, adminUid: string, note: string? = null) -> void
+
+  Sets verification_status ("verified" | "rejected"), verified_by, verified_at on
+  diagnosisRecordsCloud/{recordId}, appends one entry to its verificationHistory subcollection,
+  AND creates/updates (verify) or deletes (reject) its verifiedOccurrences/{recordId} public
+  projection — all three writes commit in the same WriteBatch (Phase 2 + Phase 4, resolved
+  2026-10-30), so the record's status, its audit trail, and its public map marker can never
+  diverge. [note] is an optional free-text reason, stored on the history entry only, never on the
+  record or the public projection. Verifying a record with no latitude/longitude produces no
+  projection (no invented coordinates) — verification still succeeds, it just won't appear on the
+  map. Rejecting a previously-verified record removes its projection even if one never existed
+  (harmless no-op delete).
+
 verifyPost(postId: string, adminUid: string) -> void
 rejectPost(postId: string, adminUid: string) -> void
 
   Sets verification_status ("verified" | "rejected"), verified_by, verified_at on
-  diagnosisRecordsCloud/{recordId} or communityPosts/{postId} respectively.
+  communityPosts/{postId}. Deliberately unchanged by Phase 2 — posts do not get a
+  verificationHistory subcollection this phase.
+
+getPendingDiagnosisRecords(limit: int = 100) -> List<DiagnosisRecordCloud>
+
+  diagnosisRecordsCloud documents with verification_status == "unverified", sorted oldest-first
+  client-side (a single-field equality query needs no composite index). Powers the Admin Review
+  queue.
+
+getVerificationHistory(recordId: string) -> List<VerificationHistoryEntry>
+
+  VerificationHistoryEntry { entry_id, action ("verified" | "rejected"), actor_user_id, at,
+  note? } — oldest-first. Empty (not an error) for a record with no history entries yet.
 
 setPostModerationStatus(postId: string, status: "visible" | "hidden" | "removed") -> void
 setCommentModerationStatus(postId: string, commentId: string, status: "visible" | "hidden" | "removed") -> void
@@ -65,6 +89,10 @@ getRecentNotifications(limit: int) -> List<NotificationLogEntry>
   the Development Rules explicitly say no production threshold may be set without expert approval
   (D-07); this repository does not add a path around that, and none is planned until D-07
   resolves.
-- No audit trail / change history beyond what `verified_by`/`verified_at` already capture on the
-  record itself — a dedicated moderation-log collection would be new schema, out of scope for a
-  retroactive doc describing what's already built.
+- ~~No audit trail / change history~~ — resolved 2026-10-30 (Phase 2): see
+  `verificationHistory` above. This remains true for `communityPosts` — no audit trail exists for
+  post verification/moderation; only diagnosis records get one this phase.
+- No admin UI for resolving a *rejected* record back to unverified, or for re-verifying a record
+  an admin previously rejected — `rejectDiagnosisRecord` is a terminal action in this phase's UI
+  (`AdminReviewFragment` only shows `unverified` records, so a rejected one simply drops out of
+  the queue). Reopening a rejected record is unimplemented, not merely hidden.
