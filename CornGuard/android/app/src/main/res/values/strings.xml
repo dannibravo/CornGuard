@@ -44,6 +44,9 @@
     <string name="result_shared_action_done">Shared to Community</string>
     <string name="result_share_requires_sign_in">Sign in to share this result with the community.</string>
     <string name="result_share_failed">Couldn\'t share this result. Check your connection and try again.</string>
+    <string name="home_profile_link">Profile</string>
+    <string name="result_select_farm_title">Which farm is this from?</string>
+    <string name="result_select_farm_skip">Skip</string>
     <string name="treatment_title">Treatment Recommendation</string>
     <string name="treatment_symptoms_label">What to look for</string>
     <string name="treatment_steps_label">Management steps</string>
@@ -70,8 +73,15 @@
         AI-detected scans an admin has confirmed — not every community report.</string>
     <string name="map_nearby_title">Nearby Community Reports</string>
     <string name="map_nearby_empty">No community reports in your area yet.</string>
-    <string name="map_list_view_note">Shown as a list, not a map — CornGuard doesn\'t have a map
-        provider wired in yet.</string>
+    <string name="map_list_view_note">Reports below are also shown as lists — the heatmap overlay
+        isn\'t built yet.</string>
+    <string name="map_legend_verified">Admin-verified occurrence</string>
+    <string name="map_legend_unverified">Unverified community report</string>
+    <string name="map_markers_error">Couldn\'t load map markers. Check your connection and try again.</string>
+    <string name="map_marker_verified_prefix">Verified</string>
+    <string name="map_marker_unverified_prefix">Unverified report</string>
+    <string name="map_marker_photo_yes">Photo attached</string>
+    <string name="map_marker_photo_no">No photo</string>
 
     <!-- Community -->
     <string name="community_title">Community</string>
@@ -137,4 +147,20 @@
     <string name="profile_farms_empty">No farms added yet.</string>
     <string name="profile_farm_added_from_profile_address">Uses your profile\'s barangay,
         municipality, and province.</string>
+    <string name="profile_admin_review_link">Admin Review</string>
+
+    <!-- Admin Review (Phase 2 — structured verification workflow) -->
+    <string name="admin_review_title">Admin Review</string>
+    <string name="admin_review_sign_in_prompt">Sign in to review pending reports.</string>
+    <string name="admin_review_access_denied">Admin access required. This account is not authorized to review reports.</string>
+    <string name="admin_review_empty">No pending reports right now.</string>
+    <string name="admin_review_load_failed">Couldn\'t load pending reports. Check your connection and try again.</string>
+    <string name="admin_review_verify_action">Verify</string>
+    <string name="admin_review_reject_action">Reject</string>
+    <string name="admin_review_action_failed">Couldn\'t update this record. Try again.</string>
+    <string name="admin_review_meta_format">%1$d%% confidence • %2$s • %3$s • %4$s</string>
+    <string name="admin_review_farm_linked">Farm linked</string>
+    <string name="admin_review_no_farm">No farm linked</string>
+    <string name="admin_review_has_image">Photo attached</string>
+    <string name="admin_review_no_image">No photo</string>
 </resources>

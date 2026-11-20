@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="@dimen/spacing_lg">
+
+    <TextView
+        android:id="@+id/adminReviewTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/admin_review_title"
+        android:textSize="@dimen/text_title"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Shown when signed out -->
+    <TextView
+        android:id="@+id/adminReviewSignInPrompt"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_lg"
+        android:text="@string/admin_review_sign_in_prompt"
+        android:textSize="@dimen/text_body"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/adminReviewTitle" />
+
+    <Button
+        android:id="@+id/adminReviewSignInButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:minHeight="@dimen/touch_target_min"
+        android:text="@string/auth_required_signin_cta"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/adminReviewSignInPrompt" />
+
+    <!--
+        Shown when signed in but the id-token role claim isn't "admin". This is a UI convenience
+        only — reaching this fragment by direct navigation (not just hiding the Profile entry
+        point) is itself the test for this state; the real enforcement is always the Firestore
+        rule, not this screen (claude/04_DEVELOPMENT_RULES.md #14).
+    -->
+    <TextView
+        android:id="@+id/adminReviewAccessDenied"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_lg"
+        android:text="@string/admin_review_access_denied"
+        android:textSize="@dimen/text_body"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/adminReviewTitle" />
+
+    <TextView
+        android:id="@+id/adminReviewEmptyState"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_lg"
+        android:text="@string/admin_review_empty"
+        android:textSize="@dimen/text_body"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/adminReviewTitle" />
+
+    <TextView
+        android:id="@+id/adminReviewError"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_lg"
+        android:textColor="#B3261E"
+        android:textSize="@dimen/text_body"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/adminReviewTitle"
+        tools:text="Couldn't load pending reports. Check your connection and try again." />
+
+    <!-- Shown only once signed in AND the admin check passes -->
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/adminReviewSwipeRefresh"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/adminReviewTitle">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/adminReviewRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            tools:listitem="@layout/item_pending_diagnosis" />
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

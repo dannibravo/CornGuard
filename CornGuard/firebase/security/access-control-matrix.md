@@ -23,7 +23,8 @@ Ground rules (from `claude/04_DEVELOPMENT_RULES.md` and `claude/08_DATA_AND_INTE
 |---|---|---|---|---|
 | `users/{uid}` | self, on signup (fixed `role: farmer`, cannot self-assign `admin`) | self; admin (any) | self — allowed fields only (`display_name`, `barangay`, `municipality`, `province`); `role`, `account_status`, `farm_ids` are backend/admin-only | admin only |
 | `farms/{farmId}` | owner (`owner_user_id == auth.uid`) | owner; admin | owner; admin | owner; admin |
-| `diagnosisRecordsCloud/{id}` | owner (`user_id == auth.uid`), and only for scans the farmer chose to share (D-11) | owner; admin | owner (non-verification fields only); admin/verifier (verification fields only, disabled pending D-02) | owner; admin |
+| `diagnosisRecordsCloud/{id}` | owner (`user_id == auth.uid`), and only for scans the farmer chose to share (D-11) | owner; admin | owner (non-verification fields only); admin (verification fields only, resolved 2026-10-30) | owner; admin |
+| `verifiedOccurrences/{recordId}` | admin only (verify action) | any authenticated user (redacted projection — Rule #9's "future approved design") | admin only | admin; the source record's owner (prevents an orphaned public projection when they delete their own record) |
 | `communityPosts/{id}` | any authenticated user (`user_id == auth.uid`) | any authenticated user | owner (content fields); admin (moderation fields) | owner; admin |
 | `communityPosts/{id}/comments/{id}` | any authenticated user (`user_id == auth.uid`) | any authenticated user | owner (own comment body); admin (moderation) | owner; admin |
 | `communityPosts/{id}/votes/{uid}` | the voting user, doc ID == their own uid (one vote/user/post structurally) | any authenticated user (for counting) | denied (delete + recreate to change vote) | the voting user; admin |
@@ -37,11 +38,12 @@ Ground rules (from `claude/04_DEVELOPMENT_RULES.md` and `claude/08_DATA_AND_INTE
 - `communityPosts.upvote_count` — server/Cloud-Function computed from the `votes` subcollection;
   rules must reject any direct client write to this field (Data Contract: "do not trust
   client-supplied aggregate count").
-- `diagnosisRecordsCloud.verification_status` / `verified_by` / `verified_at` — write access is
-  structurally reserved but has **no authorized writer** until D-02 confirms who is allowed to
-  verify. Until then, these fields are admin-only to touch, and admin verification (if it happens
-  at all pre-D-02) must be treated as provisional, not production outbreak confirmation (D-07,
-  D-08).
+- `diagnosisRecordsCloud.verification_status` / `verified_by` / `verified_at` — D-02 resolved
+  2026-10-30: Admin-only to touch (`FirebaseAdminRepository.verifyDiagnosisRecord`/
+  `rejectDiagnosisRecord`), written atomically with a `verificationHistory` entry and the
+  `verifiedOccurrences` projection (Phase 2/4). Still provisional, not production outbreak
+  confirmation — D-07/D-08 govern whether a verified count ever becomes an outbreak signal, which
+  stays separate and still-gated.
 - `outbreakRules.active` — must default to and be enforced as `false` at the rules level for any
   document lacking `approved_by`/`approved_at`, so a rules bug can't accidentally let an
   unapproved threshold go live.

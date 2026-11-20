@@ -87,6 +87,18 @@ project — both require the Blaze billing plan, which the team deferred (see
 `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`'s D-01 dev-provisioning note). Firestore
 (database, rules, and indexes) **is** live and deployed.
 
+**Cloud Storage is an optional dependency for diagnosis sharing, not a blocking one** (resolved
+2026-10-30, after Test 6 of the Phase 1 test plan surfaced the coupling empirically). Sharing a
+diagnosis record writes its metadata (disease classification, confidence, farm linkage,
+barangay/municipality/province, timestamps, latitude/longitude where captured) straight to
+`diagnosisRecordsCloud` regardless of whether the image upload succeeds — `FirebaseDiagnosisSharingRepository.shareScan()`
+treats a failed/unavailable Storage upload as "no image," not as a share failure, and records this
+explicitly via a `has_image` field (`schema/logical-schema.md` has the field-level details; the
+repository interface doc under `repositories/` predates this change and is not yet updated to
+match). Only a failure of the Firestore metadata write
+itself fails the share. This means diagnosis sharing, farm linkage, and (once built) outbreak
+aggregation do not need the Blaze plan at all — only attaching a photo to a shared record does.
+
 ## What this directory deliberately does NOT do
 
 Per `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`, none of the following decision gates are

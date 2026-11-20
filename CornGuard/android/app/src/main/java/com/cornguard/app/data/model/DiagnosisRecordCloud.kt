@@ -23,5 +23,21 @@ data class DiagnosisRecordCloud(
     val province: String,
     val modelVersion: String,
     val verificationStatus: String,
-    val source: String
+    val source: String,
+
+    /** Present only if the original local scan captured a location (claude/04_DEVELOPMENT_RULES.md #9). */
+    val latitude: Double?,
+    val longitude: Double?,
+
+    /** Set only by AdminRepository.verifyDiagnosisRecord/rejectDiagnosisRecord — see D-02. */
+    val verifiedBy: String?,
+    val verifiedAt: Long?,
+
+    /**
+     * Authoritative signal of whether an image is actually attached — Cloud Storage is an
+     * optional dependency (not currently provisioned on cornguard-dev), so [imageUrl] can be
+     * absent even when the original local scan had a photo. Do not infer image presence from
+     * [imageUrl] alone.
+     */
+    val hasImage: Boolean
 )

@@ -54,18 +54,58 @@ Created only for scans the farmer explicitly shares (default is local-only, per 
 | Field | Type | Notes |
 |---|---|---|
 | `user_id` | string (ref → users) | |
-| `farm_id` | string (ref → farms), optional | pending D-03 |
+| `farm_id` | string (ref → farms), optional | D-03 resolved 2026-10-30: one farmer may have multiple farms; a shared record should link to the farm it came from, but remains optional here for farmers with no farm on file |
 | `disease_code` | string enum: `common_rust` \| `gray_leaf_spot` \| `northern_leaf_blight` \| `healthy` | |
 | `confidence` | float [0.0–1.0] | |
-| `image_url` | string, optional | Cloud Storage download URL |
+| `image_url` | string, optional | Cloud Storage download URL. Absent whenever Storage is unavailable/not provisioned (cornguard-dev currently has no Storage — Blaze plan deferred) or the upload failed, not only when no photo was taken — do not infer image presence from this field alone |
+| `has_image` | bool | resolved 2026-10-30: authoritative signal of whether an image actually attached. Always set on new writes; on a document written before this field existed, treat as `image_url != null` |
 | `captured_at` | timestamp | |
 | `latitude` / `longitude` | float, optional | |
 | `barangay` / `municipality` / `province` | string | |
 | `model_version` | string | mandatory per Model Versioning rule |
 | `verification_status` | string enum: `unverified` \| `verified` \| `rejected` | default `unverified` |
-| `verified_by` | string, optional | ref → users (admin/technician once approved) |
+| `verified_by` | string, optional | ref → users (admin only — D-02 resolved 2026-10-30: no technician role in MVP) |
 | `verified_at` | timestamp, optional | |
 | `source` | string enum: `ai_scan` \| `manual` | |
+
+## `diagnosisRecordsCloud/{recordId}/verificationHistory/{entryId}`
+
+Resolved 2026-10-30 (Phase 2, D-02's deferred audit-trail item). Append-only — written exactly
+once per `verifyDiagnosisRecord`/`rejectDiagnosisRecord` call, in the same `WriteBatch` as the
+parent record's `verification_status`/`verified_by`/`verified_at` update, so the two can never
+diverge. Never updated or deleted by anyone, including admins, once written. Absent entirely for
+any record that predates this phase or has never been verified/rejected — an empty history is
+expected, not an error.
+
+| Field | Type | Notes |
+|---|---|---|
+| `action` | string enum: `verified` \| `rejected` | matches the parent record's new `verification_status` at the moment this entry was written |
+| `actor_user_id` | string (ref → users) | the admin who took the action |
+| `at` | timestamp | |
+| `note` | string, optional | free-text reason (e.g. why rejected); never required, never shown to the reported farmer in this phase |
+
+## `verifiedOccurrences/{recordId}`
+
+Resolved 2026-10-30 (Phase 4). Redacted, public-safe projection of an admin-verified
+`diagnosisRecordsCloud` document — same doc ID as its source record. Written/updated only by the
+admin verify action, deleted by the admin reject action or (for their own record) the record
+owner, all atomically with the source record's own update — see
+`repositories/admin-repository-interface.md` and `diagnosis-sharing-repository-interface.md`.
+Exists only for records that both (a) were verified and (b) had coordinates — a verified record
+with no location produces no projection and no map marker.
+
+| Field | Type | Notes |
+|---|---|---|
+| `disease_code` | string enum: 4 model classes | |
+| `latitude` / `longitude` | float | rounded to 3 decimal places (~110m) from the source record's exact coordinates — never the exact value |
+| `barangay` / `municipality` / `province` | string | |
+| `captured_at` | timestamp | |
+| `has_image` | bool | |
+| `confidence` | float [0.0–1.0] | |
+| `verified_at` | timestamp | |
+
+Deliberately absent: `user_id`, `farm_id`, `verified_by`, `image_url` (even if the source record
+has one), exact coordinates. Nothing in this collection identifies who made the report.
 
 ## `communityPosts/{postId}`
 
@@ -92,7 +132,7 @@ Single-level nesting only (per Data Contract: "unlimited nesting" is not require
 |---|---|---|
 | `user_id` | string (ref → users) | |
 | `body` | string | |
-| `verification_or_expert_flag` | bool | inert/unused until D-02 resolved |
+| `verification_or_expert_flag` | bool | inert/unused — D-02 (resolved 2026-10-30) removed the technician role this flag was for; kept for schema compatibility, not wired to anything |
 | `moderation_status` | string enum: `visible` \| `hidden` \| `removed` | |
 | `created_at` | timestamp | |
 

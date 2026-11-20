@@ -55,6 +55,21 @@ submitOccurrenceLocation(occurrenceId: string, location: GeoPoint, area: Adminis
   public visibility — that is governed by the Firestore/Storage rules and verification status.
 ```
 
+## Phase 4 resolution note (2026-10-30)
+
+The actual Kotlin implementation (`GisRepository`/`FirebaseGisRepository`) ended up with a
+simpler, narrower shape than this Sprint-0 sketch — `getVerifiedOccurrences(areaFilter,
+diseaseFilter, limit)` and `getNearbyReports(...)`, not the `getNearbyOccurrences(center,
+radiusKm, ...)` radius-search shape above. This doc's `DiseaseOccurrence.location` ambiguity
+("GeoPoint | AdministrativeArea... unless a future approved design permits point-level display of
+others' data") is now resolved for verified occurrences specifically: a new `verifiedOccurrences`
+Firestore collection (see `schema/logical-schema.md`) is exactly that future approved design —
+redacted, rounded-to-3-decimals `GeoPoint`s, readable by any signed-in user, written only by the
+admin verify/reject action. Unverified reports still only ever expose what `communityPosts`
+already exposed (full precision `latitude`/`longitude` on that collection, already publicly
+readable per D-08 — this phase did not change that). `getHeatmapAggregates` is untouched by Phase
+4 and remains exactly the aggregation-only, no-coordinates method described below.
+
 ## Explicit non-goals of this interface (pending decision gates)
 
 - No outbreak-declaration logic lives here — `getHeatmapAggregates` returns counts only; whether

@@ -34,6 +34,14 @@ class FirebaseAuthRepository(
 
     override fun getCurrentUser(): AuthUser? = auth.currentUser?.toAuthUser()
 
+    override suspend fun isCurrentUserAdmin(): Boolean {
+        val user = auth.currentUser ?: return false
+        return runCatching {
+            // forceRefresh=true: see the doc comment on the interface method for why.
+            user.getIdToken(true).await().claims["role"] == "admin"
+        }.getOrDefault(false)
+    }
+
     override fun observeAuthState(): Flow<AuthUser?> = callbackFlow {
         val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
             trySend(firebaseAuth.currentUser?.toAuthUser())
