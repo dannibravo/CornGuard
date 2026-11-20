@@ -8,9 +8,9 @@ import kotlinx.coroutines.flow.Flow
  * Profile and farm data boundary. Mirrors
  * firebase/repositories/user-farm-repository-interface.md — see that file for the full contract.
  *
- * Callable more than once per user; does not enforce a one-farm limit (D-03 is not resolved —
- * claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md). If the team later decides "one farm per
- * farmer," that's a UI-layer restriction, not a change to this interface.
+ * Callable more than once per user; does not enforce a one-farm limit. This is now the confirmed
+ * design per D-03 (resolved 2026-10-30, claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md): one
+ * farmer may register and manage multiple farms.
  *
  * Online-only, same connectivity-handling expectation as AuthRepository.
  */

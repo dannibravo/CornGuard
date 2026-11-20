@@ -32,6 +32,20 @@ chooses Realtime Database, the `cornguard-dev` Firestore instance is disposable 
 security-matrix work in `firebase/` does not need to change, since it was written implementation-
 agnostic per the Allowed work rule.
 
+### Storage-independent diagnosis sharing (resolved 2026-10-30)
+Phase 1 testing (Test 6) empirically confirmed that `FirebaseDiagnosisSharingRepository.shareScan()`
+failed entirely when Cloud Storage returned 404 (not provisioned on `cornguard-dev` — see the
+dev-provisioning note below), because the image upload and the Firestore metadata write were one
+inseparable operation. The team decided NOT to authorize a Blaze billing upgrade at this time, and
+instead to decouple the two: a failed or unavailable image upload now degrades to "no image"
+(`has_image: false`) rather than failing the share. Diagnosis metadata (classification, confidence,
+farm linkage, location, timestamps) shares successfully regardless of Storage availability; only
+the photo attachment itself depends on Storage. Approved by: CornGuard team. Files affected:
+`FirebaseDiagnosisSharingRepository.kt`, `DiagnosisRecordCloud.kt`,
+`DiagnosisSharingRepository.kt`, `firebase/README.md`, `firebase/schema/logical-schema.md`. No
+Firestore security rule changed — the existing `allow create` rule already permitted this field
+shape unchanged.
+
 ### Sprint 3 continuation note (2026-09-21)
 Ligue and Acenas are unavailable to participate in the formal D-01 decision this file requires
 before Sprint 3 work begins. Rather than block all Sprint 3 Panes work indefinitely, development
@@ -65,6 +79,42 @@ Confirm whether Agricultural Technician is:
 ### Recommended data preparation
 Keep role/verification fields extensible so the role can be added without destructive migration.
 
+### Team Decision (resolved 2026-10-30)
+- Decision ID: D-02
+- Date: 2026-10-30
+- Decision: Agricultural Technician is removed from MVP scope. The existing Admin role (not a new
+  claim) handles all disease-report verification — approve or reject a submitted
+  `diagnosisRecordsCloud` document. `verified_by` and `verified_at` are recorded on the document
+  (already implemented — see `AdminRepository.verifyDiagnosisRecord`/`rejectDiagnosisRecord`).
+  Only `verification_status == "verified"` reports may contribute to outbreak aggregation (D-07).
+  An auditable verification history (append-only, not just the overwritten status field) must be
+  preserved — **not yet implemented**; this is Phase 2 (structured verification workflow) schema
+  work, not part of this round's authorized Phase 0/1 changes.
+- Approved by: CornGuard team + adviser
+- Reason: matches the system already built (Admin is already a confirmed role distinct from the
+  gated Technician role, per `AdminRepository`'s own doc comment) without introducing an
+  unapproved new role.
+- Files/contracts affected: none required this round — `firebase/security/firestore.rules` and
+  `AdminRepository`/`FirebaseAdminRepository` already implement exactly this shape. Planned for
+  Phase 2: a `diagnosisRecordsCloud/{recordId}/verificationHistory/{entryId}` subcollection
+  (fields: `action`, `actor_user_id`, `at`, `note?`) so verification stays auditable rather than a
+  silently-overwritten status.
+- Migration/refactor required: none now; the verification-history subcollection above is deferred
+  to Phase 2.
+
+### Phase 2 implementation (2026-10-30)
+The deferred verification-history item above is now implemented: `AdminReviewFragment` (new, under
+`ui/admin/`) lists pending records and lets an Admin verify/reject; `FirebaseAdminRepository`
+writes the record's verification fields and one `verificationHistory` entry atomically via a
+`WriteBatch`. Client-side admin detection reads the `role` custom claim off a force-refreshed ID
+token (`AuthRepository.isCurrentUserAdmin()`) — UI convenience only, not the enforcement point
+(the Firestore rule is). No Room schema change — `AdminRepository` stays online-only, same as
+every other Firebase-backed repository. **Not end-to-end verified**: this environment has no
+Firebase Admin SDK credentials available to promote a test account to admin (see the D-01
+dev-provisioning notes above for the same ADC constraint), so the verify/reject write path is
+code-reviewed, not live-tested against a real admin session. The non-admin gating (hidden entry
+point, blocked direct navigation, Firestore-rejected query) is live-tested.
+
 ---
 
 ## D-03 — Farm Entity and Farm Ownership
@@ -85,6 +135,28 @@ Confirm:
 
 ### Provisional safe design
 Use IDs rather than embedding all farm information into User or DiagnosisRecord. This keeps the schema compatible with either one-to-one or one-to-many ownership after approval.
+
+### Team Decision (resolved 2026-10-30)
+- Decision ID: D-03
+- Date: 2026-10-30
+- Decision: One farmer can register and manage multiple farms (1:N, farmer:farm — no cap). Each
+  farm has its own location (a point: latitude/longitude, plus barangay/municipality/province
+  labels) and its own diagnosis records; a diagnosis record is associated with the farm it came
+  from, not just the owning user. Farm location is a point, matching the existing `Farm.kt`/
+  `farms` Firestore schema — no boundary/polygon support.
+- Approved by: CornGuard team + adviser
+- Reason: panel requirement for farm-owner association, farm location, and multiple diagnosis
+  records per farm. This matches the data layer already built —
+  `UserFarmRepository`/`FirebaseUserFarmRepository.createFarm`/`getFarmsForUser` already impose no
+  one-farm limit, and `ProfileFragment` already lets a signed-in farmer add more than one farm.
+  What was missing was actually linking a shared diagnosis record to a chosen farm, which this
+  round's Phase 1 work closes (`DiagnosisResultFragment` now prompts for a farm when sharing).
+- Files/contracts affected: `UserFarmRepository.kt`/`ProfileFragment.kt` doc comments (updated
+  from "D-03 unresolved" to reflect this decision), `DiagnosisResultFragment.kt` (farm selection
+  added before `shareScan`).
+- Migration/refactor required: none to the data layer (already supports this cardinality). No
+  Room migration — farm data is intentionally cloud-only/online-only, same as `AuthRepository`;
+  there is no local Farm cache to migrate.
 
 ---
 
@@ -179,6 +251,37 @@ Agricultural experts/adviser must approve parameters such as:
 ### Development approach
 Implement a configurable rule structure and use clearly marked development-only values for testing.
 
+### Team Decision (resolved 2026-10-30)
+- Decision ID: D-07
+- Date: 2026-10-30
+- Decision: an initial, configurable, project-defined OPERATIONAL rule (stored in the existing
+  admin-only `outbreakRules` Firestore collection, not hardcoded):
+  - at least 3 verified reports,
+  - from at least 3 distinct farms,
+  - all reports concerning the same `disease_code`,
+  - all reports within the same barangay,
+  - within a rolling 7-day window,
+  - duplicate reports from the same farm do not inflate the count (dedupe by `farm_id` within the
+    window),
+  - reaching the threshold creates a **potential** outbreak for Admin review — it is never
+    auto-declared,
+  - community notifications are sent only after an Admin confirms the outbreak,
+  - an Admin can close an outbreak and must record a reason.
+- Approved by: CornGuard team + adviser
+- **Explicitly documented limitation**: these numbers are NOT derived from plant pathology or
+  epidemiological expertise. They are a project-defined operational starting point for the MVP,
+  pending review by a qualified agricultural expert or the Department of Agriculture, per the
+  panel's own requirement for expert-backed outbreak parameters. Revising them later is an
+  `outbreakRules` document update, not a code change.
+- Files/contracts affected: none this round. `firebase/security/firestore.rules`'s
+  `outbreakRules/{ruleId}` (admin-only read/write) already fits this design unchanged. Planned,
+  not yet implemented: an `outbreakRules` document shape (`min_verified_reports`,
+  `min_distinct_farms`, `disease_scope`, `geographic_scope: "barangay"`, `window_days`,
+  `dedupe_by_farm: true`) and a `potentialOutbreaks`/`outbreakEvents` collection for the
+  review/confirm/close workflow — both are Phase 6/7 feature work, not part of this round's
+  authorized Phase 0/1 changes.
+- Migration/refactor required: none now; deferred to Phase 6/7.
+
 ---
 
 ## D-08 — Community Content Verification
@@ -226,6 +329,19 @@ the required team decision**, and unlike D-01 it does not even bind any code yet
 already provider-agnostic per `firebase/gis/gis-service-interface.md` (no map-SDK types). The
 actual rendering/map-SDK dependency stays undone.
 
+### Phase 3/4 implementation (2026-10-30)
+osmdroid is now wired in (`MapFragment`, `CornGuardApplication`'s one-time `Configuration` setup)
+— base map tiles, pan/zoom, offline tile cache, confirmed via live device testing (online load,
+pan/zoom, backgrounding, and genuine offline reuse of previously-viewed tiles with connectivity
+fully disabled). Phase 4 added disease occurrence markers on top: a redacted `verifiedOccurrences`
+Firestore projection (new collection, new rule, see `schema/logical-schema.md` and
+`security/access-control-matrix.md`) for admin-verified occurrences, and reuse of the already-
+public `communityPosts` for unverified community reports — discovered along the way that
+`GisRepository.getVerifiedOccurrences()` had been silently returning empty for every non-admin
+user since it was first written, because `diagnosisRecordsCloud` is owner/admin read-only; the new
+projection is what actually fixes that for the map, not a loosening of the original collection's
+rule.
+
 If a pick becomes necessary later (e.g. for Ligue's Map screen before the team formally decides):
 **osmdroid (OpenStreetMap)** is the pragmatic lean over Google Maps Platform or Mapbox, specifically
 because it needs no billing account / API key at all — Google Maps Platform requires a GCP billing
@@ -236,6 +352,21 @@ Bukidnon field conditions. Its tradeoff: no official heatmap overlay library as 
 `android-maps-utils`, so a heatmap layer would need a community library or custom overlay — a cost
 worth paying to avoid another billing-account wall. This is Ligue's call to make or override when
 he reaches the Map screen (Sprint 4/5, `feature/map-ui`), not something this note locks in.
+
+### Team Decision (resolved 2026-10-30)
+- Decision ID: D-10
+- Date: 2026-10-30
+- Decision: osmdroid + OpenStreetMap is the approved map SDK, formally adopting the lean recorded
+  above. Priorities: low cost (no billing account/API key required) and offline-friendly
+  behavior. Location markers and a heatmap overlay must be implemented AND actually tested (tile
+  caching, offline behavior) before any documentation or presentation claims offline maps work.
+- Approved by: CornGuard team + adviser
+- Reason: avoids the Google Maps Platform/Mapbox billing-account requirement that already blocked
+  Storage/Functions work this project (Blaze plan), and fits Bukidnon field connectivity better.
+- Files/contracts affected: `android/app/build.gradle.kts` (new osmdroid dependency),
+  `MapFragment.kt`/`fragment_map.xml` (real rendering), `GisRepository` (heatmap overlay wiring).
+  Not part of this round's authorized Phase 0/1 work — scheduled for Phase 3/4.
+- Migration/refactor required: none to data schema; this is a UI/dependency addition.
 
 ---
 

@@ -11,6 +11,7 @@ import kotlinx.coroutines.tasks.await
 
 private const val POSTS_COLLECTION = "communityPosts"
 private const val RECORDS_COLLECTION = "diagnosisRecordsCloud"
+private const val VERIFIED_OCCURRENCES_COLLECTION = "verifiedOccurrences"
 private const val DEVICE_TOKENS_COLLECTION = "deviceTokens"
 
 /**
@@ -40,6 +41,9 @@ class FirebaseGisRepository(
             NearbyReportSummary(
                 postId = doc.id,
                 diseaseTag = diseaseTag,
+                latitude = doc.getDouble("latitude"),
+                longitude = doc.getDouble("longitude"),
+                linkedDiagnosisRecordId = doc.getString("linked_diagnosis_record_id"),
                 barangay = doc.getString("barangay") ?: "",
                 municipality = doc.getString("municipality") ?: "",
                 createdAt = doc.getTimestamp("created_at")?.toDate()?.time ?: 0L,
@@ -78,13 +82,20 @@ class FirebaseGisRepository(
         }
     }
 
+    /**
+     * Reads the redacted [VERIFIED_OCCURRENCES_COLLECTION] projection (Phase 4, resolved
+     * 2026-10-30) — NOT diagnosisRecordsCloud. That collection is owner/admin-read-only by
+     * design (access-control-matrix.md), so this used to be permission-denied for every
+     * non-admin caller; this projection is what "an admin verified it" actually makes visible to
+     * the wider signed-in community, with coordinates already rounded and no owner-identifying
+     * fields, by construction of how FirebaseAdminRepository writes it.
+     */
     override suspend fun getVerifiedOccurrences(
         areaFilter: Pair<String, String>,
         diseaseFilter: String?,
         limit: Int
     ): List<MapOccurrence> {
-        var query: Query = db.collection(RECORDS_COLLECTION)
-            .whereEqualTo("verification_status", "verified")
+        var query: Query = db.collection(VERIFIED_OCCURRENCES_COLLECTION)
             .whereEqualTo(areaFilter.first, areaFilter.second)
 
         diseaseFilter?.let { query = query.whereEqualTo("disease_code", it) }
@@ -93,13 +104,19 @@ class FirebaseGisRepository(
         val snapshot = query.get().await()
         return snapshot.documents.mapNotNull { doc ->
             val diseaseCode = doc.getString("disease_code") ?: return@mapNotNull null
+            val latitude = doc.getDouble("latitude") ?: return@mapNotNull null
+            val longitude = doc.getDouble("longitude") ?: return@mapNotNull null
             MapOccurrence(
                 occurrenceId = doc.id,
                 diseaseCode = diseaseCode,
+                latitude = latitude,
+                longitude = longitude,
                 barangay = doc.getString("barangay") ?: "",
                 municipality = doc.getString("municipality") ?: "",
                 occurredAt = doc.getLong("captured_at") ?: 0L,
-                verificationStatus = doc.getString("verification_status") ?: "unverified"
+                hasImage = doc.getBoolean("has_image") ?: false,
+                confidence = doc.getDouble("confidence")?.toFloat() ?: 0f,
+                verificationStatus = "verified"
             )
         }
     }

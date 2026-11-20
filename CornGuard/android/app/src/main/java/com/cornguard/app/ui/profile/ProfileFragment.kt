@@ -18,9 +18,10 @@ import kotlinx.coroutines.launch
 /**
  * Profile + farm list, against [com.cornguard.app.data.repository.UserFarmRepository]. Online-only
  * with the same sign-in-prompt pattern as Community/Map. A new farm reuses the signed-in user's
- * profile barangay/municipality/province rather than collecting a second address — D-03 (one farm
- * per farmer vs. many) is unresolved, so this deliberately doesn't assume a farm-specific address
- * form is even the right shape yet (claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md).
+ * profile barangay/municipality/province rather than collecting a second address. One farmer
+ * managing multiple farms is the confirmed design per D-03 (resolved 2026-10-30,
+ * claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md); a farm-specific address/location form is a
+ * later refinement, not required by that decision.
  */
 class ProfileFragment : Fragment() {
 
@@ -47,6 +48,9 @@ class ProfileFragment : Fragment() {
         }
         binding.profileSignOutButton.setOnClickListener { signOut() }
         binding.profileAddFarmButton.setOnClickListener { addFarm() }
+        binding.profileAdminReviewButton.setOnClickListener {
+            findNavController().navigate(R.id.adminReviewFragment)
+        }
 
         observeAuthState()
     }
@@ -63,9 +67,19 @@ class ProfileFragment : Fragment() {
                         binding.profileSignedInAs.text =
                             getString(R.string.auth_signed_in_as, user!!.email ?: user.uid)
                         loadFarms(user.uid)
+                        checkAdmin()
+                    } else {
+                        binding.profileAdminReviewButton.visibility = View.GONE
                     }
                 }
             }
+        }
+    }
+
+    private fun checkAdmin() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val isAdmin = runCatching { ServiceLocator.authRepository.isCurrentUserAdmin() }.getOrDefault(false)
+            binding.profileAdminReviewButton.visibility = if (isAdmin) View.VISIBLE else View.GONE
         }
     }
 

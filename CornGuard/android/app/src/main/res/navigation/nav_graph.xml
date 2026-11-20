@@ -125,4 +125,16 @@
         android:label="@string/profile_title"
         tools:layout="@layout/fragment_profile" />
 
+    <!--
+        Phase 2 (structured verification workflow). Reachable from ProfileFragment's Admin Review
+        link, which is itself hidden for non-admins — but the fragment independently re-checks the
+        admin role claim on every entry, so direct navigation here is also safely gated (see
+        AdminReviewFragment's doc comment).
+    -->
+    <fragment
+        android:id="@+id/adminReviewFragment"
+        android:name="com.cornguard.app.ui.admin.AdminReviewFragment"
+        android:label="@string/admin_review_title"
+        tools:layout="@layout/fragment_admin_review" />
+
 </navigation>

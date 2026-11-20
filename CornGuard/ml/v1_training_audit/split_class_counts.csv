@@ -1,0 +1,6 @@
+class_label,train,train_pct_of_class,val,val_pct_of_class,test,test_pct_of_class,total
+common_rust,914,69.98,196,15.01,196,15.01,1306
+gray_leaf_spot,401,69.86,86,14.98,87,15.16,574
+northern_leaf_blight,802,69.98,172,15.01,172,15.01,1146
+healthy,813,69.97,174,14.97,175,15.06,1162
+ALL_CLASSES_TOTAL,2930,69.96,628,15.0,630,15.04,4188

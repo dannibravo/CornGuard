@@ -28,4 +28,16 @@ interface AuthRepository {
 
     /** Emits the current user immediately, then again on every sign-in/sign-out. */
     fun observeAuthState(): Flow<AuthUser?>
+
+    /**
+     * Reads the `role` custom claim off a force-refreshed ID token — the same claim
+     * security/firestore.rules checks via `isAdmin()`. Force-refreshing (rather than using a
+     * cached token) matters here specifically: a user just promoted to admin via
+     * `AdminRepository.promoteToAdmin`/`bootstrap-first-admin.mjs` must not see a stale "not
+     * admin" result from a token cached before the claim was set. Returns `false` (never throws)
+     * if no user is signed in or the token fetch fails — this is a UI-gating convenience only,
+     * per claude/04_DEVELOPMENT_RULES.md #14 ("client-side UI hiding is not authorization"); the
+     * actual enforcement is always the Firestore rule itself.
+     */
+    suspend fun isCurrentUserAdmin(): Boolean
 }

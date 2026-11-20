@@ -58,14 +58,23 @@ deleteSharedRecord(recordId: string) -> void
   Per the Data and Integration Contract: deleting a cloud-shared record must NOT delete the local
   SQLite history entry unless the user explicitly deletes that local record too — those are two
   separate user actions, not one cascading operation.
+
+  Resolved 2026-10-30 (Phase 4): also deletes `verifiedOccurrences/{recordId}` in the same
+  WriteBatch as the diagnosisRecordsCloud delete — a no-op if that record was never verified, but
+  required if it was: `verifiedOccurrences` is readable by any signed-in user, so deleting only
+  the source record would leave a public, owner-identifying-free but still-stale projection
+  behind. `security/firestore.rules` grants the record's owner delete rights on the matching
+  `verifiedOccurrences` doc specifically so this non-admin-initiated batch is valid.
 ```
 
 ## Explicit non-goals
 
-- No verification-field writes (`verification_status`, `verified_by`, `verified_at`) — reserved,
-  inert until D-02 resolves who is authorized to verify.
-- No GIS aggregation logic — a shared record becoming visible on the disease map/heatmap is the
-  GIS service's read-side concern (`gis/gis-service-interface.md`), not something this repository
-  triggers directly.
+- No verification-field writes (`verification_status`, `verified_by`, `verified_at`) — admin-only,
+  via `AdminRepository`, not this repository (D-02 resolved 2026-10-30).
+- No GIS aggregation logic — a shared record becoming visible on the disease map (as a marker,
+  Phase 4) is the GIS service's read-side concern (`gis/gis-service-interface.md`) and the admin
+  verification path's write-side concern (`admin-repository-interface.md`), not something this
+  repository triggers directly. It only cleans up the public projection on delete (above) —
+  it never creates one.
 - Does not decide whether every scan gets auto-shared — per D-11, the UI must present an explicit
   share action; this repository has no "share automatically" mode.

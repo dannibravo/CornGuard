@@ -18,7 +18,13 @@ import kotlinx.coroutines.flow.Flow
 interface DiagnosisSharingRepository {
 
     /**
-     * Uploads [record]'s image and creates the corresponding diagnosisRecordsCloud document.
+     * Creates the diagnosisRecordsCloud metadata document for [record], uploading its image to
+     * Cloud Storage on a best-effort basis. Cloud Storage is an optional dependency (not
+     * currently provisioned on cornguard-dev — see firebase/README.md Status): an image upload
+     * failure does NOT fail the share — the metadata document is still created with
+     * has_image=false and no image_url. Only a failure of the metadata write itself (e.g.
+     * Firestore unreachable or permission denied) throws and fails the share.
+     *
      * Always created with verification_status="unverified" and source="ai_scan" —
      * security/firestore.rules rejects any other initial value. Returns the new cloud record id.
      *

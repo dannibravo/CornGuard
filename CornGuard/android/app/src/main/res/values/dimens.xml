@@ -15,4 +15,8 @@
     <dimen name="text_body">16sp</dimen>
     <dimen name="text_title">22sp</dimen>
     <dimen name="text_cta">18sp</dimen>
+
+    <!-- Base map (Phase 3). Fixed height, not match_parent — the screen also hosts the existing
+         verified/nearby report lists below it. -->
+    <dimen name="map_base_height">320dp</dimen>
 </resources>
