@@ -6,8 +6,8 @@ import com.cornguard.app.data.model.NearbyReportSummary
 
 /**
  * GIS data layer: nearby-report queries, heatmap aggregation, and FCM device-token/topic
- * management. Mirrors firebase/gis/gis-service-interface.md and
- * firebase/notifications/fcm-plan.md.
+ * management. Mirrors firebase/docs/gis/gis-service-interface.md and
+ * firebase/docs/notifications/fcm-plan.md.
  *
  * Built against Firestore per the Sprint 4 pragmatic solo-context continuation note under D-10
  * (claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md) — not a formal team decision. Deliberately

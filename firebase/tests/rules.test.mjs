@@ -1,7 +1,7 @@
 // CORNGUARD — Firestore security rules test suite
 //
 // Verifies firebase/security/firestore.rules actually enforces
-// firebase/security/access-control-matrix.md against the Firestore emulator.
+// firebase/docs/access-control-matrix.md against the Firestore emulator.
 // Run: firebase emulators:exec --only firestore "npm test" (from firebase/)
 // or, with the emulator already running: npm test (from firebase/tests/)
 

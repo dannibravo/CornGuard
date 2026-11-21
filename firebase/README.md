@@ -8,10 +8,10 @@ see `android/README.md` there for the matching Sprint 1–5 sections.
 
 ## Schema, security, and interface contracts
 
-- `schema/logical-schema.md` — concrete elaboration of the logical cloud entities defined in
+- `docs/schema/logical-schema.md` — concrete elaboration of the logical cloud entities defined in
   `claude/08_DATA_AND_INTEGRATION_CONTRACT.md`, with field types and illustrative Firestore
   collection paths.
-- `security/access-control-matrix.md` — implementation-agnostic access rules (who can read/write
+- `docs/access-control-matrix.md` — implementation-agnostic access rules (who can read/write
   what), independent of the final database product.
 - `security/firestore.rules` — a **development draft** implementing the access matrix in
   Firestore Rules syntax. Deployed and live in the `cornguard-dev` project.
@@ -19,13 +19,13 @@ see `android/README.md` there for the matching Sprint 1–5 sections.
   deployed — Storage needs the Blaze plan (see Status below).
 - `firestore.indexes.json` — composite indexes for the location-aware community feed and
   nearby-report queries. Deployed and live (index deployment doesn't need Blaze).
-- `gis/gis-service-interface.md` — a provider-agnostic GIS/location service interface.
-- `notifications/fcm-plan.md` — FCM device-token and notification-payload plan.
-- `repositories/auth-repository-interface.md` — account creation/sign-in contract.
-- `repositories/user-farm-repository-interface.md` — profile and farm data contract.
-- `repositories/diagnosis-sharing-repository-interface.md` — opt-in cloud sharing of a local scan.
-- `repositories/community-repository-interface.md` — posts, comments, and upvotes contract.
-- `repositories/admin-repository-interface.md` — admin verification, moderation, user management,
+- `docs/gis/gis-service-interface.md` — a provider-agnostic GIS/location service interface.
+- `docs/notifications/fcm-plan.md` — FCM device-token and notification-payload plan.
+- `docs/repositories/auth-repository-interface.md` — account creation/sign-in contract.
+- `docs/repositories/user-farm-repository-interface.md` — profile and farm data contract.
+- `docs/repositories/diagnosis-sharing-repository-interface.md` — opt-in cloud sharing of a local scan.
+- `docs/repositories/community-repository-interface.md` — posts, comments, and upvotes contract.
+- `docs/repositories/admin-repository-interface.md` — admin verification, moderation, user management,
   and notification monitoring contract (written retroactively to match the Kotlin implementation
   — see Sprint 5 below).
 
@@ -93,7 +93,7 @@ diagnosis record writes its metadata (disease classification, confidence, farm l
 barangay/municipality/province, timestamps, latitude/longitude where captured) straight to
 `diagnosisRecordsCloud` regardless of whether the image upload succeeds — `FirebaseDiagnosisSharingRepository.shareScan()`
 treats a failed/unavailable Storage upload as "no image," not as a share failure, and records this
-explicitly via a `has_image` field (`schema/logical-schema.md` has the field-level details; the
+explicitly via a `has_image` field (`docs/schema/logical-schema.md` has the field-level details; the
 repository interface doc under `repositories/` predates this change and is not yet updated to
 match). Only a failure of the Firestore metadata write
 itself fails the share. This means diagnosis sharing, farm linkage, and (once built) outbreak

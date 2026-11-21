@@ -1,7 +1,7 @@
 package com.cornguard.app.data.model
 
 /**
- * Mirrors firebase/repositories/auth-repository-interface.md's value types exactly.
+ * Mirrors firebase/docs/repositories/auth-repository-interface.md's value types exactly.
  */
 data class AuthUser(
     val uid: String,

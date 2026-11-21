@@ -19,7 +19,7 @@ private const val TAG = "DiagnosisSharingRepo"
 
 /**
  * Firestore + Storage-backed implementation. Field names match
- * firebase/schema/logical-schema.md exactly; the Storage path matches
+ * firebase/docs/schema/logical-schema.md exactly; the Storage path matches
  * firebase/security/storage.rules exactly (`diagnosisImages/{userId}/{recordId}/{fileName}`) —
  * do not change either without updating the other (claude/04_DEVELOPMENT_RULES.md #3).
  *

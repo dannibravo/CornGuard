@@ -75,7 +75,7 @@ toggleUpvote(postId: string, userId: string) -> void
 
   Creates or deletes a votes/{userId} document under the post. upvote_count is recomputed by
   backend logic from the votes subcollection — never incremented directly by the client
-  (security/access-control-matrix.md: "do not trust client-supplied aggregate count").
+  (access-control-matrix.md: "do not trust client-supplied aggregate count").
 ```
 
 ## Explicit non-goals

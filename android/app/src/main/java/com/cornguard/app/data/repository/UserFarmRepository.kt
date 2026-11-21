@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * Profile and farm data boundary. Mirrors
- * firebase/repositories/user-farm-repository-interface.md — see that file for the full contract.
+ * firebase/docs/repositories/user-farm-repository-interface.md — see that file for the full contract.
  *
  * Callable more than once per user; does not enforce a one-farm limit. This is now the confirmed
  * design per D-03 (resolved 2026-10-30, claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md): one

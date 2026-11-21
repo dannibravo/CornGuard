@@ -1,6 +1,6 @@
 // CORNGUARD — Firestore Security Rules (DEVELOPMENT DRAFT, Sprint 0)
 //
-// Status: illustrative draft implementing security/access-control-matrix.md.
+// Status: illustrative draft implementing docs/access-control-matrix.md.
 // This does NOT resolve D-01 (Firestore vs Realtime Database) — it is written so the
 // team can evaluate a concrete Firestore binding without treating it as the final decision.
 // Do not deploy to a production project until D-01 has a team-recorded decision (per
@@ -111,7 +111,7 @@ service cloud.firestore {
     // (Phase 4, resolved 2026-10-30). Same doc ID as its source record. Written only by the admin
     // verify/reject WriteBatch (FirebaseAdminRepository.setDiagnosisVerification) — never contains
     // user_id, farm_id, verified_by, or un-rounded coordinates; see
-    // firebase/schema/logical-schema.md for the exact field list. access-control-matrix.md Rule #9
+    // firebase/docs/schema/logical-schema.md for the exact field list. access-control-matrix.md Rule #9
     // ("public-facing surfaces read from barangay/municipality/province, not raw lat/lng, unless a
     // future approved design says otherwise") is what this collection is that approved design for.
     //

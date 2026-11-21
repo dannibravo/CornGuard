@@ -21,7 +21,7 @@ private const val VERIFIED_OCCURRENCES_COLLECTION = "verifiedOccurrences"
 
 /**
  * Firestore + Cloud Functions-backed implementation. Field names match
- * firebase/schema/logical-schema.md exactly — see [AdminRepository] for the authorization model
+ * firebase/docs/schema/logical-schema.md exactly — see [AdminRepository] for the authorization model
  * (enforced server-side, not re-checked here).
  */
 class FirebaseAdminRepository(

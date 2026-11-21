@@ -47,7 +47,7 @@ export function buildCommentNotification(post, comment, postId) {
 
 /**
  * Computes the upvote_count delta for a communityPosts/{postId}/votes/{voterId} write, per
- * firebase/security/access-control-matrix.md: "do not trust client-supplied aggregate count" —
+ * firebase/docs/access-control-matrix.md: "do not trust client-supplied aggregate count" —
  * this is the actual computation nothing else in Sprint 0/1 built. votes/{voterId} only ever goes
  * from not-existing to existing (a vote) or existing to not-existing (an unvote) — updates are
  * denied by security/firestore.rules — so `existedBefore`/`existsAfter` fully describe the change.
@@ -62,7 +62,7 @@ export function computeVoteCountDelta(existedBefore, existsAfter) {
 
 /**
  * Decides how a notifications/{id} document should be delivered, per
- * firebase/notifications/fcm-plan.md's "Delivery targeting" section: per-user token lookup when
+ * firebase/docs/notifications/fcm-plan.md's "Delivery targeting" section: per-user token lookup when
  * `recipient_user_id` is set, an FCM topic send when `area_scope` is set instead, or null if
  * neither is present (malformed document — nothing to deliver).
  *
@@ -82,7 +82,7 @@ export function resolveNotificationTarget(notification) {
 
 /**
  * Builds the FCM data payload for a notifications/{id} document, per
- * firebase/notifications/fcm-plan.md's "Payload shape" section. Shared by both the per-token and
+ * firebase/docs/notifications/fcm-plan.md's "Payload shape" section. Shared by both the per-token and
  * topic delivery paths — the payload shape doesn't depend on how it's routed.
  */
 export function buildFcmPayload(notification, notificationId) {

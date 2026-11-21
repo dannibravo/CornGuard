@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * Opt-in cloud sharing of a local scan. Mirrors
- * firebase/repositories/diagnosis-sharing-repository-interface.md.
+ * firebase/docs/repositories/diagnosis-sharing-repository-interface.md.
  *
  * Per D-11 (claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md): a scan is local/private by
  * default. Nothing here is called unless the farmer explicitly chooses to share a completed local

@@ -14,7 +14,7 @@ private const val USERS_COLLECTION = "users"
 private const val FARMS_COLLECTION = "farms"
 
 /**
- * Firestore-backed implementation. Field names match firebase/schema/logical-schema.md exactly
+ * Firestore-backed implementation. Field names match firebase/docs/schema/logical-schema.md exactly
  * (snake_case, as Firestore documents store them) — do not rename either side without updating
  * the other (claude/04_DEVELOPMENT_RULES.md #3, Contract-First Integration).
  */

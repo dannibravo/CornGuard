@@ -5,7 +5,7 @@ import com.cornguard.app.data.model.AuthUser
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Account creation/sign-in boundary. Mirrors firebase/repositories/auth-repository-interface.md
+ * Account creation/sign-in boundary. Mirrors firebase/docs/repositories/auth-repository-interface.md
  * exactly — see that file for the full contract and explicit non-goals.
  *
  * Scope note: only email/password is implemented for Sprint 1, matching the sign-in provider

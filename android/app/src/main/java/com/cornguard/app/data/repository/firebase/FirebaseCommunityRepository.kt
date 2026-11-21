@@ -20,7 +20,7 @@ private const val POSTS_COLLECTION = "communityPosts"
 
 /**
  * Firestore + Storage-backed implementation. Field names match
- * firebase/schema/logical-schema.md exactly; the [getPostsFeed] filter combinations match the
+ * firebase/docs/schema/logical-schema.md exactly; the [getPostsFeed] filter combinations match the
  * composite indexes in firebase/firestore.indexes.json exactly — adding a new filter combination
  * here needs a matching index added there first, or the query throws at runtime.
  *
