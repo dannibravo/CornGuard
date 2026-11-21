@@ -11,9 +11,9 @@ ML_DIR = EXP_DIR.parents[1]
 REPO_DIR = ML_DIR.parent
 
 print("=== 1. Existing pipeline files have zero changes (git diff) ===")
-pipeline_files = ["ml/cornguard_ml/cornguard_ml/config.py", "ml/cornguard_ml/cornguard_ml/model.py", "ml/pipeline/train.py",
-                   "ml/cornguard_ml/cornguard_ml/dataset.py", "ml/cornguard_ml/cornguard_ml/augmentation.py",
-                   "ml/cornguard_ml/cornguard_ml/class_weights.py", "ml/pipeline/evaluate.py",
+pipeline_files = ["ml/cornguard_ml/config.py", "ml/cornguard_ml/model.py", "ml/pipeline/train.py",
+                   "ml/cornguard_ml/dataset.py", "ml/cornguard_ml/augmentation.py",
+                   "ml/cornguard_ml/class_weights.py", "ml/pipeline/evaluate.py",
                    "ml/pipeline/prepare_dataset.py"]
 result = subprocess.run(["git", "diff", "--stat", *pipeline_files], cwd=REPO_DIR, capture_output=True, text=True)
 diff_output = result.stdout.strip()
