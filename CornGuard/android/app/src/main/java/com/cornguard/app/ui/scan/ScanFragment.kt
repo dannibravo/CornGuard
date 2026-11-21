@@ -17,6 +17,7 @@ import com.cornguard.app.R
 import com.cornguard.app.data.local.db.entity.DiagnosisRecordEntity
 import com.cornguard.app.databinding.FragmentScanBinding
 import com.cornguard.app.di.ServiceLocator
+import com.cornguard.app.model.CornGateResult
 import com.cornguard.app.model.DetectionResult
 import com.cornguard.app.model.ModelNotReadyException
 import com.cornguard.app.permissions.AppPermission
@@ -137,13 +138,29 @@ class ScanFragment : Fragment() {
             binding.scanPreviewImage.setImageBitmap(bitmap)
             binding.scanPreviewImage.visibility = View.VISIBLE
 
-            val detection = withContext(Dispatchers.Default) {
-                runCatching { ServiceLocator.cornLeafClassifier.classify(bitmap) }
+            // Corn gate first: a photo that isn't a corn leaf never reaches the disease classifier,
+            // is never saved, and never opens the result screen.
+            val outcome = withContext(Dispatchers.Default) {
+                runCatching {
+                    val gate = ServiceLocator.cornGate?.check(bitmap)
+                    if (gate != null && !gate.isCorn) {
+                        ScanOutcome.NotCorn(gate)
+                    } else {
+                        ScanOutcome.Detected(ServiceLocator.cornLeafClassifier.classify(bitmap))
+                    }
+                }
             }
             setProcessing(false)
 
-            detection.onSuccess { result -> onDetectionSuccess(bitmap, result) }
-            detection.onFailure { error ->
+            outcome.onSuccess { result ->
+                when (result) {
+                    is ScanOutcome.NotCorn -> showError(
+                        getString(R.string.scan_not_corn, (result.gate.cornProbability * 100).toInt())
+                    )
+                    is ScanOutcome.Detected -> onDetectionSuccess(bitmap, result.detection)
+                }
+            }
+            outcome.onFailure { error ->
                 showError(
                     when (error) {
                         is ModelNotReadyException -> getString(R.string.scan_model_not_ready)
@@ -232,5 +249,10 @@ class ScanFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private sealed interface ScanOutcome {
+        data class NotCorn(val gate: CornGateResult) : ScanOutcome
+        data class Detected(val detection: DetectionResult) : ScanOutcome
     }
 }

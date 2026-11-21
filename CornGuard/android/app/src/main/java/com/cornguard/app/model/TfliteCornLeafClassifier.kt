@@ -5,11 +5,6 @@ import android.content.res.AssetManager
 import android.graphics.Bitmap
 import org.json.JSONArray
 import org.tensorflow.lite.Interpreter
-import java.io.FileInputStream
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.nio.MappedByteBuffer
-import java.nio.channels.FileChannel
 
 /**
  * Real, on-device TFLite classifier — replaces [PlaceholderCornLeafClassifier] once
@@ -25,8 +20,8 @@ import java.nio.channels.FileChannel
  * Pixel normalization (D-04 — claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md) is NOT done here
  * — ml/export_tflite.py converts the full Keras model, so the (value / 127.5) - 1 transform
  * (ml/model.py's MobileNetV2Preprocess layer) is already the first op inside model.tflite itself.
- * [preprocess] only resizes and hands over raw [0, 255] RGB values; normalizing again here would
- * double-apply the transform (this was a real bug — see [preprocess]'s doc comment). If D-04's
+ * [TfliteImageInput.toInputBuffer] only resizes and hands over raw [0, 255] RGB values;
+ * normalizing again would double-apply the transform (a real bug, see that function's doc). If D-04's
  * normalization choice ever changes, that change belongs in ml/model.py and requires a re-export,
  * not an edit here — and the Android Parity Test (ml/parity_test.py) must be re-run.
  */
@@ -39,7 +34,7 @@ class TfliteCornLeafClassifier(context: Context) : CornLeafClassifier {
 
     init {
         val assets = context.assets
-        interpreter = Interpreter(loadModelFile(assets))
+        interpreter = Interpreter(TfliteImageInput.loadModelFile(assets, MODEL_ASSET))
         labels = loadLabels(assets)
         modelVersion = runCatching {
             assets.open(MODEL_VERSION_ASSET).bufferedReader().use { it.readText().trim() }
@@ -51,8 +46,7 @@ class TfliteCornLeafClassifier(context: Context) : CornLeafClassifier {
 
         val startNanos = System.nanoTime()
 
-        val resized = Bitmap.createScaledBitmap(leafImage, INPUT_SIZE, INPUT_SIZE, true)
-        val inputBuffer = preprocess(resized)
+        val inputBuffer = TfliteImageInput.toInputBuffer(leafImage)
         val outputBuffer = Array(1) { FloatArray(labels.size) }
 
         interpreter.run(inputBuffer, outputBuffer)
@@ -80,35 +74,6 @@ class TfliteCornLeafClassifier(context: Context) : CornLeafClassifier {
         interpreter.close()
     }
 
-    /**
-     * Feeds raw [0, 255] pixel values straight to the interpreter — no manual normalization here.
-     * The exported model graph (ml/model.py's MobileNetV2Preprocess layer) already does the
-     * (value / 127.5) - 1 transform as its first op, because ml/export_tflite.py converts the
-     * full Keras model, preprocessing layer included. Normalizing again here double-applies the
-     * transform, crushing every image toward a near-constant input regardless of content — this
-     * produced a real bug where the app called almost everything "Healthy" at ~75-80% confidence
-     * no matter what was actually in the photo (confirmed via ml/diagnose_field_report.py against
-     * real disease photos, comparing this path's output to the known-correct Keras reference).
-     */
-    private fun preprocess(bitmap: Bitmap): ByteBuffer {
-        val buffer = ByteBuffer.allocateDirect(4 * INPUT_SIZE * INPUT_SIZE * CHANNELS)
-        buffer.order(ByteOrder.nativeOrder())
-
-        val pixels = IntArray(INPUT_SIZE * INPUT_SIZE)
-        bitmap.getPixels(pixels, 0, INPUT_SIZE, 0, 0, INPUT_SIZE, INPUT_SIZE)
-
-        for (pixel in pixels) {
-            val r = (pixel shr 16) and 0xFF
-            val g = (pixel shr 8) and 0xFF
-            val b = pixel and 0xFF
-            buffer.putFloat(r.toFloat())
-            buffer.putFloat(g.toFloat())
-            buffer.putFloat(b.toFloat())
-        }
-        buffer.rewind()
-        return buffer
-    }
-
     private data class LabelEntry(val index: Int, val diseaseCode: String, val displayLabel: String)
 
     private fun loadLabels(assets: AssetManager): List<LabelEntry> {
@@ -124,23 +89,10 @@ class TfliteCornLeafClassifier(context: Context) : CornLeafClassifier {
         }.sortedBy { it.index }
     }
 
-    private fun loadModelFile(assets: AssetManager): MappedByteBuffer {
-        val descriptor = assets.openFd(MODEL_ASSET)
-        FileInputStream(descriptor.fileDescriptor).use { input ->
-            return input.channel.map(
-                FileChannel.MapMode.READ_ONLY,
-                descriptor.startOffset,
-                descriptor.declaredLength
-            )
-        }
-    }
-
     companion object {
         private const val MODEL_ASSET = "model.tflite"
         private const val LABELS_ASSET = "labels.json"
         private const val MODEL_VERSION_ASSET = "model_version.txt"
-        private const val INPUT_SIZE = 224
-        private const val CHANNELS = 3
 
         /** True if the bundled model assets this classifier needs actually exist. */
         fun isAvailable(context: Context): Boolean = runCatching {
