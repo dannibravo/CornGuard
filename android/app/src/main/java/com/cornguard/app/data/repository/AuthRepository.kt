@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.Flow
  *
  * Online-only: every method can throw on no connectivity or an expired session. Callers must
  * check ConnectivityObserver before invoking this rather than let a raw network exception surface
- * as an unhandled crash (claude/15_CLAUDE.md Error Handling: "no internet, auth expiration").
+ * as an unhandled crash (CLAUDE.md Error Handling: "no internet, auth expiration").
  */
 interface AuthRepository {
     suspend fun registerWithEmail(email: String, password: String): AuthResult

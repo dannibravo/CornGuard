@@ -5,7 +5,7 @@ import android.graphics.Bitmap
 /**
  * Inert [CornLeafClassifier] used until the real TFLite integration lands (Sprint 2). It
  * deliberately never returns a fabricated disease label or confidence — doing so would violate
- * the Model Rule in claude/15_CLAUDE.md ("Never guess normalization, class order, ... model
+ * the Model Rule in CLAUDE.md ("Never guess normalization, class order, ... model
  * version") and the D-04 decision gate, which blocks final preprocessing until Acenas freezes it.
  *
  * Calling code (the Scan screen) must catch [ModelNotReadyException] and show

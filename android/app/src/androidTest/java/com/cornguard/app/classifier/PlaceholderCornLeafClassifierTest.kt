@@ -7,7 +7,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Confirms the Sprint 0 placeholder never fabricates a disease label (claude/15_CLAUDE.md Model
+ * Confirms the Sprint 0 placeholder never fabricates a disease label (CLAUDE.md Model
  * Rule) and instead fails loudly with [ModelNotReadyException] so the Scan screen can show
  * `R.string.scan_model_not_ready`.
  */

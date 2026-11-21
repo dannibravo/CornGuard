@@ -3,7 +3,7 @@
     <!--
         Placeholder palette only — CORNGUARD has no approved final UI/UX per
         claude/16_UI_UX_AND_DIAGRAM_REVISION_GUIDE.md (not yet present in this doc pack) and
-        claude/15_CLAUDE.md's UI/UX rule. Ligue/Panes/Acenas have final authority to replace this.
+        CLAUDE.md's UI/UX rule. Ligue/Panes/Acenas have final authority to replace this.
         Chosen for high contrast and quick recognition for low digital-literacy / outdoor use.
     -->
     <color name="corn_green_700">#2E7D32</color>
