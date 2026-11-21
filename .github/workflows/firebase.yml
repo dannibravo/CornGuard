@@ -1,0 +1,42 @@
+name: Firebase
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ["firebase/**", ".github/workflows/firebase.yml"]
+  pull_request:
+    branches: [main, develop]
+    paths: ["firebase/**", ".github/workflows/firebase.yml"]
+
+jobs:
+  rules-and-logic-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firebase
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"  # matches functions/package.json "engines"
+          cache: npm
+          cache-dependency-path: firebase/tests/package-lock.json
+
+      - uses: actions/setup-java@v4  # the Firestore emulator runs on the JVM
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Install test dependencies
+        run: npm --prefix tests ci
+
+      # Same command as firebase/README.md. A demo- project ID runs the emulator without
+      # credentials; rules.test.mjs loads security/firestore.rules itself under its own project ID.
+      # The functions integration test (test:integration) also needs the Functions emulator and
+      # is not run here.
+      - name: Rules + functions-logic tests (Firestore emulator)
+        run: firebase emulators:exec --only firestore --project demo-cornguard "npm --prefix tests test"

@@ -1,0 +1,43 @@
+name: Android
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ["android/**", "firebase/config/**", ".github/workflows/android.yml"]
+  pull_request:
+    branches: [main, develop]
+    paths: ["android/**", "firebase/config/**", ".github/workflows/android.yml"]
+
+jobs:
+  build-and-unit-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"  # matches jvmTarget in app/build.gradle.kts
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The google-services plugin needs app/google-services.json, which is git-ignored there
+      # and kept in firebase/config/ (same step as README "Setup instructions").
+      - name: Provide dev Firebase config
+        run: cp ../firebase/config/google-services.dev.json app/google-services.json
+
+      - name: Compile
+        run: ./gradlew :app:compileDebugKotlin
+
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-unit-test-reports
+          path: android/app/build/reports/tests/
