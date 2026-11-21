@@ -130,8 +130,7 @@ class ConvexGisRepository(
                         longitude = it.longitude,
                         barangay = it.barangay,
                         municipality = it.municipality,
-                        stage = it.stage,
-                        farmerName = it.farmerName
+                        stage = it.stage
                     )
                 }
             }

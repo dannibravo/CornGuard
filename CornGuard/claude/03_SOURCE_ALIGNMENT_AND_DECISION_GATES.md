@@ -44,6 +44,16 @@ or the team later picks Realtime Database, the Sprint 3 Firestore-specific code 
 repository, indexes) needs rework — the schema and security matrix themselves do not, for the same
 reason given in the note above.
 
+### Resolved
+D-01 is closed: the project moved from Firestore to **Convex** (database, auth, file storage, and
+server functions in one), not Realtime Database — superseding both options this file originally
+posed. Reason on record: Firebase's free (Spark) plan lacks the image storage and server
+functions the app needs, and Convex's repository-interface-first approach meant the switch didn't
+require rewriting the interfaces defined under "Allowed work before decision" above. Firebase
+Cloud Messaging is kept, for push delivery only. See `backend/README.md` (the Convex backend and
+what it replaces, file by file) and `android/README.md`'s own D-01 note. The Firestore-specific
+history above is kept for context; it no longer describes the current backend.
+
 ---
 
 ## D-02 — Agricultural Technician Role
