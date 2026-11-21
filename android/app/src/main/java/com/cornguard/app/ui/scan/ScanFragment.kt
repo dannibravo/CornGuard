@@ -30,7 +30,7 @@ import java.io.File
  * touches Firebase (claude/01_MASTER_DEVELOPMENT_CONTEXT.md Project Principle). Classification
  * goes through [ServiceLocator.cornLeafClassifier], which is [com.cornguard.app.classifier.PlaceholderCornLeafClassifier]
  * until Sprint 2's real TFLite model lands — [ModelNotReadyException] must be surfaced honestly,
- * never papered over with a fabricated result (claude/15_CLAUDE.md Model Rule).
+ * never papered over with a fabricated result (CLAUDE.md Model Rule).
  *
  * Attaches an approximate location to the saved record via [ServiceLocator.locationHelper] when
  * [AppPermission.LOCATION] is already granted — best-effort, never requested synchronously in the

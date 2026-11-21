@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
  * Local persistence for `LocalDiseaseReference` (claude/08_DATA_AND_INTEGRATION_CONTRACT.md).
  * Must remain readable offline — the model only classifies the leaf; this table is the sole
  * source of treatment/prevention guidance shown to the farmer
- * (claude/15_CLAUDE.md Treatment Rule).
+ * (CLAUDE.md Treatment Rule).
  */
 @Entity(tableName = "disease_references")
 data class DiseaseReferenceEntity(

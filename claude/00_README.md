@@ -20,7 +20,7 @@ It translates the structure and discipline used in the Engage development docume
 12. `12_TESTING_AND_ACCEPTANCE_PLAN.md`
 13. `13_DEVELOPMENT_PHASE_GUIDE.md`
 14. `14_GITHUB_BEST_PRACTICE.md`
-15. `15_CLAUDE.md`
+15. `../CLAUDE.md` — AI coding-assistant instructions (kept at the repository root so Claude Code loads it automatically)
 
 ## Three-developer assignment
 

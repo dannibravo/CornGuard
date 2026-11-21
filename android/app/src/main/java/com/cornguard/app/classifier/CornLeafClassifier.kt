@@ -9,7 +9,7 @@ import android.graphics.Bitmap
  * (feature/tflite-integration) once the preprocessing contract (D-04) and class order are frozen.
  *
  * Implementations MUST run entirely on-device. Nothing behind this interface may call Firebase
- * or require network connectivity (claude/15_CLAUDE.md Project Principle / claude/04_DEVELOPMENT_RULES.md #2).
+ * or require network connectivity (CLAUDE.md Project Principle / claude/04_DEVELOPMENT_RULES.md #2).
  */
 interface CornLeafClassifier {
 

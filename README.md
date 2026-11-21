@@ -8,13 +8,35 @@ Beyond the core scan feature, the app includes diagnosis history, opt-in cloud s
 
 ## Project structure
 
+```
+android/            Kotlin/Android Studio app (Gradle root: open this folder in Android Studio)
+  app/src/main/java/com/cornguard/app/
+    classifier/     on-device TFLite classifier, disease codes and labels
+    data/           Room database, data models, repository interfaces + Firebase/local impls
+    ui/<feature>/   one package per screen
+firebase/           cloud backend (Firebase CLI root)
+  security/         firestore.rules, storage.rules (deployed by firebase.json)
+  functions/        Cloud Functions
+  scripts/  tests/  dev tooling and the emulator test suite
+  config/           per-environment google-services.json
+  docs/             logical schema, access-control matrix, repository/GIS/FCM interface specs
+ml/                 classifier training (run everything from ml/)
+  cornguard_ml/     shared Python package: config, dataset, augmentation, model
+  pipeline/         one stage per module: python -m pipeline.<stage>
+  experiments/      audits and experiments, each with its code, logs and reports
+  releases/         tracked provenance for each model shipped in the app
+claude/             numbered planning and contract docs (00_README.md … 16_...md)
+docs/reference/     capstone proposal-defense minutes and manuscript
+CLAUDE.md           instructions for AI coding assistants (auto-loaded by Claude Code)
+```
+
 | Directory | Contents |
 |---|---|
 | `android/` | The Kotlin/Android Studio app — UI, local Room database, repositories, the on-device classifier integration. See `android/README.md` for the full sprint-by-sprint build log. |
 | `firebase/` | Firestore schema, security rules, Cloud Functions, and dev tooling for the cloud backend (auth, community posts, GIS data layer, admin moderation). See `firebase/README.md`. |
-| `ml/` | The Python training pipeline for the on-device disease classifier (dataset preparation, training, evaluation, TFLite export) and the external-evaluation / field-domain-gap investigation. See `ml/README.md` and [Current model and evaluation results](#current-model-and-evaluation-results) below. |
-| `claude/` | Numbered internal planning and contract documents (`00_README.md` through `16_...md`) — project context, development rules, the data/ML contracts, and team responsibilities. |
-| `docs/` | The capstone proposal minutes and paper (pre-existing project documentation). |
+| `ml/` | The Python training pipeline for the on-device disease classifier (dataset preparation, training, evaluation, TFLite export) and the external-evaluation / field-domain-gap investigation. See `ml/README.md`, `ml/experiments/README.md`, and [Current model and evaluation results](#current-model-and-evaluation-results) below. |
+| `claude/` | Numbered internal planning and contract documents (`00_README.md` through `16_...md`) — project context, development rules, the data/ML contracts, and team responsibilities. The AI-assistant instructions formerly at `claude/15_CLAUDE.md` are now `CLAUDE.md` at the repository root. |
+| `docs/reference/` | The capstone proposal-defense minutes and manuscript (pre-existing project documentation). |
 
 ## Setup instructions
 
@@ -55,7 +77,7 @@ firebase emulators:exec --only firestore "npm --prefix tests test"
 cd ml
 pip install -r requirements.txt
 ```
-The pipeline stages (`prepare_dataset.py` → `train.py` → `evaluate.py` → `export_tflite.py` → `export_metadata.py` → `parity_test.py`) are documented in full, with exact commands, in `ml/README.md` — refer to that file rather than this one for the authoritative pipeline usage. Note: `ml/README.md`'s own text currently describes the pipeline as "never executed" — that description predates the actual training runs referenced below and is now out of date in that one respect; the results in this README and in `ml/artifacts/`, `ml/experiments/v1-training-audit/`, `ml/experiments/v2-clean-baseline/`, `ml/experiments/v2-field-aug-experiment/`, and `ml/experiments/v2-field-domain-planning/` reflect what has actually been run.
+The pipeline stages in `ml/pipeline/` (`prepare_dataset.py` → `train.py` → `evaluate.py` → `export_tflite.py` → `export_metadata.py` → `parity_test.py`) are documented in full, with exact commands, in `ml/README.md` — refer to that file rather than this one for the authoritative pipeline usage. Note: `ml/README.md`'s own text currently describes the pipeline as "never executed" — that description predates the actual training runs referenced below and is now out of date in that one respect; the results in this README and in `ml/artifacts/`, `ml/experiments/v1-training-audit/`, `ml/experiments/v2-clean-baseline/`, `ml/experiments/v2-field-aug-experiment/`, and `ml/experiments/v2-field-domain-planning/` reflect what has actually been run.
 
 ## Current model and evaluation results
 

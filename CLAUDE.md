@@ -4,13 +4,13 @@ You are assisting the CORNGUARD development team.
 
 Before making implementation decisions, read in this order:
 
-1. `00_README.md`
-2. `01_MASTER_DEVELOPMENT_CONTEXT.md`
-3. `02_PROJECT_CONTEXT.md`
-4. `03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`
-5. `04_DEVELOPMENT_RULES.md`
-6. `08_DATA_AND_INTEGRATION_CONTRACT.md`
-7. `09_ML_MODEL_CONTRACT.md`
+1. `claude/00_README.md`
+2. `claude/01_MASTER_DEVELOPMENT_CONTEXT.md`
+3. `claude/02_PROJECT_CONTEXT.md`
+4. `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`
+5. `claude/04_DEVELOPMENT_RULES.md`
+6. `claude/08_DATA_AND_INTEGRATION_CONTRACT.md`
+7. `claude/09_ML_MODEL_CONTRACT.md`
 8. the relevant approved UI/use-case/ERD/DFD artifacts
 
 ## Project Principle
@@ -48,11 +48,11 @@ Never guess:
 - quantization parameters,
 - model version.
 
-Read `09_ML_MODEL_CONTRACT.md` and the actual release metadata.
+Read `claude/09_ML_MODEL_CONTRACT.md` and the actual release metadata.
 
 ## Data Rule
 
-Follow `08_DATA_AND_INTEGRATION_CONTRACT.md`.
+Follow `claude/08_DATA_AND_INTEGRATION_CONTRACT.md`.
 
 If a field or entity is missing, do not silently create a permanent schema. Check decision gates and project artifacts first.
 
