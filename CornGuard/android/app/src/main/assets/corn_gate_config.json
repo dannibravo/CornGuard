@@ -1,0 +1,5 @@
+{
+  "input_size": 224,
+  "normalization": "raw_0_255",
+  "threshold": 0.5
+}

@@ -80,6 +80,29 @@ The app bundles four files in `app/src/main/assets/`, read by `TfliteCornLeafCla
     classifies the photos in the device's `Pictures/CornGuard/` folder and logs the results
     (`adb logcat -s LeafImageTest`).
 
+### Corn / not-corn gate
+
+Before the disease model runs, `TfliteCornGate` checks that the photo shows a corn leaf. A photo below
+the threshold shows "This doesn't look like a corn leaf (corn match: N%) … Try again" on the scan
+screen and is not classified, saved or shown in the result sheet. Without the gate assets, scans run
+ungated.
+
+| File | Contents |
+|---|---|
+| `corn_gate.tflite` | `cornguard_corn_gate_v1`: MobileNetV2 binary model, float32 (ml/train_corn_gate.py, exported by ml/export_corn_gate.py) |
+| `corn_gate_labels.json` | Output index → `corn` / `not_corn` |
+| `corn_gate_config.json` | `input_size` 224, `normalization` `raw_0_255`, `threshold` 0.5 |
+| `corn_gate_version.txt` | Gate version string |
+
+- **Input:** the whole photo resized to 224×224 (no centre crop), as in training.
+- **Scaling:** unlike the disease model, the gate scales pixels inside its own graph, so its config
+  must stay `raw_0_255`; scaling in the app too would double-apply it.
+- **Accuracy:** on its held-out test set (public lab-style corn vs. flowers, people, other plants,
+  objects and bad photos), 99.68% of corn accepted and 99.67% of not-corn rejected at 0.5. The
+  TFLite file matched the Keras model's decision on all 1,224 test images. Known weak spot: large
+  green textured scenes (an aerial photo of green land was accepted).
+- **Tests:** `CornGateResultTest` (unit) checks the accept/reject rule.
+
 ## Outbreak Heatmap and map data
 
 The Map screen is caps 3's Outbreak Heatmap: a Leaflet map in a WebView (`ui/map/MapFragment`)
