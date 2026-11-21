@@ -47,7 +47,7 @@ export const promoteToAdmin = onCall(async (request) => {
 
 /**
  * Notifies a community post's author when someone replies, per
- * firebase/notifications/fcm-plan.md ("community_reply" trigger). Writes directly via the Admin
+ * firebase/docs/notifications/fcm-plan.md ("community_reply" trigger). Writes directly via the Admin
  * SDK — the one path notifications/{id} is allowed to be created from, since clients are hard-
  * denied create/delete on that collection in security/firestore.rules.
  */

@@ -3,7 +3,7 @@ package com.cornguard.app.data.model
 /**
  * One immutable entry in a diagnosisRecordsCloud/{recordId}/verificationHistory subcollection.
  * Append-only — security/firestore.rules rejects update/delete on this subcollection entirely.
- * Mirrors firebase/schema/logical-schema.md exactly.
+ * Mirrors firebase/docs/schema/logical-schema.md exactly.
  */
 data class VerificationHistoryEntry(
     val entryId: String,

@@ -47,12 +47,12 @@ Adds, on top of the Sprint 0 foundation above:
 - `google-services` Gradle plugin + Firebase BoM/Auth/Firestore dependencies
   (`build.gradle.kts`, `app/build.gradle.kts`, `gradle/libs.versions.toml`).
 - `data.repository.AuthRepository` + `data.repository.firebase.FirebaseAuthRepository` — mirrors
-  `firebase/repositories/auth-repository-interface.md`. Email/password only for Sprint 1 (matches
+  `firebase/docs/repositories/auth-repository-interface.md`. Email/password only for Sprint 1 (matches
   the provider actually enabled in the dev Firebase project); phone auth is deferred, not
   half-built, until the Phone provider and an Activity-bound verification UI are designed.
 - `data.repository.UserFarmRepository` + `data.repository.firebase.FirebaseUserFarmRepository` —
-  mirrors `firebase/repositories/user-farm-repository-interface.md`. Field names in Firestore
-  documents match `firebase/schema/logical-schema.md` exactly (snake_case) — do not rename either
+  mirrors `firebase/docs/repositories/user-farm-repository-interface.md`. Field names in Firestore
+  documents match `firebase/docs/schema/logical-schema.md` exactly (snake_case) — do not rename either
   side without updating the other.
 - `ServiceLocator` gains `authRepository` and `userFarmRepository`, matching the existing lazy
   singleton pattern. Both are **online-only**: they throw on no connectivity/an expired session
@@ -72,7 +72,7 @@ Adds, on top of the Sprint 0 foundation above:
 
 - `data.repository.DiagnosisSharingRepository` +
   `data.repository.firebase.FirebaseDiagnosisSharingRepository` — mirrors
-  `firebase/repositories/diagnosis-sharing-repository-interface.md`. Deliberately takes the
+  `firebase/docs/repositories/diagnosis-sharing-repository-interface.md`. Deliberately takes the
   existing `DiagnosisRecordEntity` directly rather than introducing a parallel
   `ShareableScanDraft` Kotlin type — same concept, no duplicated model.
 - Uploads the scan image to Cloud Storage at `diagnosisImages/{userId}/{recordId}/{fileName}`
@@ -93,7 +93,7 @@ team decision D-01 still requires. Ligue and Acenas were unavailable; see that n
 reasoning and what happens if the team later picks Realtime Database instead.
 
 - `data.repository.CommunityRepository` + `data.repository.firebase.FirebaseCommunityRepository` —
-  mirrors `firebase/repositories/community-repository-interface.md`. Posts, single-level comments,
+  mirrors `firebase/docs/repositories/community-repository-interface.md`. Posts, single-level comments,
   and upvotes (via a `votes/{userId}` subcollection document, not a client-writable counter).
 - `getPostsFeed`'s filter combinations (`moderation_status="visible"` + optional single area level
   + optional disease tag, ordered by `created_at` desc) match the composite indexes in
@@ -117,7 +117,7 @@ Pragmatic D-10 lean documented in `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES
 code: `data.repository.GisRepository` has zero map-SDK dependency, only Firestore/FCM.
 
 - `data.repository.GisRepository` + `data.repository.firebase.FirebaseGisRepository` — mirrors
-  `firebase/gis/gis-service-interface.md`. `getNearbyReports` (from `communityPosts`, any
+  `firebase/docs/gis/gis-service-interface.md`. `getNearbyReports` (from `communityPosts`, any
   verification status — informational display per D-08) vs. `getHeatmapAggregates` /
   `getVerifiedOccurrences` (from `diagnosisRecordsCloud`, **hardcoded** to
   `verification_status="verified"`, not a caller-settable filter).
@@ -128,7 +128,7 @@ code: `data.repository.GisRepository` has zero map-SDK dependency, only Firestor
   return empty for now** — same "stays inert until approved" pattern as `outbreakRules`.
 - `registerDeviceToken`/`deactivateDeviceToken` write `deviceTokens/{userId}-{deviceId}` (a
   deterministic id, so a token refresh updates in place rather than duplicating — matches
-  `firebase/notifications/fcm-plan.md`'s device token lifecycle).
+  `firebase/docs/notifications/fcm-plan.md`'s device token lifecycle).
 - `subscribeToAreaTopic`/`unsubscribeFromAreaTopic` wrap `FirebaseMessaging`'s topic APIs directly
   — topic naming (`barangay_<slug>`, etc.) matches what `firebase/functions/index.mjs`'s
   `onNotificationCreate` now actually sends to (see that branch's latest commit — area-scoped

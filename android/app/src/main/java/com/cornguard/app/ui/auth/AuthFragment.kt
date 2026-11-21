@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 /**
  * Sign-in/registration, reached only from an online-only screen's "sign in required" prompt
  * (e.g. Community) — never from app launch. See [AuthViewModel] and
- * firebase/repositories/auth-repository-interface.md /
+ * firebase/docs/repositories/auth-repository-interface.md /
  * user-farm-repository-interface.md for the two-step registration this drives.
  */
 class AuthFragment : Fragment() {

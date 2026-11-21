@@ -23,7 +23,7 @@ data class MapOccurrence(
 )
 
 /**
- * Mirrors firebase/gis/gis-service-interface.md's NearbyReportSummary — sourced from
+ * Mirrors firebase/docs/gis/gis-service-interface.md's NearbyReportSummary — sourced from
  * communityPosts, which is fully community-readable regardless of its own verification_status
  * (D-08) — distinct from [MapOccurrence]'s admin-verified diagnosis occurrences.
  * [linkedDiagnosisRecordId], when non-null, is the same recordId a [MapOccurrence] may exist
@@ -43,7 +43,7 @@ data class NearbyReportSummary(
 
 /**
  * One area's worth of aggregated occurrence counts. Mirrors
- * firebase/gis/gis-service-interface.md's getHeatmapAggregates return shape.
+ * firebase/docs/gis/gis-service-interface.md's getHeatmapAggregates return shape.
  */
 data class HeatmapAggregate(
     val areaLabel: String,

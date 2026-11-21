@@ -49,7 +49,7 @@ observeAuthState() -> Stream<AuthUser?>
   in a follow-up call right after a successful `registerWith*`, per
   `security/firestore.rules` (`create` requires `role == 'farmer'`). There is no client path to
   become `admin`; that is a backend-only operation via Admin SDK custom claims
-  (`security/access-control-matrix.md`).
+  (`access-control-matrix.md`).
 - No profile fields (`display_name`, `barangay`, etc.) are collected here — that's the User/Farm
   repository's `createUserProfile` call, kept as a separate step so a partially-completed
   registration doesn't leave an inconsistent `users` document.

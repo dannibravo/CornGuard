@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * Posts, comments, and upvotes. Mirrors
- * firebase/repositories/community-repository-interface.md exactly — see that file for the full
+ * firebase/docs/repositories/community-repository-interface.md exactly — see that file for the full
  * contract and explicit non-goals (no automated fact-checking/moderation, no reply-to-comment
  * nesting, no outbreak-alert triggering here).
  *
@@ -56,7 +56,7 @@ interface CommunityRepository {
      * Creates or deletes a votes/{userId} document under the post. upvote_count is NOT updated
      * here — a Cloud Function (firebase/functions/index.mjs's onVoteWrite) recomputes it from the
      * votes subcollection, per "do not trust client-supplied aggregate count"
-     * (firebase/security/access-control-matrix.md). Returns the new vote state (true = now
+     * (firebase/docs/access-control-matrix.md). Returns the new vote state (true = now
      * upvoted).
      */
     suspend fun toggleUpvote(postId: String, userId: String): Boolean

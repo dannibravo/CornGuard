@@ -1,8 +1,8 @@
 package com.cornguard.app.data.model
 
 /**
- * Mirrors firebase/schema/logical-schema.md's diagnosisRecordsCloud/{recordId} shape and
- * firebase/repositories/diagnosis-sharing-repository-interface.md's DiagnosisRecordCloud value
+ * Mirrors firebase/docs/schema/logical-schema.md's diagnosisRecordsCloud/{recordId} shape and
+ * firebase/docs/repositories/diagnosis-sharing-repository-interface.md's DiagnosisRecordCloud value
  * type.
  *
  * There is deliberately no separate `ShareableScanDraft` Kotlin type: that concept in the

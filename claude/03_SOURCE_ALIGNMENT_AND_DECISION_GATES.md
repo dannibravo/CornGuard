@@ -42,7 +42,7 @@ instead to decouple the two: a failed or unavailable image upload now degrades t
 farm linkage, location, timestamps) shares successfully regardless of Storage availability; only
 the photo attachment itself depends on Storage. Approved by: CornGuard team. Files affected:
 `FirebaseDiagnosisSharingRepository.kt`, `DiagnosisRecordCloud.kt`,
-`DiagnosisSharingRepository.kt`, `firebase/README.md`, `firebase/schema/logical-schema.md`. No
+`DiagnosisSharingRepository.kt`, `firebase/README.md`, `firebase/docs/schema/logical-schema.md`. No
 Firestore security rule changed — the existing `allow create` rule already permitted this field
 shape unchanged.
 
@@ -326,7 +326,7 @@ Same circumstance as the D-01 continuation note above: Ligue and Acenas are unav
 Map screen's rendering is blocked without a provider pick. **This is a pragmatic solo lean, not
 the required team decision**, and unlike D-01 it does not even bind any code yet — only the GIS
 *data* layer (nearby-report queries, heatmap aggregation) is built this sprint, and that layer is
-already provider-agnostic per `firebase/gis/gis-service-interface.md` (no map-SDK types). The
+already provider-agnostic per `firebase/docs/gis/gis-service-interface.md` (no map-SDK types). The
 actual rendering/map-SDK dependency stays undone.
 
 ### Phase 3/4 implementation (2026-10-30)
@@ -334,8 +334,8 @@ osmdroid is now wired in (`MapFragment`, `CornGuardApplication`'s one-time `Conf
 — base map tiles, pan/zoom, offline tile cache, confirmed via live device testing (online load,
 pan/zoom, backgrounding, and genuine offline reuse of previously-viewed tiles with connectivity
 fully disabled). Phase 4 added disease occurrence markers on top: a redacted `verifiedOccurrences`
-Firestore projection (new collection, new rule, see `schema/logical-schema.md` and
-`security/access-control-matrix.md`) for admin-verified occurrences, and reuse of the already-
+Firestore projection (new collection, new rule, see `firebase/docs/schema/logical-schema.md` and
+`firebase/docs/access-control-matrix.md`) for admin-verified occurrences, and reuse of the already-
 public `communityPosts` for unverified community reports — discovered along the way that
 `GisRepository.getVerifiedOccurrences()` had been silently returning empty for every non-admin
 user since it was first written, because `diagnosisRecordsCloud` is owner/admin read-only; the new

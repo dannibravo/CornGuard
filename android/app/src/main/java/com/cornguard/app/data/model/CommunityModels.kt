@@ -1,8 +1,8 @@
 package com.cornguard.app.data.model
 
 /**
- * Mirrors firebase/schema/logical-schema.md's communityPosts/{postId} shape and
- * firebase/repositories/community-repository-interface.md's CommunityPost value type.
+ * Mirrors firebase/docs/schema/logical-schema.md's communityPosts/{postId} shape and
+ * firebase/docs/repositories/community-repository-interface.md's CommunityPost value type.
  */
 data class CommunityPost(
     val postId: String,

@@ -11,7 +11,7 @@ Conventions (from the Data and Integration Contract):
 - Timestamps are stored as UTC (Firestore `Timestamp`, or ISO-8601 string / epoch millis for RTDB).
 - Latitude ∈ [-90, 90], Longitude ∈ [-180, 180].
 - Confidence is stored as a float in **0.0–1.0** (never mixed with a 0–100 display form).
-- `role` is never client-writable — see `security/access-control-matrix.md`.
+- `role` is never client-writable — see `access-control-matrix.md`.
 
 ---
 
