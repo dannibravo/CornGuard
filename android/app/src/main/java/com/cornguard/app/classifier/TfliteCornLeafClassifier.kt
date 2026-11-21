@@ -1,4 +1,4 @@
-package com.cornguard.app.model
+package com.cornguard.app.classifier
 
 import android.content.Context
 import android.content.res.AssetManager

@@ -1,4 +1,4 @@
-package com.cornguard.app.model
+package com.cornguard.app.classifier
 
 /**
  * Cross-module detection payload produced by [CornLeafClassifier] and consumed by the

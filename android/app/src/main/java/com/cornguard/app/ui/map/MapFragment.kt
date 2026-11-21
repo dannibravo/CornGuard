@@ -17,7 +17,7 @@ import com.cornguard.app.data.model.MapOccurrence
 import com.cornguard.app.data.model.NearbyReportSummary
 import com.cornguard.app.databinding.FragmentMapBinding
 import com.cornguard.app.di.ServiceLocator
-import com.cornguard.app.model.diseaseCodeToLabel
+import com.cornguard.app.classifier.diseaseCodeToLabel
 import kotlinx.coroutines.launch
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint

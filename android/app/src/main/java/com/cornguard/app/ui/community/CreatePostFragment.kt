@@ -14,7 +14,7 @@ import com.cornguard.app.R
 import com.cornguard.app.data.model.DraftPost
 import com.cornguard.app.databinding.FragmentCreatePostBinding
 import com.cornguard.app.di.ServiceLocator
-import com.cornguard.app.model.DiseaseCode
+import com.cornguard.app.classifier.DiseaseCode
 import kotlinx.coroutines.launch
 
 /**

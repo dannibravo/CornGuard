@@ -17,8 +17,8 @@ import com.cornguard.app.R
 import com.cornguard.app.data.local.db.entity.DiagnosisRecordEntity
 import com.cornguard.app.databinding.FragmentScanBinding
 import com.cornguard.app.di.ServiceLocator
-import com.cornguard.app.model.DetectionResult
-import com.cornguard.app.model.ModelNotReadyException
+import com.cornguard.app.classifier.DetectionResult
+import com.cornguard.app.classifier.ModelNotReadyException
 import com.cornguard.app.permissions.AppPermission
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -28,7 +28,7 @@ import java.io.File
 /**
  * Camera capture / gallery selection, classification, and local save. Entirely offline — never
  * touches Firebase (claude/01_MASTER_DEVELOPMENT_CONTEXT.md Project Principle). Classification
- * goes through [ServiceLocator.cornLeafClassifier], which is [com.cornguard.app.model.PlaceholderCornLeafClassifier]
+ * goes through [ServiceLocator.cornLeafClassifier], which is [com.cornguard.app.classifier.PlaceholderCornLeafClassifier]
  * until Sprint 2's real TFLite model lands — [ModelNotReadyException] must be surfaced honestly,
  * never papered over with a fabricated result (claude/15_CLAUDE.md Model Rule).
  *

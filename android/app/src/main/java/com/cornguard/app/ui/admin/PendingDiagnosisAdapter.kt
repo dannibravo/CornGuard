@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.cornguard.app.R
 import com.cornguard.app.data.model.DiagnosisRecordCloud
 import com.cornguard.app.databinding.ItemPendingDiagnosisBinding
-import com.cornguard.app.model.diseaseCodeToLabel
+import com.cornguard.app.classifier.diseaseCodeToLabel
 import java.text.DateFormat
 import java.util.Date
 import kotlin.math.roundToInt

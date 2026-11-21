@@ -37,7 +37,7 @@ already recorded there for the Firebase/Android side of this project. Whoever ru
 training run intended for evaluation should revisit both first.
 
 The class order in `config.CLASS_ORDER` is similarly **unconfirmed** — it matches
-`android/app/.../model/DiseaseCode.kt` for consistency, but claude/09_ML_MODEL_CONTRACT.md is
+`android/app/.../classifier/DiseaseCode.kt` for consistency, but claude/09_ML_MODEL_CONTRACT.md is
 explicit that Acenas must publish the real trained order, and it must not be assumed
 alphabetically or by convention.
 

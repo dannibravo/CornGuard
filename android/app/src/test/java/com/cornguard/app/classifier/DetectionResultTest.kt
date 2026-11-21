@@ -1,4 +1,4 @@
-package com.cornguard.app.model
+package com.cornguard.app.classifier
 
 import org.junit.Assert.assertThrows
 import org.junit.Test

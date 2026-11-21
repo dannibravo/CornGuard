@@ -1,7 +1,7 @@
 package com.cornguard.app.data.local.db
 
 import com.cornguard.app.data.local.db.entity.DiseaseReferenceEntity
-import com.cornguard.app.model.DiseaseCode
+import com.cornguard.app.classifier.DiseaseCode
 
 /**
  * PLACEHOLDER treatment/prevention content, seeded once so the Treatment screen has something to
