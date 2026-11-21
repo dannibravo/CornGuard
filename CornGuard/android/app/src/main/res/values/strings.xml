@@ -29,6 +29,8 @@
     <string name="scan_permission_denied_gallery">Gallery permission is needed to choose a photo.</string>
     <string name="scan_processing">Analyzing photo…</string>
     <string name="scan_invalid_image">That photo couldn\'t be read. Please try another one.</string>
+    <string name="scan_not_corn">This doesn\'t look like a corn leaf (corn match: %1$d%%). Nothing
+        was saved. Try again with a close, clear photo of one corn leaf.</string>
 
     <!-- Diagnosis result / treatment -->
     <string name="result_title">Diagnosis Result</string>
