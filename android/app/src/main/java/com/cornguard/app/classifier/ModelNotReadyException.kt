@@ -1,4 +1,4 @@
-package com.cornguard.app.model
+package com.cornguard.app.classifier
 
 /**
  * Thrown when a scan is attempted before a real [CornLeafClassifier] is wired in. Distinguished

@@ -21,9 +21,9 @@ import com.cornguard.app.data.repository.firebase.FirebaseUserFarmRepository
 import com.cornguard.app.data.repository.local.LocalDiagnosisHistoryRepository
 import com.cornguard.app.data.repository.local.LocalDiseaseReferenceRepository
 import com.cornguard.app.location.LocationHelper
-import com.cornguard.app.model.CornLeafClassifier
-import com.cornguard.app.model.PlaceholderCornLeafClassifier
-import com.cornguard.app.model.TfliteCornLeafClassifier
+import com.cornguard.app.classifier.CornLeafClassifier
+import com.cornguard.app.classifier.PlaceholderCornLeafClassifier
+import com.cornguard.app.classifier.TfliteCornLeafClassifier
 import com.cornguard.app.permissions.PermissionManager
 import com.cornguard.app.util.ConnectivityObserver
 import com.google.firebase.auth.FirebaseAuth

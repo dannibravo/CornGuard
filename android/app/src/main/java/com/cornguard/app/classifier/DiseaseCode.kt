@@ -1,4 +1,4 @@
-package com.cornguard.app.model
+package com.cornguard.app.classifier
 
 /**
  * The four confirmed model output classes (claude/01_MASTER_DEVELOPMENT_CONTEXT.md,

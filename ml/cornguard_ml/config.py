@@ -34,7 +34,7 @@ ARTIFACTS_DIR = Path("artifacts")
 
 # claude/09_ML_MODEL_CONTRACT.md: "Acenas must publish the exact class-index order ... Do not
 # infer class order alphabetically unless that is exactly how the exported model was trained."
-# This order matches android/app/.../model/DiseaseCode.kt for consistency with the rest of the
+# This order matches android/app/.../classifier/DiseaseCode.kt for consistency with the rest of the
 # project, but it is NOT a substitute for Acenas publishing the real trained order. Before any
 # TFLite export is treated as integration-ready, verify this against the actual trained model's
 # output index order (see evaluate.py's classification report) and update both this list and the
