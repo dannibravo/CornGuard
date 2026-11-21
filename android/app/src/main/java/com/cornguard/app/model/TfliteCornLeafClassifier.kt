@@ -16,19 +16,19 @@ import java.nio.channels.FileChannel
  * `assets/model.tflite` and `assets/labels.json` actually exist (see [isAvailable] and
  * [com.cornguard.app.di.ServiceLocator], which picks between the two at startup).
  *
- * `assets/labels.json` is copied verbatim from ml/export_tflite.py's `labels_<version>.json`
+ * `assets/labels.json` is copied verbatim from ml/pipeline/export_tflite.py's `labels_<version>.json`
  * output — the class-index order and disease codes come from that file at runtime, never
  * hardcoded here, per claude/09_ML_MODEL_CONTRACT.md ("do not infer class order alphabetically
  * ... must exactly match the trained model"). `assets/model_version.txt` holds the plain
  * `model_version` string from the same export run.
  *
  * Pixel normalization (D-04 — claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md) is NOT done here
- * — ml/export_tflite.py converts the full Keras model, so the (value / 127.5) - 1 transform
- * (ml/model.py's MobileNetV2Preprocess layer) is already the first op inside model.tflite itself.
+ * — ml/pipeline/export_tflite.py converts the full Keras model, so the (value / 127.5) - 1 transform
+ * (ml/cornguard_ml/model.py's MobileNetV2Preprocess layer) is already the first op inside model.tflite itself.
  * [preprocess] only resizes and hands over raw [0, 255] RGB values; normalizing again here would
  * double-apply the transform (this was a real bug — see [preprocess]'s doc comment). If D-04's
- * normalization choice ever changes, that change belongs in ml/model.py and requires a re-export,
- * not an edit here — and the Android Parity Test (ml/parity_test.py) must be re-run.
+ * normalization choice ever changes, that change belongs in ml/cornguard_ml/model.py and requires a re-export,
+ * not an edit here — and the Android Parity Test (ml/pipeline/parity_test.py) must be re-run.
  */
 class TfliteCornLeafClassifier(context: Context) : CornLeafClassifier {
 
@@ -82,8 +82,8 @@ class TfliteCornLeafClassifier(context: Context) : CornLeafClassifier {
 
     /**
      * Feeds raw [0, 255] pixel values straight to the interpreter — no manual normalization here.
-     * The exported model graph (ml/model.py's MobileNetV2Preprocess layer) already does the
-     * (value / 127.5) - 1 transform as its first op, because ml/export_tflite.py converts the
+     * The exported model graph (ml/cornguard_ml/model.py's MobileNetV2Preprocess layer) already does the
+     * (value / 127.5) - 1 transform as its first op, because ml/pipeline/export_tflite.py converts the
      * full Keras model, preprocessing layer included. Normalizing again here double-applies the
      * transform, crushing every image toward a near-constant input regardless of content — this
      * produced a real bug where the app called almost everything "Healthy" at ~75-80% confidence
