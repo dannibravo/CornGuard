@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Inter (SIL OFL 1.1, rsms/inter v4.1), bundled so the scan path and first launch never need the
+    network. Latin + Latin Extended-A subset (~75 KB per weight). textStyle="bold" maps to 700.
+    Licence: THIRD_PARTY_NOTICES.md.
+-->
+<font-family xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <font android:font="@font/inter_regular" android:fontStyle="normal" android:fontWeight="400"
+        app:font="@font/inter_regular" app:fontStyle="normal" app:fontWeight="400" />
+    <font android:font="@font/inter_semibold" android:fontStyle="normal" android:fontWeight="600"
+        app:font="@font/inter_semibold" app:fontStyle="normal" app:fontWeight="600" />
+    <font android:font="@font/inter_bold" android:fontStyle="normal" android:fontWeight="700"
+        app:font="@font/inter_bold" app:fontStyle="normal" app:fontWeight="700" />
+</font-family>

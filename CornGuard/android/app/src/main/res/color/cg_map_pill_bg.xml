@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Disease pills on the map sheet: brand-soft when selected, surface otherwise. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="@color/cg_green_tint" android:state_checked="true" />
+    <item android:color="@color/cg_surface" />
+</selector>

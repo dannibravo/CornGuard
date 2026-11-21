@@ -6,366 +6,307 @@
   <title>CornGuard Outbreak Map</title>
   <link rel="icon" href="data:," />
   <!--
-    Ported from caps 3 (my-app/assets/map/outbreak-map.html). Same map, colours, dots, popups and
-    legend. CornGuard differences:
-      * Leaflet 1.9.4 is bundled (leaflet/) instead of loaded from unpkg, so the barangay
-        boundaries draw even offline (the OpenStreetMap and satellite tiles still need internet).
-      * Map / Satellite toggle (bottom-left, above zoom): Esri World Imagery + place labels, streamed
-        like the OSM tiles (nothing bundled). Choice remembered in localStorage.
+    Outbreak heatmap (UI redesign v2, "earth" palette). Loaded by MapFragment in a WebView.
+      * Leaflet 1.9.4 and the NAMRIA/PSA barangay boundaries are bundled, so the map draws offline.
+        Street tiles (OpenStreetMap) are only requested from TILE_MIN_ZOOM; the province view is
+        boundaries only (no tile requests). Satellite (Esri) stays opt-in. Choice in localStorage.
         KEEP IN SYNC with BasemapToggle in admin-web/src/pages/MapPage.tsx.
-      * The boundary GeoJSON is fetched from the app's assets (served by WebViewAssetLoader)
-        instead of being injected by React Native.
-      * Data arrives via window.updateMapData(payload) from MapFragment, and readiness is
-        reported through the CornGuardMap JavaScript interface.
-      * Diseases are keyed by CornGuard disease code; stats are keyed by barangay AND municipality.
-      * Location search (top-left): barangays and municipalities from the bundled boundary file
-        only. KEEP IN SYNC with admin-web/src/locationSearch.ts and MapPage.tsx's LocationSearch.
+      * Each barangay is coloured by its outbreak heat this week on a FIXED scale (backend
+        outbreakRules.heatIntensity; heatOf() below is the fallback copy — KEEP IN SYNC): Moderate
+        starts at 0.5 (2× its usual level), Severe at 0.8 (3×). Barangays still collecting data are
+        hatched ("Not enough data yet"). A soft glow at each centroid keeps small barangays visible;
+        overlapping glows take the maximum, never a sum.
+      * Disease report markers are not drawn for farmers (heat + "Your farm" only).
+      * Native bridge: window.updateMapData, setMapChrome, setBottomInset, setTheme,
+        setDiseaseFilter, selectArea (MapFragment -> page); CornGuardMap.onReady and
+        CornGuardMap.onAreaSelected (page -> MapFragment).
+      * Location search (top-left): bundled boundary names only.
+        KEEP IN SYNC with admin-web/src/locationSearch.ts and MapPage.tsx's LocationSearch.
   -->
   <link rel="stylesheet" href="leaflet/leaflet.css" />
   <style>
+    /* Inter from the app's own resources (res/font, served by WebViewAssetLoader at /res/). */
+    @font-face { font-family: "Inter"; font-weight: 400; font-display: swap; src: url("/res/font/inter_regular.ttf"); }
+    @font-face { font-family: "Inter"; font-weight: 600; font-display: swap; src: url("/res/font/inter_semibold.ttf"); }
+    @font-face { font-family: "Inter"; font-weight: 700; font-display: swap; src: url("/res/font/inter_bold.ttf"); }
     :root {
       --chrome-top: 0px;
       --chrome-bottom: 0px;
+      --page: #EEE9DC;
+      --surface: #FFFDF8;
+      --border: #E4DDCC;
+      --border-strong: #CFC5AE;
+      --text: #1E261C;
+      --text-2: #4B5446;
+      --text-3: #696A5B;
+      --brand: #2F5D3A;
+      --shadow: 0 1px 2px rgba(60, 50, 30, .12), 0 2px 6px rgba(60, 50, 30, .10);
     }
-    html {
-      -webkit-text-size-adjust: 100%;
-      text-size-adjust: 100%;
+    body.dark {
+      --page: #0E110C;
+      --surface: #1A1E17;
+      --border: #2D3327;
+      --border-strong: #3D4536;
+      --text: #EDEBE3;
+      --text-2: #C0BEB1;
+      --text-3: #9A9889;
+      --brand: #9CCB82;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 2px 6px rgba(0, 0, 0, .3);
     }
+    html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     html, body, #map {
       height: 100%;
       margin: 0;
       padding: 0;
-      background-color: #f4f1ea;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--page);
+      font-family: Inter, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+      font-variant-numeric: tabular-nums;
     }
-    .leaflet-container { background: #f4f1ea; }
+    .leaflet-container { background: var(--page); font-family: inherit; }
     .leaflet-top { padding-top: var(--chrome-top); }
-    .leaflet-bottom { padding-bottom: var(--chrome-bottom); }
-    .leaflet-bar {
-      border: 1px solid #444;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-    }
-    .leaflet-bar a,
-    .leaflet-bar a:hover {
-      background: rgba(34, 34, 34, 0.92);
-      color: #eee;
-      border-bottom-color: #444;
-    }
-    /* Zoom buttons: 48px = Android's minimum touch target. The .leaflet-touch prefix is needed to
-       beat leaflet.css's own touch rules (30px, 22px font), which otherwise win on a phone. */
-    .leaflet-touch .leaflet-bar a,
-    .leaflet-touch .leaflet-bar a:hover {
-      width: 48px;
-      height: 48px;
-      line-height: 48px;
-    }
+    .leaflet-bottom { padding-bottom: var(--chrome-bottom); transition: padding-bottom 0s; }
+    .cg-heat { pointer-events: none; }
+
+    /* Controls: surface buttons with a border, 48px touch targets. The .leaflet-touch prefix beats
+       leaflet.css's own touch rules (30px, 22px font), which otherwise win on a phone. */
+    .leaflet-bar, .leaflet-touch .leaflet-bar { border: 1px solid var(--border-strong); box-shadow: var(--shadow); border-radius: 10px; }
+    .leaflet-bar a, .leaflet-bar a:hover { background: var(--surface); color: var(--text); border-bottom-color: var(--border); }
+    .leaflet-touch .leaflet-bar a, .leaflet-touch .leaflet-bar a:hover { width: 48px; height: 48px; line-height: 48px; }
     .leaflet-touch .leaflet-control-zoom .leaflet-control-zoom-in,
-    .leaflet-touch .leaflet-control-zoom .leaflet-control-zoom-out { font-size: 28px; }
-    .leaflet-touch .leaflet-bar a:first-child { border-top-left-radius: 8px; border-top-right-radius: 8px; }
-    .leaflet-touch .leaflet-bar a:last-child { border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; }
-    .leaflet-touch .leaflet-bar { border-radius: 8px; }
-    .leaflet-bar a:hover,
-    .leaflet-bar a:focus { background: #333; color: #fff; }
-    .leaflet-bar a.leaflet-disabled { background: rgba(34, 34, 34, 0.6); color: #666; }
-    .leaflet-control-attribution {
-      background: rgba(17, 17, 17, 0.7);
-      color: #888;
-      font-size: 10px;
-    }
-    .leaflet-control-attribution a { color: #aaa; }
-    /* Map / Satellite toggle: same 48px dark button as zoom, showing the icon of the view a tap switches to. */
-    .leaflet-bar a.basemap-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .leaflet-touch .leaflet-bar a.basemap-toggle { border-radius: 8px; }
+    .leaflet-touch .leaflet-control-zoom .leaflet-control-zoom-out { font-size: 26px; font-weight: 400; }
+    .leaflet-touch .leaflet-bar a:first-child { border-top-left-radius: 10px; border-top-right-radius: 10px; }
+    .leaflet-touch .leaflet-bar a:last-child { border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; }
+    .leaflet-bar a:focus { background: var(--surface); color: var(--text); }
+    .leaflet-bar a.leaflet-disabled { background: var(--surface); color: var(--text-3); opacity: .6; }
+    .leaflet-container .leaflet-control-attribution { background: var(--surface); color: var(--text-2); font-size: 10px; opacity: .92; }
+    .leaflet-container .leaflet-control-attribution a { color: var(--text-2); }
+    .leaflet-bar a.basemap-toggle { display: flex; align-items: center; justify-content: center; }
+    .leaflet-touch .leaflet-bar a.basemap-toggle { border-radius: 10px; }
     .basemap-toggle svg { width: 24px; height: 24px; display: block; }
-    .leaflet-popup-content-wrapper {
-      background: #222;
-      color: #fff;
-      border-radius: 12px;
-      padding: 6px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-      border: 1px solid #333;
-    }
-    .leaflet-popup-content b { color: #4ade80; font-size: 16px; }
-    .leaflet-popup-content p { margin: 6px 0 0 0; font-size: 13px; color: #ccc; }
-    .leaflet-popup-tip { background: #222; }
+
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+    .leaflet-popup-content-wrapper { border-radius: 12px; border: 1px solid var(--border); }
+    .leaflet-popup-content { font-size: 13px; line-height: 1.4; }
+    .popup-title { font-weight: 700; font-size: 15px; color: var(--brand); }
+    .popup-meta { color: var(--text-2); }
+    .popup-note { color: var(--text-3); font-size: 12px; margin-top: 8px; }
+    .popup-rule { border: 0; border-top: 1px solid var(--border); margin: 8px 0; }
+
+    /* Legend (bottom-right): collapsed by default, tap to expand. */
     .legend {
-      background: rgba(34, 34, 34, 0.9);
-      border: 1px solid #444;
-      border-radius: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
       padding: 8px 10px;
-      color: white;
+      color: var(--text);
       font-size: 12px;
+      cursor: pointer;
+      max-width: 220px;
     }
-    .legend h4 { margin: 0 0 6px 0; font-size: 12px; font-weight: 600; color: #4ade80; }
-    .legend-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      white-space: nowrap;
-      line-height: 20px;
-    }
-    .legend h4.legend-sub {
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid #444;
-      color: #9ca3af;
-    }
-    /* Collapsed by default, tap to expand: on a phone the full legend can cover dots (CornGuard addition). */
-    .legend { cursor: pointer; }
+    .legend h4 { margin: 0 0 6px 0; font-size: 12px; font-weight: 600; }
     .legend .legend-toggle { display: none; margin: 0; }
     .legend.collapsed .legend-body { display: none; }
     .legend.collapsed .legend-toggle { display: block; }
-    .legend .swatch { width: 16px; height: 16px; flex: none; display: block; }
+    .legend-row { display: flex; align-items: center; gap: 8px; white-space: nowrap; line-height: 20px; margin-top: 4px; }
+    .legend-ramp { position: relative; height: 12px; border-radius: 3px; margin: 2px 0 0 0; width: 190px; }
+    .legend-ticks { position: relative; height: 30px; width: 190px; color: var(--text-2); font-size: 11px; }
+    .legend-ticks span { position: absolute; top: 2px; transform: translateX(-50%); white-space: nowrap; text-align: center; line-height: 13px; }
+    .legend-ticks span::before {
+      content: ""; position: absolute; left: 50%; top: -8px; width: 1px; height: 6px; background: var(--text);
+    }
+    .legend-ticks span.edge-left { transform: none; }
+    .legend-ticks span.edge-left::before { display: none; }
+    .legend-ticks span.edge-right { transform: translateX(-100%); text-align: right; }
+    .legend-ticks span.edge-right::before { display: none; }
+    .swatch { width: 16px; height: 16px; flex: none; display: block; border-radius: 3px; }
+    .swatch-hatch { border: 1px dashed var(--text-3); box-sizing: border-box; }
+    .legend-note { color: var(--text-3); margin-top: 6px; white-space: normal; line-height: 15px; }
 
-    /* Report markers: fill = severity, shape + letter = disease (readable without telling
-       two colours apart). White outline + shadow keep them visible on any map background. */
-    .cg-marker { background: none; border: none; }
-    .cg-marker svg { display: block; overflow: visible; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55)); }
-    .cg-marker .halo { transform-origin: center; transform-box: fill-box; animation: cg-pulse 1.8s ease-out infinite; }
-    @keyframes cg-pulse { from { opacity: 0.55; transform: scale(0.75); } to { opacity: 0; transform: scale(1.5); } }
-    @media (prefers-reduced-motion: reduce) { .cg-marker .halo { animation: none; opacity: 0.3; } }
-    /* Reports 14-28 days old: still shown, but faded — they no longer count toward the level. */
-    .cg-marker-recent { opacity: 0.8; }
-
-    /* Location search: same dark panel as the legend. Its corner stacks above the bottom
-       corners so the results list is never drawn under the legend or zoom buttons. */
+    /* Location search. Its corner stacks above the bottom corners so results draw over the legend. */
     .leaflet-top.leaflet-left { z-index: 1001; }
-    /* While typing the keyboard leaves little map, so the legend, zoom and attribution step aside
-       (the attribution would otherwise float mid-map above the hidden sheet's gap). They return
-       as soon as the search box loses focus. */
     body.searching .legend,
-    body.searching .filter,
-    body.searching .map-empty,
     body.searching .leaflet-control-zoom,
     body.searching .basemap-control,
     body.searching .leaflet-control-attribution { display: none; }
-    /* Leaves room on the right for the filter button. */
-    .search { width: calc(100vw - 74px); max-width: 320px; font-size: 13px; }
-    /* Collapsed to a single magnifier button until tapped, to keep the map uncluttered. */
+    .search { width: calc(100vw - 24px); max-width: 320px; font-size: 13px; }
     .search.collapsed { width: auto; }
     .search.collapsed .search-box,
     .search.collapsed .search-results,
     .search:not(.collapsed) .search-toggle { display: none; }
-    .search-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 44px;
-      height: 44px;
-      padding: 0;
-      background: rgba(34, 34, 34, 0.92);
-      border: 1px solid #444;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-      color: #fff;
+    .search-toggle, .search-box, .search-results {
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      color: var(--text);
     }
-    .search-toggle:active { background: #333; }
+    .search-toggle { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; padding: 0; }
     .search-toggle svg { width: 22px; height: 22px; }
-    .search-box {
-      display: flex;
-      align-items: center;
-      background: rgba(34, 34, 34, 0.92);
-      border: 1px solid #444;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-    }
-    .search-box:focus-within { border-color: #4ade80; }
+    .search-box { display: flex; align-items: center; }
+    .search-box:focus-within { border-color: var(--brand); }
     .search-box input {
-      flex: 1;
-      min-width: 0;
-      padding: 10px 12px;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: #fff;
-      font: inherit;
-      font-size: 16px; /* 16px+ so the WebView doesn't zoom in on focus */
+      flex: 1; min-width: 0; padding: 10px 12px; background: transparent; border: none; outline: none;
+      color: var(--text); font: inherit; font-size: 16px; /* 16px+ so the WebView doesn't zoom in on focus */
     }
-    .search-box input::placeholder { color: #9ca3af; }
-    .search-clear {
-      flex: none;
-      width: 40px;
-      height: 40px;
-      background: none;
-      border: none;
-      color: #9ca3af;
-      font-size: 22px;
-      line-height: 1;
-    }
-    .search-results {
-      margin: 4px 0 0 0;
-      padding: 4px 0;
-      list-style: none;
-      max-height: 40vh;
-      overflow-y: auto;
-      background: rgba(34, 34, 34, 0.96);
-      border: 1px solid #444;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-      color: #fff;
-    }
-    .search-results li {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 12px;
-    }
-    .search-results li:active { background: #333; }
+    .search-box input::placeholder { color: var(--text-3); }
+    .search-clear { flex: none; width: 44px; height: 44px; background: none; border: none; color: var(--text-2); font-size: 22px; line-height: 1; }
+    .search-results { margin: 4px 0 0 0; padding: 4px 0; list-style: none; max-height: 40vh; overflow-y: auto; }
+    .search-results li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; }
+    .search-results li:active { background: var(--page); }
     .search-name { font-weight: 600; }
-    .search-meta { color: #9ca3af; text-align: right; }
-    .search-results li.search-empty { color: #9ca3af; }
-
-    /* Disease / severity filter (top-right). KEEP IN SYNC with admin-web's .map-filter* rules. */
-    .filter { display: flex; flex-direction: column; align-items: flex-end; font-size: 13px; }
-    .filter-toggle {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 44px;
-      height: 44px;
-      padding: 0;
-      background: rgba(34, 34, 34, 0.92);
-      border: 1px solid #444;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-      color: #fff;
-    }
-    .filter-toggle:active { background: #333; }
-    .filter-toggle[aria-expanded="true"] { border-color: #4ade80; }
-    .filter-toggle svg { width: 22px; height: 22px; }
-    .filter-badge {
-      position: absolute;
-      top: -6px;
-      right: -6px;
-      min-width: 18px;
-      height: 18px;
-      padding: 0 4px;
-      border-radius: 9px;
-      background: #4ade80;
-      color: #111;
-      font-size: 11px;
-      font-weight: 700;
-      line-height: 18px;
-      text-align: center;
-    }
-    .filter-badge[hidden], .filter-panel[hidden] { display: none; }
-    /* No WebView focus box on tap; keyboard focus still gets a ring. */
-    .filter button:focus, .map-empty button:focus { outline: none; }
-    .filter button:focus-visible, .map-empty button:focus-visible { outline: 2px solid #4ade80; outline-offset: 2px; }
-    .filter-panel {
-      margin-top: 6px;
-      width: calc(100vw - 20px);
-      max-width: 300px;
-      max-height: calc(100vh - var(--chrome-top) - var(--chrome-bottom) - 80px);
-      overflow-y: auto;
-      box-sizing: border-box;
-      padding: 10px;
-      background: rgba(34, 34, 34, 0.96);
-      border: 1px solid #444;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-      color: #fff;
-    }
-    .filter-panel h4 { margin: 0 0 8px 0; font-size: 12px; font-weight: 600; color: #4ade80; }
-    .filter-panel h4.filter-sub { margin-top: 10px; padding-top: 10px; border-top: 1px solid #444; }
-    .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-    .filter-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      min-height: 34px;
-      padding: 4px 12px;
-      background: transparent;
-      border: 1px solid #555;
-      border-radius: 999px;
-      color: #d1d5db;
-      font: inherit;
-    }
-    .filter-chip[aria-pressed="true"] { background: rgba(74, 222, 128, 0.16); border-color: #4ade80; color: #fff; font-weight: 600; }
-    .filter-chip .swatch { width: 16px; height: 16px; flex: none; display: block; }
-    .filter-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid #444;
-      color: #9ca3af;
-    }
-    .filter-reset, .map-empty button {
-      background: none;
-      border: none;
-      padding: 8px 0;
-      color: #4ade80;
-      font: inherit;
-      font-weight: 600;
-    }
-    .filter-reset:disabled { color: #6b7280; }
-    /* Shown when the filters leave no markers; centred in the area clear of the header and sheet. */
-    .map-empty {
-      position: absolute;
-      left: 50%;
-      top: calc(50% + (var(--chrome-top) - var(--chrome-bottom)) / 2);
-      transform: translate(-50%, -50%);
-      z-index: 999;
-      padding: 8px 14px;
-      background: rgba(34, 34, 34, 0.92);
-      border: 1px solid #444;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-      color: #fff;
-      font-size: 13px;
-      white-space: nowrap;
-    }
-    /* The open panel already says "Showing 0 of N"; the notice would sit half under it. */
-    .map-empty[hidden], body.filter-open .map-empty { display: none; }
+    .search-meta { color: var(--text-2); text-align: right; }
+    .search-results li.search-empty { color: var(--text-2); }
+    button:focus { outline: none; }
+    button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div class="map-empty" role="status" hidden>No reports match these filters. <button type="button">Reset</button></div>
 
   <script src="leaflet/leaflet.js"></script>
   <script>
     const chrome = { top: 0, bottom: 0 };
     let geoJsonLayer = null;
-    let detectionLayer = null;
     const barangayLayers = [];
-
-    // Latest payloads, kept so an update to one doesn't blank the other out.
     let latestStats = [];
-    let latestDetections = [];
     // My Farms: the signed-in farmer's own farm pins (private; only their app receives them).
     let latestFarms = [];
     let farmLayer = null;
+    let dark = false;
+    // '' = all diseases, otherwise one disease code (the sheet's pills).
+    let diseaseFilter = '';
+    let selectedLayer = null;
+
+    // ---- Palette ("earth" v2; same values as values/colors.xml and admin.css §1) ----
+    const RAMP = {
+      light: [[0, '#EFDCA0'], [0.25, '#E3B85A'], [0.5, '#D08A26'], [0.8, '#B04F27'], [1, '#7A2417']],
+      dark: [[0, '#6B5226'], [0.25, '#A06C24'], [0.5, '#D08B33'], [0.8, '#F2A37F'], [1, '#FCD3C2']]
+    };
+    const HATCH = { light: { line: '#A39A85', bg: '#F4EFE2' }, dark: { line: '#7D7B6D', bg: '#1D2219' } };
+    const OUTLINE = { light: '#CFC5AE', dark: '#3D4536' };
+    const SELECTED = { light: '#1E261C', dark: '#EDEBE3' };
+    const BRAND = { light: '#2F5D3A', dark: '#8DBF72' };
+    function theme() { return dark ? 'dark' : 'light'; }
+
+    function hexToRgb(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+    function rgbToHex(c) { return '#' + c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join(''); }
+    function rampColor(t) {
+      const stops = RAMP[theme()];
+      const x = Math.min(1, Math.max(0, t));
+      for (let i = 1; i < stops.length; i++) {
+        if (x <= stops[i][0]) {
+          const [a, ca] = stops[i - 1];
+          const [b, cb] = stops[i];
+          const f = (x - a) / (b - a);
+          const A = hexToRgb(ca), B = hexToRgb(cb);
+          return rgbToHex(A.map((v, k) => v + (B[k] - v) * f));
+        }
+      }
+      return stops[stops.length - 1][1];
+    }
+    // Outline 25% darker than the fill (25% lighter in dark mode, where the ramp gets lighter).
+    function strokeFor(fill) {
+      const c = hexToRgb(fill);
+      return rgbToHex(dark ? c.map((v) => v + (255 - v) * 0.25) : c.map((v) => v * 0.75));
+    }
+
+    // Fixed-scale heat for one stat row. Uses the backend's value; the formula below is a fallback
+    // for older backends. KEEP IN SYNC with heatIntensity in backend/convex/lib/outbreakRules.ts.
+    function heatOf(s) {
+      if (s.intensity !== undefined) return s.intensity;
+      if (s.monitoringStatus === 'collecting') return null;
+      const farms = Math.max(0, s.distinctFarms || 0);
+      if (farms === 0) return 0;
+      const clamp01 = (x) => Math.min(1, Math.max(0, x));
+      const moderateAt = Math.max(1, s.moderateAt != null ? s.moderateAt : 3);
+      const severeAt = Math.max(moderateAt + 1, s.severeAt != null ? s.severeAt : 5);
+      if (s.severityTier === 'severe') return 0.8 + 0.2 * clamp01((farms - severeAt) / severeAt);
+      if (s.severityTier === 'moderate') return 0.5 + 0.28 * clamp01((farms - moderateAt) / (severeAt - moderateAt));
+      return Math.min(0.45, 0.12 + 0.33 * farms / moderateAt);
+    }
+
+    function areaKey(barangay, municipality) { return barangay + '||' + municipality; }
+
+    // { heat } for the hottest matching disease, { collecting: true } when only collecting rows
+    // match, or null (no reports this week).
+    let areaState = {};
+    function computeAreaState() {
+      areaState = {};
+      latestStats.forEach((s) => {
+        if (diseaseFilter && s.diseaseCode !== diseaseFilter) return;
+        const key = areaKey(s.barangay, s.municipality);
+        const h = heatOf(s);
+        const st = areaState[key] || (areaState[key] = { heat: null, collecting: false });
+        if (h === null) st.collecting = true;
+        else if (h > 0 && (st.heat === null || h > st.heat)) st.heat = h;
+      });
+    }
+    function stateOf(layer) {
+      const p = layer.feature.properties;
+      const st = areaState[areaKey(p.barangay, p.municipality)];
+      if (!st) return null;
+      if (st.heat !== null) return { heat: st.heat };
+      return st.collecting ? { collecting: true } : null;
+    }
+
+    // ---- Map ----
+    // Canvas renderer: one <canvas> for 464 polygons instead of 464 SVG paths.
+    const MAX_ZOOM = 16;
+    const map = L.map('map', { zoomControl: false, preferCanvas: true, maxZoom: MAX_ZOOM }).setView([8.15, 125.13], 9);
+    L.control.zoom({ position: 'topleft' }).addTo(map);
+    map.createPane('heatPane').style.zIndex = 350; // under the polygons (overlayPane, 400)
+    map.attributionControl.setPrefix(false);
+    map.attributionControl.addAttribution('<a href="https://leafletjs.com">Leaflet</a> | Boundaries &copy; NAMRIA, PSA');
 
     function setMapChrome(top, bottom) {
       chrome.top = top || 0;
       chrome.bottom = bottom || 0;
+      applyChrome();
+      fitToLayer(true);
+    }
+    function applyChrome() {
       const root = document.documentElement.style;
       root.setProperty('--chrome-top', chrome.top + 'px');
       root.setProperty('--chrome-bottom', chrome.bottom + 'px');
-      // Popups pan clear of the app's header and the reports sheet; without this a popup on a dot
-      // near the top opened underneath the header, hiding the disease name. Set on the prototype so
-      // every popup (barangay outlines and report dots) picks it up, including ones already bound.
+      // Popups pan clear of the app's top controls and the bottom sheet.
       L.Popup.prototype.options.autoPanPaddingTopLeft = L.point(10, chrome.top + 10);
       L.Popup.prototype.options.autoPanPaddingBottomRight = L.point(10, chrome.bottom + 10);
-      fitToLayer(true);
     }
     window.setMapChrome = setMapChrome;
 
-    // Centred on Bukidnon; zoom bottom-left (top-left sits under the app's header).
-    const map = L.map('map', { zoomControl: false }).setView([8.15, 125.13], 9);
-    L.control.zoom({ position: 'bottomleft' }).addTo(map);
+    // Called while the sheet is dragged (CSS px = dp). Moves the legend/attribution with the sheet
+    // and pans by half the change, so the point at the centre of the visible map stays put.
+    let pendingInset = null;
+    window.setBottomInset = function (px) {
+      pendingInset = Math.max(0, Math.round(px || 0));
+      if (!window.__insetFrame) {
+        window.__insetFrame = requestAnimationFrame(() => {
+          window.__insetFrame = null;
+          const delta = pendingInset - chrome.bottom;
+          if (delta === 0) return;
+          chrome.bottom = pendingInset;
+          applyChrome();
+          map.panBy([0, delta / 2], { animate: false });
+        });
+      }
+    };
 
-    // Fitting all of Bukidnon on a phone lands around zoom 8, which reads as a jarring zoom-out;
-    // never open wider than the initial view.
+    window.setTheme = function (isDark) {
+      dark = !!isDark;
+      document.body.classList.toggle('dark', dark);
+      restyleAll();
+      heatLayer.redraw();
+      renderFarms();
+      buildLegend();
+    };
+
+    window.setDiseaseFilter = function (code) {
+      diseaseFilter = code || '';
+      render();
+    };
+
+    // Fitting all of Bukidnon on a phone lands around zoom 8; never open wider than the initial view.
     const FIT_MIN_ZOOM = 9;
     let hasFitted = false;
     function fitToLayer(force) {
@@ -373,10 +314,9 @@
       if (hasFitted && !force) return;
       const bounds = geoJsonLayer.getBounds();
       if (!bounds.isValid()) return;
-      const paddingTL = L.point(20, chrome.top + 20);
-      const paddingBR = L.point(20, chrome.bottom + 20);
+      const paddingTL = L.point(16, chrome.top + 16);
+      const paddingBR = L.point(16, chrome.bottom + 16);
       const zoom = Math.max(FIT_MIN_ZOOM, map.getBoundsZoom(bounds, false, paddingTL.add(paddingBR)));
-      // Same centring as fitBounds: the middle of the area left clear of the header and sheet.
       const offset = paddingBR.subtract(paddingTL).divideBy(2);
       const center = map.unproject(
         map.project(bounds.getSouthWest(), zoom).add(map.project(bounds.getNorthEast(), zoom))
@@ -387,28 +327,26 @@
       hasFitted = true;
     }
 
-    // ---- Basemap: Map (OSM, default) or Satellite (Esri imagery + labels) ----
+    // ---- Basemap ----
+    // Street tiles only from TILE_MIN_ZOOM (barangay scale): the province view needs nothing but the
+    // bundled boundaries, so it costs no tile requests (OSM's tile policy forbids heavy use).
+    // Satellite is the farmer's explicit choice and loads at every zoom.
     // KEEP IN SYNC with BasemapToggle / SATELLITE_* in admin-web/src/pages/MapPage.tsx.
-    const BOUNDARY_CREDIT = ' | Boundaries &copy; NAMRIA, PSA';
+    const TILE_MIN_ZOOM = 12;
     const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' +
-        BOUNDARY_CREDIT,
-      maxZoom: 19
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: MAX_ZOOM
     });
-    // Esri's URL order is {y}/{x}. maxNativeZoom 18: zoom 19 upscales instead of showing
-    // "Map data not yet available" tiles, which are common over rural Bukidnon.
     const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
     const satelliteLayer = L.layerGroup([
       L.tileLayer(ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community' +
-          BOUNDARY_CREDIT,
-        maxNativeZoom: 18,
-        maxZoom: 19
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+        maxNativeZoom: 16,
+        maxZoom: MAX_ZOOM
       }),
-      // Town and road names on top of the imagery, so farmers can still orient themselves.
       L.tileLayer(ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-        maxNativeZoom: 18,
-        maxZoom: 19
+        maxNativeZoom: 16,
+        maxZoom: MAX_ZOOM
       })
     ]);
     const BASEMAP_KEY = 'cg.basemap';
@@ -416,32 +354,30 @@
     try {
       if (localStorage.getItem(BASEMAP_KEY) === 'satellite') currentBasemap = 'satellite';
     } catch (e) { /* storage unavailable: stay on Map */ }
-    (currentBasemap === 'satellite' ? satelliteLayer : streetLayer).addTo(map);
 
-    // Barangay outlines: dark grey vanishes on imagery, so satellite mode uses a light outline.
-    // fillOpacity a hair above zero keeps the polygon tappable for its popup.
-    function baseStyle() {
-      return currentBasemap === 'satellite'
-        ? { fillColor: '#1f2937', fillOpacity: 0.06, color: '#f9fafb', opacity: 0.8, weight: 1.2 }
-        : { fillColor: '#1f2937', fillOpacity: 0.06, color: '#374151', opacity: 1, weight: 1 };
+    function syncTiles() {
+      const wantStreet = currentBasemap === 'map' && map.getZoom() >= TILE_MIN_ZOOM;
+      const wantSatellite = currentBasemap === 'satellite';
+      if (wantStreet !== map.hasLayer(streetLayer)) {
+        if (wantStreet) streetLayer.addTo(map); else map.removeLayer(streetLayer);
+        if (geoJsonLayer) restyleAll();
+      }
+      if (wantSatellite !== map.hasLayer(satelliteLayer)) {
+        if (wantSatellite) satelliteLayer.addTo(map); else map.removeLayer(satelliteLayer);
+      }
     }
+    map.on('zoomend', syncTiles);
 
     let basemapButton = null;
     function setBasemap(name) {
       if (name === currentBasemap) return;
-      map.removeLayer(currentBasemap === 'satellite' ? satelliteLayer : streetLayer);
       currentBasemap = name;
-      (name === 'satellite' ? satelliteLayer : streetLayer).addTo(map);
-      // Tile layers sit in their own pane, so the outlines and dots stay on top without reordering.
-      if (geoJsonLayer) {
-        barangayLayers.forEach((layer) => {
-          if (!highlightedLayers.includes(layer)) geoJsonLayer.resetStyle(layer);
-        });
-      }
+      syncTiles();
+      restyleAll();
       updateBasemapButton();
       try { localStorage.setItem(BASEMAP_KEY, name); } catch (e) { /* not remembered; fine */ }
     }
-    // Icons from Lucide (ISC licence): "satellite" and "map". Stroke follows the button's text colour.
+    // Icons from Lucide (ISC licence): "satellite" and "map".
     const SVG_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
       'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
     const BASEMAP_ICON = {
@@ -453,13 +389,11 @@
     };
     function updateBasemapButton() {
       if (!basemapButton) return;
-      // The icon shows the view a tap switches TO.
       const next = currentBasemap === 'satellite' ? 'Map' : 'Satellite';
       basemapButton.innerHTML = BASEMAP_ICON[next];
       basemapButton.title = 'Show ' + next.toLowerCase() + ' view';
       basemapButton.setAttribute('aria-label', basemapButton.title);
     }
-    // Added after the zoom control, so Leaflet stacks it just above the zoom buttons.
     const basemapControl = L.control({ position: 'bottomleft' });
     basemapControl.onAdd = function () {
       const bar = L.DomUtil.create('div', 'leaflet-bar basemap-control');
@@ -476,256 +410,275 @@
     };
     basemapControl.addTo(map);
 
-    // Marker fill = severity tier of that barangay + disease (deep enough for a white letter).
-    const TIER_COLORS = {
-      severe: '#dc2626',   // Red
-      moderate: '#d97706', // Amber
-      mild: '#059669'      // Emerald green
-    };
-    // Marker shape + letter = which disease (caps 3's "Blight" is CornGuard's northern_leaf_blight).
-    // Shapes replace caps 3's coloured rings, which were hard to tell apart against the fill.
-    const DISEASE_MARK = {
-      northern_leaf_blight: { shape: 'circle', letter: 'B' },
-      common_rust: { shape: 'square', letter: 'R' },
-      gray_leaf_spot: { shape: 'diamond', letter: 'G' }
-    };
-    const DISEASE_LABEL = {
-      northern_leaf_blight: 'Northern Leaf Blight',
-      common_rust: 'Common Rust',
-      gray_leaf_spot: 'Gray Leaf Spot',
-      healthy: 'Healthy'
-    };
-    const UNKNOWN_MARK = { shape: 'circle', letter: '?' };
-    // Size also tracks severity, so the map reads without relying on hue alone.
-    const TIER_SIZE = { severe: 28, moderate: 24, mild: 20 };
-    const NEUTRAL = '#4b5563';
-    // Reports 14-28 days old (stage "recent"): grey, small, no longer counted. Older ones aren't sent.
-    const RECENT_COLOR = '#6b7280';
-    const RECENT_SIZE = 18;
-    const DAY_MS = 24 * 60 * 60 * 1000;
-
-    function getColor(tier) { return TIER_COLORS[tier] || NEUTRAL; }
-    function diseaseMark(code) { return DISEASE_MARK[code] || UNKNOWN_MARK; }
-
-    // One marker as inline SVG (24x24 box): severity-coloured shape, white outline, white letter.
-    function markerSvg(mark, fill, size, halo) {
-      const outline = 'stroke="#ffffff" stroke-width="2"';
-      const shape = {
-        circle: `<circle cx="12" cy="12" r="10" fill="${fill}" ${outline}/>`,
-        square: `<rect x="2.5" y="2.5" width="19" height="19" rx="4" fill="${fill}" ${outline}/>`,
-        diamond: `<rect x="4.4" y="4.4" width="15.2" height="15.2" rx="2.5" fill="${fill}" ${outline} transform="rotate(45 12 12)"/>`
-      }[mark.shape];
-      const haloSvg = halo ? `<circle class="halo" cx="12" cy="12" r="12" fill="${fill}"/>` : '';
-      return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true">${haloSvg}${shape}` +
-        `<text x="12" y="16" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-size="11" ` +
-        `font-weight="800" fill="#ffffff">${mark.letter}</text></svg>`;
+    // ---- Barangay polygons: heat fill, outline, selection ----
+    const HEAT_FILL_OPACITY = 0.78;
+    const HIGHLIGHT_COLOR = { light: '#2F5D80', dark: '#8FB8DA' }; // municipality search (info blue)
+    function styleFor(layer) {
+      const st = stateOf(layer);
+      const satellite = currentBasemap === 'satellite';
+      let style;
+      if (st && st.heat !== undefined) {
+        const fill = rampColor(st.heat);
+        style = { fill: true, fillColor: fill, fillOpacity: HEAT_FILL_OPACITY, color: strokeFor(fill), opacity: 1, weight: 1 };
+      } else if (st && st.collecting) {
+        // Hatching is drawn by the heat layer underneath; the polygon adds the dashed outline.
+        style = { fill: true, fillOpacity: 0, color: HATCH[theme()].line, opacity: 1, weight: 1, dashArray: '4 3' };
+      } else {
+        // fill stays on (transparent) so the whole barangay is tappable. Over street tiles the
+        // outline needs more weight to stay readable.
+        const onTiles = map.hasLayer(streetLayer);
+        style = satellite
+          ? { fill: true, fillOpacity: 0, color: '#F6F3EA', opacity: 0.8, weight: 1.2 }
+          : { fill: true, fillOpacity: 0, color: onTiles ? '#5B5F52' : OUTLINE[theme()], opacity: onTiles ? 0.7 : 1, weight: onTiles ? 1.2 : 0.8 };
+      }
+      if (highlightedLayers.includes(layer)) {
+        style = Object.assign({}, style, { color: HIGHLIGHT_COLOR[theme()], weight: 2.5, dashArray: null });
+      }
+      if (layer === selectedLayer) {
+        style = Object.assign({}, style, { color: SELECTED[theme()], weight: 2.5, opacity: 1, dashArray: null });
+      }
+      return style;
+    }
+    function restyleAll() {
+      barangayLayers.forEach((layer) => layer.setStyle(styleFor(layer)));
+      if (selectedLayer) selectedLayer.bringToFront();
     }
 
-    // offset: [x, y] pixels, so reports at the same point sit side by side (see spreadOffsets).
-    function markerIcon(code, tier, recent, offset) {
-      const size = recent ? RECENT_SIZE : (TIER_SIZE[tier] || TIER_SIZE.mild);
-      const fill = recent ? RECENT_COLOR : getColor(tier);
-      const [dx, dy] = offset || [0, 0];
-      return L.divIcon({
-        className: recent ? 'cg-marker cg-marker-recent' : 'cg-marker',
-        html: markerSvg(diseaseMark(code), fill, size, !recent && tier === 'severe'),
-        iconSize: [size, size],
-        iconAnchor: [size / 2 - dx, size / 2 - dy],
-        popupAnchor: [dx, dy - size / 2]
-      });
+    function selectLayer(layer, notify) {
+      const previous = selectedLayer;
+      selectedLayer = layer;
+      if (previous) previous.setStyle(styleFor(previous));
+      if (layer) {
+        layer.setStyle(styleFor(layer));
+        layer.bringToFront();
+      }
+      if (notify && layer && window.CornGuardMap && window.CornGuardMap.onAreaSelected) {
+        const p = layer.feature.properties;
+        window.CornGuardMap.onAreaSelected(JSON.stringify({ barangay: p.barangay, municipality: p.municipality }));
+      }
     }
 
-    // Reports at exactly the same coordinates (e.g. two manual picks of one barangay, which share its
-    // centroid) would draw as a single dot. Fan each such group out in a small ring, in screen pixels
-    // so it reads the same at every zoom. Returns one [dx, dy] per detection, in order.
-    // KEEP IN SYNC with spreadOffsets in admin-web/src/pages/MapPage.tsx.
-    function spreadOffsets(detections) {
-      const groups = {};
-      detections.forEach((d, i) => {
-        const key = d.latitude + ',' + d.longitude;
-        (groups[key] = groups[key] || []).push(i);
-      });
-      const offsets = detections.map(() => [0, 0]);
-      Object.values(groups).forEach((idx) => {
-        if (idx.length < 2) return;
-        const radius = 10 + 3 * idx.length;
-        idx.forEach((i, k) => {
-          const angle = (2 * Math.PI * k) / idx.length - Math.PI / 2;
-          offsets[i] = [Math.round(radius * Math.cos(angle)), Math.round(radius * Math.sin(angle))];
+    /** From MapFragment: select the farmer's barangay (fly = also bring it into view). */
+    window.selectArea = function (barangay, municipality, fly) {
+      const layer = barangayLayers.find((l) =>
+        l.feature.properties.barangay === barangay && l.feature.properties.municipality === municipality);
+      if (!layer) return false;
+      selectLayer(layer, false);
+      if (fly) {
+        map.flyToBounds(layer.getBounds(), {
+          paddingTopLeft: [20, chrome.top + 20], paddingBottomRight: [20, chrome.bottom + 20], maxZoom: 13
         });
+      }
+      return true;
+    };
+
+    // ---- Heat layer: hatching for "collecting" barangays + centroid glow (custom canvas) ----
+    // Glows are drawn opaque in ascending heat order on an offscreen canvas (so where they overlap
+    // the hotter one wins — a maximum, never a sum), then blurred onto the map in one pass.
+    // Radii from the design (px with the whole province ~600px wide, i.e. zoom 10); they grow
+    // half as fast as the map so the glow stays a hint around the barangay, not a new area.
+    const GLOW_RADIUS = { severe: 44, moderate: 34, mild: 24 };
+    const GLOW_REFERENCE_ZOOM = 10;
+    const GLOW_BLUR = 9;
+    const GLOW_ALPHA = 0.4;
+    function glowRadius(heat) {
+      const base = heat >= 0.8 ? GLOW_RADIUS.severe : heat >= 0.5 ? GLOW_RADIUS.moderate : GLOW_RADIUS.mild;
+      return base * Math.min(1.6, Math.pow(2, (map.getZoom() - GLOW_REFERENCE_ZOOM) / 2));
+    }
+    const HeatLayer = L.Layer.extend({
+      onAdd: function (m) {
+        this._canvas = L.DomUtil.create('canvas', 'cg-heat');
+        this._glow = document.createElement('canvas');
+        m.getPane('heatPane').appendChild(this._canvas);
+        m.on('moveend zoomend resize viewreset', this._reset, this);
+        m.on('zoomstart', this._hide, this);
+        this._reset();
+      },
+      onRemove: function (m) {
+        L.DomUtil.remove(this._canvas);
+        m.off('moveend zoomend resize viewreset', this._reset, this);
+        m.off('zoomstart', this._hide, this);
+      },
+      redraw: function () { if (this._map) this._reset(); },
+      _hide: function () { this._canvas.style.visibility = 'hidden'; },
+      _reset: function () {
+        const m = this._map;
+        const size = m.getSize();
+        const ratio = window.devicePixelRatio || 1;
+        const w = Math.round(size.x * ratio), h = Math.round(size.y * ratio);
+        if (this._canvas.width !== w || this._canvas.height !== h) {
+          [this._canvas, this._glow].forEach((c) => { c.width = w; c.height = h; });
+          this._canvas.style.width = size.x + 'px';
+          this._canvas.style.height = size.y + 'px';
+        }
+        L.DomUtil.setPosition(this._canvas, m.containerPointToLayerPoint([0, 0]));
+        this._draw(ratio);
+        this._canvas.style.visibility = 'visible';
+      },
+      _draw: function (ratio) {
+        const m = this._map;
+        const ctx = this._canvas.getContext('2d');
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+        if (!geoJsonLayer) return;
+        const viewBounds = m.getBounds().pad(0.2);
+        const hot = [];
+        const hatch = HATCH[theme()];
+        let pattern = null;
+        barangayLayers.forEach((layer) => {
+          const st = stateOf(layer);
+          if (!st || !viewBounds.intersects(layer.getBounds())) return;
+          if (st.heat !== undefined) { hot.push({ layer: layer, heat: st.heat }); return; }
+          // Collecting: diagonal hatch inside the polygon.
+          if (!pattern) pattern = ctx.createPattern(hatchTile(hatch, ratio), 'repeat');
+          ctx.save();
+          ctx.beginPath();
+          traceLayer(ctx, m, layer);
+          ctx.fillStyle = hatch.bg;
+          ctx.globalAlpha = 0.85;
+          ctx.fill('evenodd');
+          ctx.globalAlpha = 1;
+          ctx.setTransform(1, 0, 0, 1, 0, 0); // pattern in device pixels
+          ctx.fillStyle = pattern;
+          ctx.fill('evenodd');
+          ctx.restore();
+        });
+        if (hot.length === 0) return;
+        hot.sort((a, b) => a.heat - b.heat);
+        const g = this._glow.getContext('2d');
+        g.setTransform(ratio, 0, 0, ratio, 0, 0);
+        g.clearRect(0, 0, this._glow.width, this._glow.height);
+        hot.forEach((h) => {
+          const c = m.latLngToContainerPoint(centroidOf(h.layer));
+          g.beginPath();
+          g.arc(c.x, c.y, glowRadius(h.heat), 0, Math.PI * 2);
+          g.fillStyle = rampColor(h.heat);
+          g.fill();
+        });
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalAlpha = GLOW_ALPHA;
+        ctx.filter = 'blur(' + Math.round(GLOW_BLUR * ratio) + 'px)';
+        ctx.drawImage(this._glow, 0, 0);
+        ctx.restore();
+      }
+    });
+    function hatchTile(hatch, ratio) {
+      const s = Math.round(8 * ratio);
+      const c = document.createElement('canvas');
+      c.width = c.height = s;
+      const x = c.getContext('2d');
+      x.strokeStyle = hatch.line;
+      x.lineWidth = Math.max(1, ratio);
+      x.beginPath();
+      x.moveTo(0, s); x.lineTo(s, 0);
+      x.moveTo(-s / 2, s / 2); x.lineTo(s / 2, -s / 2);
+      x.moveTo(s / 2, s * 1.5); x.lineTo(s * 1.5, s / 2);
+      x.stroke();
+      return c;
+    }
+    // Rings of a Polygon / MultiPolygon layer, in container pixels.
+    function traceLayer(ctx, m, layer) {
+      const rings = [];
+      const collect = (latlngs) => {
+        if (latlngs.length && latlngs[0] instanceof L.LatLng) rings.push(latlngs);
+        else latlngs.forEach(collect);
+      };
+      collect(layer.getLatLngs());
+      rings.forEach((ring) => {
+        ring.forEach((ll, i) => {
+          const p = m.latLngToContainerPoint(ll);
+          if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+        });
+        ctx.closePath();
       });
-      return offsets;
     }
-    function diseaseLabel(code) { return DISEASE_LABEL[code] || code; }
-    function areaKey(barangay, municipality) { return barangay + '||' + municipality; }
+    function centroidOf(layer) {
+      if (!layer._cgCenter) {
+        try { layer._cgCenter = layer.getCenter(); } catch (e) { layer._cgCenter = layer.getBounds().getCenter(); }
+      }
+      return layer._cgCenter;
+    }
+    const heatLayer = new HeatLayer();
+    heatLayer.addTo(map);
 
-    // ---- Disease / severity filters ----
-    // KEEP IN SYNC with admin-web/src/mapFilters.ts. An empty set means "All". Within a filter the
-    // choices are OR'd; across the two filters they're AND'd. Reset every time the map opens.
-    const SEVERITY_OPTIONS = [
-      { key: 'severe', label: 'Severe' },
-      { key: 'moderate', label: 'Moderate' },
-      { key: 'mild', label: 'Mild' },
-      { key: 'past', label: 'Past (2–4 wks)' }
-    ];
-    const DISEASE_KEYS = Object.keys(DISEASE_MARK);
-    const SEVERITY_KEYS = SEVERITY_OPTIONS.map((o) => o.key);
-    const filters = { diseases: new Set(), severities: new Set() };
-
-    // 'past' for faded (14-28 day) reports, otherwise the barangay + disease tier.
-    function severityKey(d, tierByAreaDisease) {
-      if (d.stage === 'recent') return 'past';
-      return tierByAreaDisease[areaKey(d.barangay, d.municipality) + '||' + d.diseaseCode] || 'mild';
-    }
-    function matchesFilters(diseaseCode, sev) {
-      return (filters.diseases.size === 0 || filters.diseases.has(diseaseCode)) &&
-        (filters.severities.size === 0 || filters.severities.has(sev));
-    }
-    function statMatches(stat) { return matchesFilters(stat.diseaseCode, stat.severityTier); }
-    // Toggles one key; selecting every key collapses back to "All" (empty).
-    function toggleKey(set, key, allKeys) {
-      if (set.has(key)) set.delete(key); else set.add(key);
-      if (allKeys.every((k) => set.has(k))) set.clear();
-    }
-    function activeFilterCount() { return filters.diseases.size + filters.severities.size; }
-    function severitySwatchColor(key) { return key === 'past' ? RECENT_COLOR : TIER_COLORS[key]; }
-
-    /** Green map pin with a small house: the farmer's own farm (My Farms), not a disease report. */
+    // ---- Farms ----
+    /** Map pin with a small house: the farmer's own farm (My Farms), not a disease report. */
     function farmSvg(width) {
       const height = Math.round(width * 46 / 36);
+      const fill = BRAND[theme()];
+      const inner = dark ? '#10210C' : '#FFFFFF';
       return `<svg width="${width}" height="${height}" viewBox="0 0 36 46" xmlns="http://www.w3.org/2000/svg">` +
-        '<path d="M18 45C18 45 3 27.5 3 17A15 15 0 0 1 33 17C33 27.5 18 45 18 45Z" fill="#2e7d32" stroke="#fff" stroke-width="2.5"/>' +
-        '<path d="M10.5 18.5L18 12l7.5 6.5V25h-5v-4.5h-5V25h-5z" fill="#fff"/></svg>';
+        `<path d="M18 45C18 45 3 27.5 3 17A15 15 0 0 1 33 17C33 27.5 18 45 18 45Z" fill="${fill}" stroke="${inner}" stroke-width="2.5"/>` +
+        `<path d="M10.5 18.5L18 12l7.5 6.5V25h-5v-4.5h-5V25h-5z" fill="${inner}"/></svg>`;
     }
-
-    function farmPopupHtml(farm) {
-      const here = latestStats.filter((s) => s.barangay === farm.barangay && s.municipality === farm.municipality);
-      const levels = here.length
-        ? here.map((s) => (s.monitoringStatus === 'collecting'
-            ? `<span style="color:#9ca3af;font-weight:bold">UNDETERMINED</span> `
-            : `<span style="color:${getColor(s.severityTier)};font-weight:bold">${s.severityTier.toUpperCase()}</span> `) +
-            `${diseaseLabel(s.diseaseCode)}`).join('<br>')
-        : '<span style="color:#9ca3af">No active disease reports in this barangay</span>';
-      return `<div style="font-family:sans-serif;min-width:200px">
-        <b style="color:#4ade80;font-size:15px">Your farm: ${escapeHtml(farm.name)}</b><br>
-        <span style="color:#aaa">${escapeHtml(farm.barangay)}, ${escapeHtml(farm.municipality)}</span>
-        <hr style="border-color:#333;margin:8px 0">
-        <b>Outbreak level here:</b><br>${levels}
-        <div style="color:#9ca3af;font-size:12px;margin-top:8px">Only you can see this farm.</div>
-      </div>`;
-    }
-
     function escapeHtml(s) {
       return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
-
-    /** Draws the farmer's farm pins on their own layer (the disease / level filters don't apply). */
+    function farmPopupHtml(farm) {
+      return `<div style="min-width:180px">
+        <div class="popup-title">Your farm: ${escapeHtml(farm.name)}</div>
+        <div class="popup-meta">${escapeHtml(farm.barangay)}, ${escapeHtml(farm.municipality)}</div>
+        <div class="popup-note">Only you can see this farm.</div>
+      </div>`;
+    }
     function renderFarms() {
       if (farmLayer) map.removeLayer(farmLayer);
       farmLayer = L.layerGroup();
       const icon = L.divIcon({ className: '', iconSize: [30, 38], iconAnchor: [15, 37], popupAnchor: [0, -34], html: farmSvg(30) });
       latestFarms.forEach((farm) => {
         if (farm.latitude == null || farm.longitude == null) return;
-        L.marker([farm.latitude, farm.longitude], { icon, zIndexOffset: 1000 })
+        L.marker([farm.latitude, farm.longitude], { icon, zIndexOffset: 1000, keyboard: false })
           .bindPopup(() => farmPopupHtml(farm))
           .addTo(farmLayer);
       });
       farmLayer.addTo(map);
     }
 
+    // ---- Legend ----
     const legend = L.control({ position: 'bottomright' });
-    legend.onAdd = function () {
-      // Starts collapsed every time the map opens; only a tap on it expands it.
-      const div = L.DomUtil.create('div', 'legend collapsed');
-      const swatch = (mark, fill) => `<span class="swatch">${markerSvg(mark, fill, 16, false)}</span>`;
-      const tierRow = (tier, label) => `
-        <div class="legend-row">${swatch({ shape: 'circle', letter: '' }, TIER_COLORS[tier])}${label}</div>`;
-      const diseaseRows = Object.keys(DISEASE_MARK).map((code) => `
-        <div class="legend-row">${swatch(DISEASE_MARK[code], NEUTRAL)}${diseaseLabel(code)}</div>
-      `).join('');
-      div.innerHTML = `
+    let legendDiv = null;
+    function buildLegend() {
+      if (!legendDiv) return;
+      const stops = RAMP[theme()].map(([t, c]) => `${c} ${t * 100}%`).join(', ');
+      const hatch = HATCH[theme()];
+      const hatchCss = `background: repeating-linear-gradient(135deg, ${hatch.line} 0 1px, ${hatch.bg} 1px 5px)`;
+      legendDiv.innerHTML = `
         <h4 class="legend-toggle">Legend &#9656;</h4>
         <div class="legend-body">
-          <h4>Outbreak level</h4>
-          ${tierRow('severe', 'Severe Outbreak')}
-          ${tierRow('moderate', 'Moderate Threat')}
-          ${tierRow('mild', 'Mild Detection / Undetermined')}
-          <div class="legend-row" style="opacity:0.75">${swatch({ shape: 'circle', letter: '' }, RECENT_COLOR)}Reported 1–4 weeks ago</div>
-          <div class="legend-row"><span class="swatch">${farmSvg(14)}</span>Your farm (only you see it)</div>
-          <h4 class="legend-sub">Disease (shape)</h4>
-          ${diseaseRows}
-        </div>
-      `;
-      L.DomEvent.disableClickPropagation(div);
-      div.addEventListener('click', () => div.classList.toggle('collapsed'));
-      return div;
+          <h4>Outbreak level · last 7 days</h4>
+          <div class="legend-ramp" style="background: linear-gradient(90deg, ${stops})"></div>
+          <div class="legend-ticks">
+            <span class="edge-left" style="left:0">Mild</span>
+            <span style="left:50%">Moderate<br>2×</span>
+            <span style="left:80%">Severe<br>3×</span>
+          </div>
+          <div class="legend-row"><span class="swatch swatch-hatch" style="${hatchCss}"></span>Not enough data yet</div>
+          <div class="legend-row"><span class="swatch" style="border-radius:0">${farmSvg(14)}</span>Your farm (only you see it)</div>
+          <div class="legend-note">Colour = the whole barangay compared with its usual level, not where farms are.</div>
+        </div>`;
+    }
+    legend.onAdd = function () {
+      legendDiv = L.DomUtil.create('div', 'legend collapsed');
+      legendDiv.setAttribute('role', 'button');
+      legendDiv.setAttribute('aria-label', 'Map legend');
+      buildLegend();
+      L.DomEvent.disableClickPropagation(legendDiv);
+      legendDiv.addEventListener('click', () => legendDiv.classList.toggle('collapsed'));
+      return legendDiv;
     };
     legend.addTo(map);
 
-    function formatDate(ts) {
-      try {
-        return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-      } catch (e) {
-        return '';
-      }
-    }
-
-    // Warm-up before outbreak detection starts (backend/convex/lib/outbreakRules.ts OUTBREAK_RULES).
-    const WARMUP_WEEKS = 4;
-    const WARMUP_SCANS = 10;
-    const WEEK_MS = 7 * DAY_MS;
-
-    /** "Outbreak status: Undetermined" while the barangay is still collecting data for its baseline. */
-    function undeterminedHtml(stat) {
-      const weeks = stat.monitoringSince ? Math.min(WARMUP_WEEKS, Math.floor((Date.now() - stat.monitoringSince) / WEEK_MS)) : 0;
-      return `<b>Outbreak status:</b> <span style="color:#9ca3af">UNDETERMINED</span><br>` +
-        `<span style="color:#9ca3af">Collecting data for this area's baseline ` +
-        `(${weeks} of ${WARMUP_WEEKS} weeks, ${Math.min(stat.historyScans || 0, WARMUP_SCANS)} of ${WARMUP_SCANS} earlier scans)</span><br>`;
-    }
-
-    // Polygons carry no severity fill: a filled barangay would imply the whole area is
-    // infected when only specific farms reported. Severity lives on the dots.
-    function barangayPopupHtml(properties, allStats) {
-      let html = `<b>${properties.barangay}</b>` +
-        `<br><span style="color:#888;">${properties.municipality}</span>`;
-      const bStats = (allStats || []).filter(statMatches);
-      if (bStats && bStats.length > 0) {
-        bStats.forEach((stat) => {
-          html += `<hr style="border-color:#333;margin:8px 0;"/><span style="font-size:12px;">`;
-          html += `<b>Active Disease:</b> ${diseaseLabel(stat.diseaseCode)}<br>`;
-          if (stat.monitoringStatus === 'collecting') {
-            html += undeterminedHtml(stat);
-          } else {
-            html += `<b>Outbreak level:</b> <span style="color:${getColor(stat.severityTier)}">${stat.severityTier.toUpperCase()}</span><br>`;
-            if (stat.baselineFarms != null) {
-              html += `<b>Usual:</b> ${Number(stat.baselineFarms).toFixed(1)} farms / week` +
-                `${stat.monitoringStatus === 'provisional' ? ' <span style="color:#9ca3af">(provisional)</span>' : ''}<br>`;
-            }
-          }
-          html += `<b>Farms (7 days):</b> ${stat.distinctFarms}`;
-          if (stat.lastWeekFarms != null) html += ` <span style="color:#9ca3af">· last week ${stat.lastWeekFarms}</span>`;
-          html += `<br><b>Total Reports:</b> ${stat.rawReportCount}`;
-          html += `</span>`;
-        });
-      } else {
-        html += allStats && allStats.length > 0
-          ? `<p style="color:#666;">No reports match the current filters</p>`
-          : `<p style="color:#666;">No active disease reports</p>`;
-      }
-      return html;
-    }
-
-    // Build the 464 barangay outlines once; only popups and dots change on updates.
+    // Build the 464 barangay outlines once; only their styles change on updates.
     function ensurePolygons() {
       if (geoJsonLayer) return true;
       const barangays = window.BARANGAYS_GEOJSON;
       if (!barangays) return false;
-      // Style follows the basemap (see baseStyle); resetStyle re-reads it.
       geoJsonLayer = L.geoJSON(barangays, {
-        style: baseStyle,
+        style: () => ({ fill: true, fillOpacity: 0, color: OUTLINE[theme()], weight: 0.8 }),
         onEachFeature: (feature, layer) => {
           barangayLayers.push(layer);
-          layer.bindPopup(barangayPopupHtml(feature.properties, null));
+          layer.on('click', () => selectLayer(layer, true));
         }
       }).addTo(map);
       buildSearchIndex();
@@ -738,15 +691,11 @@
     // KEEP IN SYNC with admin-web/src/locationSearch.ts (matching) and MapPage.tsx (behaviour).
     const NO_LOCATION_MESSAGE =
       'Location not available — only barangays and municipalities in Bukidnon can be searched.';
-    // Blue stays distinct from all three severity colours.
-    const HIGHLIGHT_STYLE = { color: '#2563eb', weight: 3, fillColor: '#2563eb', fillOpacity: 0.15 };
     const SEARCH_LIMIT = 12;
-    // Longest wait for the soft keyboard to close and the WebView to regain its height.
     const KEYBOARD_CLOSE_MS = 800;
     let fullHeight = window.innerHeight;
     window.addEventListener('resize', () => { fullHeight = Math.max(fullHeight, window.innerHeight); });
 
-    // Runs fn once the page is back to (nearly) full height, i.e. the keyboard has closed.
     function whenKeyboardClosed(fn) {
       const isFull = () => window.innerHeight >= fullHeight * 0.9;
       if (isFull()) { fn(); return; }
@@ -763,9 +712,7 @@
     }
     let searchIndex = [];
     let highlightedLayers = [];
-    let pendingPopup = null;
 
-    // Lowercase, accents stripped (Ñ → n), whitespace collapsed.
     function normalizeName(s) {
       return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
     }
@@ -783,7 +730,6 @@
             municipality: municipality,
             label: name,
             name: normalizeName(name),
-            // Without "City of" / "(Capital)", so "malaybalay" ranks the city first.
             shortName: normalizeName(name.replace(/^city of /i, '').replace(/\(.*?\)/g, '')),
             full: normalizeName(barangay ? barangay + ' ' + municipality : municipality),
             layers: []
@@ -800,14 +746,12 @@
       });
     }
 
-    // Lower is better; null = no match.
     function matchRank(entry, q) {
       const names = [entry.name, entry.shortName];
       if (names.some((n) => n === q)) return 0;
       if (names.some((n) => n.startsWith(q))) return 1;
       if (entry.name.split(' ').some((word) => word.startsWith(q))) return 2;
       if (entry.name.includes(q)) return 3;
-      // e.g. "poblacion valencia", or just the town name for its barangays
       if (q.split(' ').every((word) => entry.full.includes(word))) return 4;
       return null;
     }
@@ -828,43 +772,28 @@
     }
 
     function clearHighlight() {
-      highlightedLayers.forEach((layer) => geoJsonLayer.resetStyle(layer));
+      const old = highlightedLayers;
       highlightedLayers = [];
-      if (pendingPopup) map.off('moveend', pendingPopup);
-      pendingPopup = null;
+      old.forEach((layer) => layer.setStyle(styleFor(layer)));
     }
 
     function selectLocation(entry) {
       clearHighlight();
       const bounds = L.latLngBounds([]);
-      entry.layers.forEach((layer) => {
-        layer.setStyle(HIGHLIGHT_STYLE);
-        layer.bringToFront();
-        bounds.extend(layer.getBounds());
-      });
-      highlightedLayers = entry.layers.slice();
+      entry.layers.forEach((layer) => bounds.extend(layer.getBounds()));
       map.closePopup();
-      const flyOptions = {
-        // Extra top room so the search box doesn't cover the area.
+      if (entry.kind === 'barangay') {
+        // A barangay is selected like a tap on it: the sheet shows its level.
+        selectLayer(entry.layers[0], true);
+      } else {
+        highlightedLayers = entry.layers.slice();
+        highlightedLayers.forEach((layer) => { layer.setStyle(styleFor(layer)); layer.bringToFront(); });
+      }
+      map.flyToBounds(bounds, {
         paddingTopLeft: [20, chrome.top + 70],
         paddingBottomRight: [20, chrome.bottom + 20],
         maxZoom: 14
-      };
-      if (entry.kind === 'barangay') {
-        // Open the barangay's outbreak popup once the map has arrived. Not on the first moveend:
-        // a window resize (keyboard closing) fires one mid-flight, and opening the popup then
-        // auto-pans and cancels the flight.
-        const padding = L.point(flyOptions.paddingTopLeft).add(L.point(flyOptions.paddingBottomRight));
-        const targetZoom = Math.min(flyOptions.maxZoom, map.getBoundsZoom(bounds, false, padding));
-        pendingPopup = () => {
-          if (Math.abs(map.getZoom() - targetZoom) > 0.01) return;
-          map.off('moveend', pendingPopup);
-          pendingPopup = null;
-          entry.layers[0].openPopup(bounds.getCenter());
-        };
-        map.on('moveend', pendingPopup);
-      }
-      map.flyToBounds(bounds, flyOptions);
+      });
     }
 
     const searchControl = L.control({ position: 'topleft' });
@@ -891,14 +820,11 @@
         div.classList.remove('collapsed');
         input.focus();
       }
-
-      // Back to the icon; the search, highlight and popup go with it.
       function collapse() {
         clear();
         input.blur();
         div.classList.add('collapsed');
       }
-
       function showResults() {
         list.innerHTML = '';
         if (!input.value.trim()) {
@@ -928,23 +854,18 @@
         });
         list.hidden = false;
       }
-
       function choose(entry) {
         input.value = entry.kind === 'barangay' ? entry.label + ', ' + entry.municipality : entry.label;
         list.hidden = true;
-        // Collapse the legend so it doesn't cover the area's popup (one tap reopens it).
-        const legendDiv = document.querySelector('.legend');
         if (legendDiv) legendDiv.classList.add('collapsed');
         // Close the soft keyboard first: the app's window resizes for it, so fly only once the
-        // map is back to full height, or the area ends up off-centre and under-zoomed. (The
-        // input has usually lost focus before the tap's click arrives, so judge by height.)
+        // map is back to full height, or the area ends up off-centre and under-zoomed.
         input.blur();
         whenKeyboardClosed(() => {
           map.invalidateSize({ pan: false });
           selectLocation(entry);
         });
       }
-
       function clear() {
         clearHighlight();
         map.closePopup();
@@ -959,7 +880,6 @@
       });
       input.addEventListener('blur', () => {
         document.body.classList.remove('searching');
-        // Nothing typed: fold back to the icon. (A chosen place stays shown until closed.)
         if (!input.value.trim()) div.classList.add('collapsed');
       });
       input.addEventListener('keydown', (e) => {
@@ -971,188 +891,36 @@
       });
       toggleButton.addEventListener('click', expand);
       clearButton.addEventListener('click', collapse);
-      // Keep taps, scrolls and key presses ("-" zooms out, arrows pan) from reaching the map.
       L.DomEvent.disableClickPropagation(div);
       L.DomEvent.disableScrollPropagation(div);
       L.DomEvent.on(div, 'keydown keyup keypress', L.DomEvent.stopPropagation);
-      // Touching the map hides the list (the search text and highlight stay).
       map.on('click dragstart', () => { list.hidden = true; });
       return div;
     };
     searchControl.addTo(map);
 
-    // Filter button + panel (top-right). Built once; refreshFilterUi() keeps it in step with
-    // `filters` and the counts after every render.
-    let refreshFilterUi = () => {};
-    const filterControl = L.control({ position: 'topright' });
-    filterControl.onAdd = function () {
-      const div = L.DomUtil.create('div', 'filter');
-      const swatch = (mark, fill) => `<span class="swatch">${markerSvg(mark, fill, 16, false)}</span>`;
-      const chip = (group, key, content) =>
-        `<button type="button" class="filter-chip" data-group="${group}" data-key="${key}" aria-pressed="false">${content}</button>`;
-      const diseaseChips = DISEASE_KEYS.map((code) =>
-        chip('diseases', code, swatch(DISEASE_MARK[code], NEUTRAL) + diseaseLabel(code))).join('');
-      const severityChips = SEVERITY_OPTIONS.map((o) =>
-        chip('severities', o.key, swatch({ shape: 'circle', letter: '' }, severitySwatchColor(o.key)) + o.label)).join('');
-      div.innerHTML =
-        '<button type="button" class="filter-toggle" aria-label="Filter outbreak map" aria-expanded="false">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"' +
-        ' aria-hidden="true"><path d="M3.5 5h17l-6.5 7.5V19l-4 1.5v-8z"/></svg>' +
-        '<span class="filter-badge" hidden></span>' +
-        '</button>' +
-        '<div class="filter-panel" hidden>' +
-        '<h4>Disease</h4>' +
-        `<div class="filter-chips">${chip('diseases', '', 'All')}${diseaseChips}</div>` +
-        '<h4 class="filter-sub">Outbreak level</h4>' +
-        `<div class="filter-chips">${chip('severities', '', 'All')}${severityChips}</div>` +
-        '<div class="filter-footer"><span class="filter-count"></span>' +
-        '<button type="button" class="filter-reset">Reset filters</button></div>' +
-        '</div>';
-      const toggleButton = div.querySelector('.filter-toggle');
-      const badge = div.querySelector('.filter-badge');
-      const panel = div.querySelector('.filter-panel');
-      const countLabel = div.querySelector('.filter-count');
-      const resetButton = div.querySelector('.filter-reset');
-
-      function setOpen(open) {
-        panel.hidden = !open;
-        toggleButton.setAttribute('aria-expanded', String(open));
-        document.body.classList.toggle('filter-open', open);
-        if (open) {
-          // The panel and these would otherwise overlap on a phone.
-          const results = document.querySelector('.search-results');
-          if (results) results.hidden = true;
-          const legendDiv = document.querySelector('.legend');
-          if (legendDiv) legendDiv.classList.add('collapsed');
-        }
-      }
-
-      refreshFilterUi = (shown, total) => {
-        div.querySelectorAll('.filter-chip').forEach((b) => {
-          const set = filters[b.dataset.group];
-          const pressed = b.dataset.key ? set.has(b.dataset.key) : set.size === 0;
-          b.setAttribute('aria-pressed', String(pressed));
-        });
-        const count = activeFilterCount();
-        badge.hidden = count === 0;
-        badge.textContent = String(count);
-        resetButton.disabled = count === 0;
-        countLabel.textContent = `Showing ${shown} of ${total} reports`;
-      };
-
-      toggleButton.addEventListener('click', () => setOpen(panel.hidden));
-      div.querySelectorAll('.filter-chip').forEach((b) => {
-        b.addEventListener('click', () => {
-          const group = b.dataset.group;
-          if (b.dataset.key) toggleKey(filters[group], b.dataset.key, group === 'diseases' ? DISEASE_KEYS : SEVERITY_KEYS);
-          else filters[group].clear();
-          applyFilters();
-        });
-      });
-      resetButton.addEventListener('click', resetFilters);
-      L.DomEvent.disableClickPropagation(div);
-      L.DomEvent.disableScrollPropagation(div);
-      // Touching the map folds the panel away (the filters stay applied).
-      map.on('click dragstart', () => setOpen(false));
-      return div;
-    };
-    filterControl.addTo(map);
-
-    const emptyNotice = document.querySelector('.map-empty');
-    emptyNotice.querySelector('button').addEventListener('click', resetFilters);
-
-    function applyFilters() {
-      // An open popup was built for the old filters, or its marker is about to disappear.
-      map.closePopup();
-      render();
-    }
-    function resetFilters() {
-      filters.diseases.clear();
-      filters.severities.clear();
-      applyFilters();
-    }
-
     function render() {
-      const statsByArea = {};
-      const tierByAreaDisease = {};
-      const statByAreaDisease = {};
-      latestStats.forEach((s) => {
-        const key = areaKey(s.barangay, s.municipality);
-        if (!statsByArea[key]) statsByArea[key] = [];
-        statsByArea[key].push(s);
-        tierByAreaDisease[key + '||' + s.diseaseCode] = s.severityTier;
-        statByAreaDisease[key + '||' + s.diseaseCode] = s;
-      });
-
       if (!ensurePolygons()) return;
-
-      barangayLayers.forEach((layer) => {
-        const p = layer.feature.properties;
-        layer.setPopupContent(barangayPopupHtml(p, statsByArea[areaKey(p.barangay, p.municipality)]));
-      });
-
-      // Report dots, rebuilt on every update and stacked above the polygons.
-      if (detectionLayer) map.removeLayer(detectionLayer);
-      detectionLayer = L.layerGroup();
-      const withCoords = latestDetections.filter((d) => typeof d.latitude === 'number' && typeof d.longitude === 'number');
-      // Narrowed before spreadOffsets, so same-point rings close up instead of leaving gaps.
-      const plotted = [];
-      const sevs = [];
-      withCoords.forEach((d) => {
-        const sev = severityKey(d, tierByAreaDisease);
-        if (!matchesFilters(d.diseaseCode, sev)) return;
-        plotted.push(d);
-        sevs.push(sev);
-      });
-      refreshFilterUi(plotted.length, withCoords.length);
-      emptyNotice.hidden = !(activeFilterCount() > 0 && plotted.length === 0);
-      const offsets = spreadOffsets(plotted);
-      plotted.forEach((d, i) => {
-        const recent = sevs[i] === 'past';
-        const tier = recent ? 'mild' : sevs[i];
-        const daysAgo = Math.max(0, Math.round((Date.now() - d.capturedAt) / DAY_MS));
-        const stat = statByAreaDisease[areaKey(d.barangay, d.municipality) + '||' + d.diseaseCode];
-        const statusLine = recent
-          ? `<span style="color:#9ca3af;">Reported ${daysAgo} days ago · no longer counted in the outbreak level</span><br>`
-          : stat && stat.monitoringStatus === 'collecting'
-            ? undeterminedHtml(stat)
-            : `<b>Outbreak level:</b> <span style="color:${getColor(tier)}">${tier.toUpperCase()}</span><br>`;
-        L.marker([d.latitude, d.longitude], {
-          icon: markerIcon(d.diseaseCode, tier, recent, offsets[i]),
-          // Severe on top, then moderate, then mild; faded past reports always underneath.
-          zIndexOffset: recent ? -1000 : tier === 'severe' ? 2000 : tier === 'moderate' ? 1000 : 0,
-          keyboard: false
-        })
-          .bindPopup(
-            `<b>${diseaseLabel(d.diseaseCode)}</b><br>` +
-            `<span style="color:#888;">${d.barangay || 'Unresolved area'}` +
-            `${d.municipality ? ', ' + d.municipality : ''}</span>` +
-            `<hr style="border-color:#333;margin:8px 0;"/>` +
-            `<span style="font-size:12px;">` +
-            statusLine +
-            `<b>Confidence:</b> ${Math.round(d.confidence * 100)}%<br>` +
-            `<b>Reported:</b> ${formatDate(d.capturedAt)}` +
-            `</span>`
-          )
-          .addTo(detectionLayer);
-      });
-      detectionLayer.addTo(map);
+      computeAreaState();
+      restyleAll();
+      heatLayer.redraw();
       fitToLayer();
     }
 
-    /** Called by MapFragment with { stats?, detections? }; missing keys keep their last value. */
+    /** Called by MapFragment with { stats?, farms? }; missing keys keep their last value. */
     window.updateMapData = function (payload) {
       try {
         if (!payload) return;
         if (payload.stats) latestStats = payload.stats;
-        if (payload.detections) latestDetections = payload.detections;
         if (payload.farms) latestFarms = payload.farms;
         render();
-        renderFarms();
+        if (payload.farms) renderFarms();
       } catch (e) {
         console.error('Error updating map data: ' + e);
       }
     };
+
+    syncTiles();
 
     // Load the Bukidnon barangay boundaries bundled with the app, then report ready.
     fetch('../geo/bukidnon-barangays.json')

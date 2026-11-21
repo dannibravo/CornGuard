@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConvexAuthProvider } from '@convex-dev/auth/react';
@@ -10,10 +10,13 @@ import DashboardPage from './pages/DashboardPage';
 import OutbreaksPage from './pages/OutbreaksPage';
 import ModerationPage from './pages/ModerationPage';
 import UsersPage from './pages/UsersPage';
-import MapPage from './pages/MapPage';
 import TreatmentGuidesPage from './pages/TreatmentGuidesPage';
 import TreatmentGuideEditorPage from './pages/TreatmentGuideEditorPage';
+import { PageLoader } from './components/ui';
 import './styles/admin.css';
+
+// The map (Leaflet, the 424 KB barangay boundaries) loads only when the Outbreak Map is opened.
+const MapPage = lazy(() => import('./pages/MapPage'));
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -29,7 +32,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <Route path="/outbreaks" element={<OutbreaksPage />} />
               <Route path="/moderation" element={<ModerationPage />} />
               <Route path="/users" element={<UsersPage />} />
-              <Route path="/map" element={<MapPage />} />
+              <Route
+                path="/map"
+                element={<Suspense fallback={<PageLoader label="Loading map…" />}><MapPage /></Suspense>}
+              />
               <Route path="/guides" element={<TreatmentGuidesPage />} />
               <Route path="/guides/:code" element={<TreatmentGuideEditorPage />} />
             </Route>

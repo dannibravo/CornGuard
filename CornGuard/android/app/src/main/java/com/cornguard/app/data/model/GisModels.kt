@@ -50,7 +50,15 @@ data class BarangayStat(
     /** Verified scans of any kind in those weeks (warm-up progress). */
     val historyScans: Int = 0,
     /** The barangay's first verified scan (warm-up progress). */
-    val monitoringSince: Long? = null
+    val monitoringSince: Long? = null,
+    /** Farms needed this week for Moderate / Severe (null on rows from before baselines). */
+    val moderateAt: Int? = null,
+    val severeAt: Int? = null,
+    /**
+     * Map heat on the backend's fixed 0–1 scale (outbreakRules.heatIntensity): Moderate starts at
+     * 0.5, Severe at 0.8. Null while collecting data, or from a backend that doesn't send it.
+     */
+    val intensity: Double? = null
 )
 
 /** One verified shared scan with coordinates — one dot on the heatmap. */

@@ -122,7 +122,11 @@ data class BarangayStatDto(
     val lastWeekFarms: Double? = null,
     val dataWeeks: Double = 0.0,
     val historyScans: Double = 0.0,
-    val monitoringSince: Double? = null
+    val monitoringSince: Double? = null,
+    val moderateAt: Double? = null,
+    val severeAt: Double? = null,
+    /** Fixed-scale map heat; null while collecting, absent from older backends. */
+    val intensity: Double? = null
 )
 
 @Serializable

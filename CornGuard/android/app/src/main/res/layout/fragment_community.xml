@@ -97,6 +97,6 @@
             app:fabCustomSize="68dp"
             app:maxImageSize="34dp"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full"
-            app:tint="#FFFFFF" />
+            app:tint="@color/cg_on_primary" />
     </FrameLayout>
 </LinearLayout>
