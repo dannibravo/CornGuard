@@ -127,6 +127,47 @@
     <string name="map_verified_badge">Verified</string>
     <string name="map_unverified_badge">Unverified</string>
 
+    <!-- Outbreak map v2: heat sheet (UI redesign). -->
+    <string name="map_chip_title">Outbreak map</string>
+    <string name="map_chip_subtitle">Last 7 days · Bukidnon</string>
+    <string name="map_sheet_collapse">Hide details to see the full map</string>
+    <string name="map_sheet_expand">Show area details and filters</string>
+    <string name="map_no_selection_title">Tap a barangay</string>
+    <string name="map_no_selection_subtitle">to see its outbreak level this week</string>
+    <!--
+        Short pill labels: proposed in the UI redesign, NOT yet confirmed with farmers / the Municipal
+        Agriculture Office. Always shown with the R / G / B letter; full names are in the accessible
+        names below and on every result, guide, history and feed screen.
+    -->
+    <string name="map_pill_all">All</string>
+    <string name="map_pill_rust">Rust</string>
+    <string name="map_pill_gray_leaf_spot">Gray Spot</string>
+    <string name="map_pill_blight">Blight</string>
+    <string name="map_pill_all_a11y">All diseases</string>
+    <string name="map_pill_rust_a11y">Rust (Common Rust)</string>
+    <string name="map_pill_gray_leaf_spot_a11y">Gray Spot (Gray Leaf Spot)</string>
+    <string name="map_pill_blight_a11y">Blight (Northern Leaf Blight)</string>
+    <string name="map_level_none">No reports</string>
+    <string name="map_level_collecting">Not enough data yet</string>
+    <string name="map_level_mild">Mild</string>
+    <string name="map_level_moderate">Moderate</string>
+    <string name="map_level_severe">Severe</string>
+    <string name="map_level_badge_a11y">Outbreak level: %1$s</string>
+    <plurals name="map_farms">
+        <item quantity="one">%d farm</item>
+        <item quantity="other">%d farms</item>
+    </plurals>
+    <string name="map_explain_severe">Potential outbreak · Severe: %1$s reported %2$s in the last 7 days.</string>
+    <string name="map_explain_moderate">Disease awareness · Moderate: %1$s reported %2$s in the last 7 days.</string>
+    <string name="map_explain_mild">%1$s reported %2$s in the last 7 days.</string>
+    <string name="map_explain_usual">Usual for this barangay: %1$s farms a week.</string>
+    <string name="map_explain_collecting">Not enough data yet: CornGuard is still learning what is normal here (%1$d of %2$d weeks, %3$d of %4$d earlier scans). %5$s reported %6$s this week.</string>
+    <string name="map_explain_none">No verified disease reports in this barangay in the last 7 days.</string>
+    <string name="map_explain_none_filtered">No verified %1$s reports in this barangay in the last 7 days.</string>
+    <string name="map_explain_also">Also reported: %1$s.</string>
+    <string name="map_explain_other_item">%1$s (%2$s)</string>
+    <string name="map_privacy_note">Levels cover the whole barangay. Other farmers\' farm locations are never shown, and your farm pin is only visible to you.</string>
+
     <!-- Community -->
     <string name="community_title">Community</string>
     <string name="community_sign_in_prompt">Sign in to read and share community reports.</string>

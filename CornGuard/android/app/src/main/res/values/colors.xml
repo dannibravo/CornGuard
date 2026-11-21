@@ -1,52 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-        CornGuard design tokens, taken from the caps 3 app design. This file is the LIGHT theme;
-        values-night/colors.xml redefines the same names for dark mode. Layouts use only the cg_*
-        tokens so every screen follows the system light/dark setting.
+        CornGuard "earth" design tokens (UI redesign v2, WCAG-checked; same values as
+        admin-web/src/styles/admin.css §1). This file is the LIGHT theme; values-night/colors.xml
+        redefines the same names for dark mode. Layouts use only the cg_* tokens so every screen
+        follows the system light/dark setting. Contrast on cg_surface: text 14.0:1, secondary 7.1:1,
+        tertiary 5.0:1, primary 7.6:1.
     -->
-    <color name="cg_bg">#F5F5F5</color>
-    <color name="cg_surface">#FFFFFF</color>
-    <color name="cg_surface_raised">#F5F5F5</color>
-    <color name="cg_input">#F5F5F5</color>
-    <color name="cg_input_border">#E5E5E5</color>
-    <color name="cg_divider">#EEEEEE</color>
+    <color name="cg_bg">#F6F3EA</color>
+    <color name="cg_surface">#FFFDF8</color>
+    <color name="cg_surface_raised">#F6F3EA</color>
+    <color name="cg_input">#F6F3EA</color>
+    <color name="cg_input_border">#E4DDCC</color>
+    <color name="cg_divider">#E4DDCC</color>
+    <color name="cg_border_strong">#CFC5AE</color>
     <color name="cg_card_border">#00000000</color>
-    <color name="cg_text_primary">#111111</color>
-    <color name="cg_text_secondary">#666666</color>
-    <color name="cg_text_tertiary">#999999</color>
-    <color name="cg_accent_green">#2E7D32</color>
-    <color name="cg_accent_blue">#2563EB</color>
-    <color name="cg_accent_amber">#D97706</color>
-    <color name="cg_border_green">#402E7D32</color>
-    <color name="cg_border_blue">#402563EB</color>
-    <color name="cg_border_amber">#40D97706</color>
-    <color name="cg_nav_bg">#FFFFFF</color>
-    <color name="cg_nav_indicator">#F0F0F3</color>
-    <color name="cg_avatar_bg">#E5E7EB</color>
-    <color name="cg_avatar_icon">#9CA3AF</color>
-    <color name="cg_button_secondary">#E5E5E5</color>
-    <color name="cg_on_button_secondary">#111111</color>
-    <color name="cg_green_tint">#E8F5E9</color>
-    <color name="cg_icon_button_bg">#F0FDF4</color>
+    <color name="cg_text_primary">#1E261C</color>
+    <color name="cg_text_secondary">#4B5446</color>
+    <color name="cg_text_tertiary">#696A5B</color>
+    <color name="cg_accent_green">#2F5D3A</color>
+    <color name="cg_accent_blue">#2F5D80</color>
+    <color name="cg_accent_amber">#8A5A0B</color>
+    <color name="cg_border_green">#402F5D3A</color>
+    <color name="cg_border_blue">#402F5D80</color>
+    <color name="cg_border_amber">#408A5A0B</color>
+    <color name="cg_nav_bg">#FFFDF8</color>
+    <color name="cg_nav_indicator">#E6ECE2</color>
+    <color name="cg_avatar_bg">#EEE9DC</color>
+    <color name="cg_avatar_icon">#A39A85</color>
+    <color name="cg_button_secondary">#EEE9DC</color>
+    <color name="cg_on_button_secondary">#1E261C</color>
+    <color name="cg_green_tint">#E6ECE2</color>
+    <color name="cg_icon_button_bg">#E6ECE2</color>
+    <color name="cg_leaf">#6A9A3A</color>
+    <color name="cg_soil">#7B5B3E</color>
 
-    <!-- Same in both themes -->
-    <color name="cg_primary">#2E7D32</color>
-    <color name="cg_primary_disabled">#A5D6A7</color>
+    <color name="cg_primary">#2F5D3A</color>
+    <color name="cg_primary_disabled">#A9B9A6</color>
     <color name="cg_on_primary">#FFFFFF</color>
-    <color name="cg_danger">#DC2626</color>
-    <color name="cg_warning">#E65100</color>
+    <color name="cg_danger">#9E2F1F</color>
+    <color name="cg_on_danger">#FFFFFF</color>
+    <color name="cg_warning">#8A5A0B</color>
     <color name="cg_like">#F43F5E</color>
     <color name="cg_scrim">#99000000</color>
 
-    <!-- Disease badges (DiseaseStyle.kt) -->
-    <color name="disease_healthy">#2E7D32</color>
-    <color name="disease_blight">#C62828</color>
-    <color name="disease_rust">#E65100</color>
-    <color name="disease_gray_leaf_spot">#F9A825</color>
-    <color name="disease_unknown">#6B7280</color>
+    <!--
+        Disease identity (DiseaseStyle.kt). CVD-checked; never amber/red, so a disease is never
+        mistaken for a warning level. Always shown with the letter glyph or the name, never colour alone.
+    -->
+    <color name="disease_healthy">#2F5D3A</color>
+    <color name="disease_blight">#2F5F9E</color>
+    <color name="disease_rust">#A0582C</color>
+    <color name="disease_gray_leaf_spot">#1C9C7F</color>
+    <color name="disease_unknown">#5B5F52</color>
 
-    <!-- Offline banner -->
-    <color name="offline_banner_bg">#FFF3CD</color>
-    <color name="offline_banner_text">#5C4400</color>
+    <!-- Outbreak level badges (map sheet). Fixed intensity ramp, see assets/map/outbreak-map.html. -->
+    <color name="level_mild_bg">#E3B85A</color>
+    <color name="level_mild_text">#1E261C</color>
+    <color name="level_moderate_bg">#D08A26</color>
+    <color name="level_moderate_text">#1E261C</color>
+    <color name="level_severe_bg">#B04F27</color>
+    <color name="level_severe_text">#FFFFFF</color>
+    <color name="level_collecting_bg">#F4EFE2</color>
+    <color name="level_collecting_text">#4B5446</color>
+
+    <!-- Offline banner (warning tones) -->
+    <color name="offline_banner_bg">#FBF1D9</color>
+    <color name="offline_banner_text">#8A5A0B</color>
 </resources>

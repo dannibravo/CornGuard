@@ -75,7 +75,7 @@
                 android:background="@drawable/bg_circle"
                 android:backgroundTint="@color/cg_primary"
                 android:gravity="center"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/cg_on_primary"
                 android:textSize="44sp"
                 android:textStyle="bold"
                 tools:text="R" />

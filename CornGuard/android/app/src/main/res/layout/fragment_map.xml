@@ -1,52 +1,72 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Outbreak Heatmap (caps 3 design): full-screen Leaflet map in a WebView with a translucent
-    dark header overlay. The report lists live in a draggable bottom sheet ("Reports near you").
+    Outbreak map (UI redesign v2): full-height Leaflet heatmap in a WebView, floating back button
+    and title chip, and a bottom sheet (collapsed 96dp: handle + barangay + level; expanded
+    286dp / 330dp with Large text: disease pills, explanation, privacy note, then the earlier
+    "Reports near you" lists). MapFragment keeps the map's bottom inset in step with the sheet.
 -->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F4F1EA">
+    android:background="@color/cg_bg">
 
     <WebView
         android:id="@+id/mapWebView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <LinearLayout
+    <!-- Floating top row; its height is the map's top inset (Leaflet's zoom/search sit below it). -->
+    <FrameLayout
         android:id="@+id/mapHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#D9111111"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="14dp">
+        android:paddingHorizontal="12dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="4dp">
 
         <ImageButton
             android:id="@+id/mapBackButton"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:background="@drawable/bg_circle"
-            android:backgroundTint="#26FFFFFF"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="start|center_vertical"
+            android:background="@drawable/bg_map_control"
             android:contentDescription="@string/action_back"
             android:src="@drawable/ic_arrow_back"
-            app:tint="#FFFFFF" />
+            app:tint="@color/cg_text_primary" />
 
-        <TextView
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_weight="1"
-            android:text="@string/map_heatmap_title"
-            android:textColor="#FFFFFF"
-            android:textSize="26sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+            android:layout_gravity="end|center_vertical"
+            android:background="@drawable/bg_map_control"
+            android:minHeight="48dp"
+            android:orientation="vertical"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="6dp"
+            android:screenReaderFocusable="true"
+            tools:targetApi="28">
 
-    <!-- Signed out: the map is for signed-in users (dots are farm locations). -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/inter_semibold_family"
+                android:text="@string/map_chip_title"
+                android:textColor="@color/cg_text_primary"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/map_chip_subtitle"
+                android:textColor="@color/cg_text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Signed out: the map is for signed-in users. -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/mapSignedOut"
         style="@style/Widget.CornGuard.Card"
@@ -92,11 +112,11 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Draggable "Reports near you" sheet: the previous list view, kept. -->
+    <!-- Bottom sheet. Height is set in MapFragment (286dp, or 330dp with Large text). -->
     <LinearLayout
         android:id="@+id/mapReportsSheet"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="@dimen/map_sheet_expanded"
         android:background="@drawable/bg_sheet_top"
         android:elevation="12dp"
         android:orientation="vertical"
@@ -104,58 +124,85 @@
         app:behavior_peekHeight="@dimen/map_sheet_peek"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
-        <View
-            android:layout_width="40dp"
-            android:layout_height="4dp"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/bg_sheet_handle" />
-
-        <LinearLayout
+        <!-- Handle: full-width 34dp target with a 44x5 bar; tap toggles, drag moves the sheet. -->
+        <FrameLayout
             android:id="@+id/mapSheetHandle"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="34dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:contentDescription="@string/map_sheet_expand"
+            android:focusable="true">
+
+            <View
+                android:layout_width="44dp"
+                android:layout_height="5dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_sheet_handle" />
+        </FrameLayout>
+
+        <!-- Collapsed content: selected barangay + level (62dp, so the peek is 96dp). -->
+        <LinearLayout
+            android:id="@+id/mapAreaRow"
+            android:layout_width="match_parent"
+            android:layout_height="62dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="20dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="12dp">
-
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/ic_location"
-                app:tint="@color/cg_accent_amber" />
+            android:paddingBottom="6dp">
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/mapAreaName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/map_sheet_title"
+                    android:ellipsize="end"
+                    android:maxLines="1"
                     android:textColor="@color/cg_text_primary"
-                    android:textSize="17sp"
-                    android:textStyle="bold" />
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    tools:text="Poblacion" />
 
                 <TextView
-                    android:id="@+id/mapArea"
+                    android:id="@+id/mapAreaMunicipality"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
                     android:textColor="@color/cg_text_secondary"
                     android:textSize="13sp"
-                    tools:text="Showing Poblacion, Valencia" />
+                    tools:text="Valencia" />
             </LinearLayout>
+
+            <TextView
+                android:id="@+id/mapLevelBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:background="@drawable/bg_pill"
+                android:fontFamily="@font/inter_semibold_family"
+                android:minHeight="28dp"
+                android:gravity="center"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:textSize="13sp"
+                android:visibility="gone"
+                tools:backgroundTint="@color/level_severe_bg"
+                tools:text="Severe"
+                tools:textColor="@color/level_severe_text"
+                tools:visibility="visible" />
         </LinearLayout>
 
         <androidx.core.widget.NestedScrollView
+            android:id="@+id/mapSheetScroll"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/map_sheet_content_height">
+            android:layout_height="0dp"
+            android:layout_weight="1">
 
             <LinearLayout
                 android:id="@+id/mapContent"
@@ -165,11 +212,102 @@
                 android:paddingHorizontal="16dp"
                 android:paddingBottom="24dp">
 
+                <!-- Disease filter: one row, each pill grows from its content width (fits 358dp). -->
+                <LinearLayout
+                    android:id="@+id/mapDiseasePills"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mapPillAll"
+                        style="@style/Widget.CornGuard.MapPill"
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:checkable="true"
+                        android:checked="true"
+                        android:contentDescription="@string/map_pill_all_a11y"
+                        android:text="@string/map_pill_all" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mapPillRust"
+                        style="@style/Widget.CornGuard.MapPill"
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1"
+                        android:checkable="true"
+                        android:contentDescription="@string/map_pill_rust_a11y"
+                        android:text="@string/map_pill_rust" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mapPillGrayLeafSpot"
+                        style="@style/Widget.CornGuard.MapPill"
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1"
+                        android:checkable="true"
+                        android:contentDescription="@string/map_pill_gray_leaf_spot_a11y"
+                        android:text="@string/map_pill_gray_leaf_spot" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mapPillBlight"
+                        style="@style/Widget.CornGuard.MapPill"
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1"
+                        android:checkable="true"
+                        android:contentDescription="@string/map_pill_blight_a11y"
+                        android:text="@string/map_pill_blight" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/mapAreaExplanation"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:paddingHorizontal="4dp"
+                    android:textColor="@color/cg_text_primary"
+                    android:textSize="15sp"
+                    android:lineSpacingExtra="4sp"
+                    tools:text="Potential outbreak · Severe: 6 farms reported Common Rust in the last 7 days. Usual for this barangay: 1.5 farms a week." />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:paddingHorizontal="4dp"
+                    android:text="@string/map_privacy_note"
+                    android:textColor="@color/cg_text_tertiary"
+                    android:textSize="13sp" />
+
+                <!-- The earlier "Reports near you" lists (farmer's profile barangay), kept. -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/map_sheet_title"
+                    android:textAppearance="@style/TextAppearance.CornGuard.SectionHeader" />
+
+                <TextView
+                    android:id="@+id/mapArea"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginTop="2dp"
+                    android:textColor="@color/cg_text_secondary"
+                    android:textSize="13sp"
+                    tools:text="Showing Poblacion, Valencia" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginTop="14dp"
                     android:text="@string/map_verified_title"
                     android:textAppearance="@style/TextAppearance.CornGuard.SectionHeader" />
 
@@ -205,7 +343,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="4dp"
                     android:layout_marginTop="24dp"
                     android:text="@string/map_nearby_title"
                     android:textAppearance="@style/TextAppearance.CornGuard.SectionHeader" />

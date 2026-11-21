@@ -7,6 +7,20 @@ import barangays from '../assets/bukidnon-barangays.json';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { diseaseLabel } from '../labels';
+import {
+  HEAT_FILL_OPACITY,
+  HATCH,
+  HeatLayer,
+  RAMP,
+  areaHeat,
+  currentTheme,
+  heatOf,
+  meterHtml,
+  rampColor,
+  strokeFor,
+  type AreaHeat,
+  type Theme,
+} from '../heatmap';
 import { Icon } from '../components/Icon';
 import {
   buildLocationIndex,
@@ -26,14 +40,15 @@ import {
   type SeverityKey,
 } from '../mapFilters';
 
-// KEEP IN SYNC with the app's android/app/src/main/assets/map/outbreak-map.html — the two maps must agree on
-// what a marker means. Update both or neither.
-// Marker fill = severity tier of that barangay+disease (deep enough for a white letter).
+// Disease markers are an admin-only layer (off by default); the farmers' app shows heat only.
+// Marker fill = severity tier of that barangay+disease, from the "earth" level badges (same stops as
+// the heat ramp, so a marker and its barangay agree). Letter colour keeps 4.5:1 on each fill.
 const TIER_COLOR: Record<string, string> = {
-  mild: '#059669',      // Emerald Green
-  moderate: '#d97706',  // Amber
-  severe: '#dc2626',    // Red
+  mild: '#e3b85a',
+  moderate: '#d08a26',
+  severe: '#b04f27',
 };
+const TIER_LETTER: Record<string, string> = { mild: '#1e261c', moderate: '#1e261c', severe: '#ffffff' };
 
 // Marker shape + letter = which disease. Replaces caps 3's coloured rings, which were hard to
 // tell apart against the fill colour.
@@ -44,9 +59,9 @@ const DISEASE_MARK: Record<string, Mark> = {
   gray_leaf_spot: { shape: 'diamond', letter: 'G' },
 };
 const UNKNOWN_MARK: Mark = { shape: 'circle', letter: '?' };
-const NEUTRAL = '#4b5563';
+const NEUTRAL = '#5b5f52';
 // Reports 14-28 days old (stage "recent"): grey, small, no longer counted. Older ones aren't sent.
-const RECENT_COLOR = '#6b7280';
+const RECENT_COLOR = '#696a5b';
 const RECENT_SIZE = 18;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -54,18 +69,17 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // instead of relying on hue alone.
 const TIER_SIZE: Record<string, number> = { severe: 28, moderate: 24, mild: 20 };
 
-/** One marker as inline SVG (24x24 box): severity-coloured shape, white outline, white letter. */
-function markerSvg(mark: Mark, fill: string, size: number, halo: boolean) {
+/** One marker as inline SVG (24x24 box): severity-coloured shape, white outline, readable letter. */
+function markerSvg(mark: Mark, fill: string, size: number, letterColor = '#ffffff') {
   const outline = 'stroke="#ffffff" stroke-width="2"';
   const shape = {
     circle: `<circle cx="12" cy="12" r="10" fill="${fill}" ${outline}/>`,
     square: `<rect x="2.5" y="2.5" width="19" height="19" rx="4" fill="${fill}" ${outline}/>`,
     diamond: `<rect x="4.4" y="4.4" width="15.2" height="15.2" rx="2.5" fill="${fill}" ${outline} transform="rotate(45 12 12)"/>`,
   }[mark.shape];
-  const haloSvg = halo ? `<circle class="halo" cx="12" cy="12" r="12" fill="${fill}"/>` : '';
-  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true">${haloSvg}${shape}` +
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true">${shape}` +
     `<text x="12" y="16" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="11" ` +
-    `font-weight="800" fill="#ffffff">${mark.letter}</text></svg>`;
+    `font-weight="700" fill="${letterColor}">${mark.letter}</text></svg>`;
 }
 
 /** offset: [x, y] pixels, so reports at the same point sit side by side (see spreadOffsets). */
@@ -74,7 +88,7 @@ function markerIcon(diseaseCode: string, tier: string, recent: boolean, [dx, dy]
   const fill = recent ? RECENT_COLOR : (TIER_COLOR[tier] ?? NEUTRAL);
   return L.divIcon({
     className: recent ? 'cg-marker cg-marker-recent' : 'cg-marker',
-    html: markerSvg(DISEASE_MARK[diseaseCode] ?? UNKNOWN_MARK, fill, size, !recent && tier === 'severe'),
+    html: markerSvg(DISEASE_MARK[diseaseCode] ?? UNKNOWN_MARK, fill, size, recent ? '#ffffff' : TIER_LETTER[tier] ?? '#ffffff'),
     iconSize: [size, size],
     iconAnchor: [size / 2 - dx, size / 2 - dy],
     popupAnchor: [dx, dy - size / 2],
@@ -106,11 +120,11 @@ function spreadOffsets(detections: { latitude: number; longitude: number }[]): [
 }
 
 /**
- * Compact legend overlaid on the map itself, mirroring the mobile map's.
- * Built as a real Leaflet control rather than an absolutely-positioned div so it
- * participates in Leaflet's control layout and doesn't swallow map drags.
+ * Legend overlaid on the map (a real Leaflet control, so it doesn't swallow map drags): the fixed
+ * heat scale with the Moderate / Severe cut-offs, "collecting data" hatching, the baseline outline
+ * and, when that layer is on, the disease markers.
  */
-function Legend() {
+function Legend({ theme, showHeat, showMarkers }: { theme: Theme; showHeat: boolean; showMarkers: boolean }) {
   const map = useMap();
   useEffect(() => {
     const control = new L.Control({ position: 'bottomright' });
@@ -118,24 +132,33 @@ function Legend() {
     control.onAdd = () => {
       // Starts collapsed every time the map mounts; only a click on it expands it.
       const div = L.DomUtil.create('div', 'map-legend collapsed');
-      const swatch = (mark: Mark, fill: string) => `<span class="swatch">${markerSvg(mark, fill, 16, false)}</span>`;
-      const tierRow = (tier: string, label: string) =>
-        `<div class="legend-row">${swatch({ shape: 'circle', letter: '' }, TIER_COLOR[tier])}${label}</div>`;
-      const diseaseRows = Object.keys(DISEASE_MARK)
-        .map((name) => `<div class="legend-row">${swatch(DISEASE_MARK[name], NEUTRAL)}${diseaseLabel(name)}</div>`)
-        .join('');
+      const swatch = (mark: Mark, fill: string, letter?: string) =>
+        `<span class="swatch">${markerSvg(mark, fill, 16, letter)}</span>`;
+      const stops = RAMP[theme].map(([t, c]) => `${c} ${t * 100}%`).join(', ');
+      const hatch = HATCH[theme];
+      const heatRows = showHeat ? `
+          <h4>Outbreak level · last 7 days</h4>
+          <div class="legend-ramp" style="background: linear-gradient(90deg, ${stops})"></div>
+          <div class="legend-ticks">
+            <span class="edge-left" style="left:0">Mild</span>
+            <span style="left:50%">Moderate<br>2×</span>
+            <span style="left:80%">Severe<br>3×</span>
+          </div>
+          <div class="legend-row"><span class="swatch" style="box-sizing:border-box;border:1px dashed ${hatch.line};background:repeating-linear-gradient(135deg, ${hatch.line} 0 1px, ${hatch.bg} 1px 5px)"></span>Collecting data</div>` : '';
+      const markerRows = showMarkers ? `
+          <h4 class="legend-sub">Disease markers</h4>
+          ${(['severe', 'moderate', 'mild'] as const).map((tier) =>
+            `<div class="legend-row">${swatch({ shape: 'circle', letter: '' }, TIER_COLOR[tier])}${tier[0].toUpperCase() + tier.slice(1)}</div>`).join('')}
+          <div class="legend-row" style="opacity:0.75">${swatch({ shape: 'circle', letter: '' }, RECENT_COLOR)}Reported 2–4 weeks ago</div>
+          ${Object.keys(DISEASE_MARK).map((name) =>
+            `<div class="legend-row">${swatch(DISEASE_MARK[name], NEUTRAL)}${diseaseLabel(name)}</div>`).join('')}` : '';
 
       div.innerHTML = `
         <h4 class="legend-toggle">Legend &#9656;</h4>
         <div class="legend-body">
-          <h4>Outbreak level</h4>
-          ${tierRow('severe', 'Severe Outbreak')}
-          ${tierRow('moderate', 'Moderate Threat')}
-          ${tierRow('mild', 'Mild Detection')}
-          <div class="legend-row" style="opacity:0.75">${swatch({ shape: 'circle', letter: '' }, RECENT_COLOR)}Reported 2–4 weeks ago</div>
-          <div class="legend-row"><span class="swatch" style="box-sizing:border-box;border:2px solid ${MONITORED_COLOR};border-radius:3px"></span>Baseline set (click the area for its usual level)</div>
-          <h4 class="legend-sub">Disease (shape)</h4>
-          ${diseaseRows}
+          ${heatRows}
+          <div class="legend-row"><span class="swatch" style="box-sizing:border-box;border:2px solid ${monitoredColor(theme)};border-radius:3px"></span>Baseline set (click the area for details)</div>
+          ${markerRows}
         </div>
       `;
 
@@ -150,7 +173,7 @@ function Legend() {
     return () => {
       control.remove();
     };
-  }, [map]);
+  }, [map, theme, showHeat, showMarkers]);
 
   return null;
 }
@@ -167,20 +190,62 @@ function FitBounds({ data }: { data: any }) {
   return null;
 }
 
-// Barangay outlines carry no severity fill: a filled polygon implied the whole area
-// was infected, when only specific farms actually reported. fillOpacity is a hair
-// above zero rather than exactly 0 because an SVG path with fill-opacity:0 isn't
-// "painted", so pointer-events skip it and the click-for-details popup breaks.
-// Module-level on purpose: react-leaflet re-applies `style` whenever its identity changes,
-// which would wipe the search highlight on every live data update.
-// Outline only (never a fill); teal once the barangay has a baseline (admin map only: the app keeps
-// its map simple for farmers).
-const BASE_STYLE: L.PathOptions = { fillColor: '#1f2937', fillOpacity: 0.06, color: '#374151', weight: 1 };
-const MONITORED_COLOR = '#14b8a6';
-const MONITORED_STYLE: L.PathOptions = { ...BASE_STYLE, color: MONITORED_COLOR, weight: 2 };
-// Satellite mode: dark grey outlines vanish on imagery, so they go light; teal stays teal.
-const SATELLITE_BASE_STYLE: L.PathOptions = { ...BASE_STYLE, color: '#f9fafb', opacity: 0.8, weight: 1.2 };
-const SATELLITE_MONITORED_STYLE: L.PathOptions = { ...SATELLITE_BASE_STYLE, color: MONITORED_COLOR, opacity: 1, weight: 2 };
+// Polygon styles. With the heat layer on, a barangay is filled by its heat this week on the fixed
+// scale (see heatmap.ts); otherwise it is outline only. fill stays on (transparent) so a click
+// anywhere in the barangay opens its popup. Barangays with a baseline get a forest outline (admin map
+// only). Built through a ref-reading function with one identity: react-leaflet re-applies `style`
+// whenever its identity changes, which would wipe the search highlight on every live data update.
+const OUTLINE: Record<Theme, string> = { light: '#cfc5ae', dark: '#3d4536' };
+const OUTLINE_ON_TILES = '#5b5f52';
+const monitoredColor = (theme: Theme) => (theme === 'dark' ? '#9ccb82' : '#2f5d3a');
+
+function polygonStyle(opts: {
+  heat: AreaHeat;
+  monitored: boolean;
+  theme: Theme;
+  satellite: boolean;
+  onTiles: boolean;
+  showHeat: boolean;
+}): L.PathOptions {
+  const { heat, monitored, theme, satellite, onTiles, showHeat } = opts;
+  if (showHeat && heat && 'heat' in heat) {
+    const fill = rampColor(heat.heat, theme);
+    return { fill: true, fillColor: fill, fillOpacity: HEAT_FILL_OPACITY, color: strokeFor(fill, theme), opacity: 1, weight: 1, dashArray: undefined };
+  }
+  if (showHeat && heat && 'collecting' in heat) {
+    return { fill: true, fillOpacity: 0, color: HATCH[theme].line, opacity: 1, weight: 1, dashArray: '4 3' };
+  }
+  if (monitored) {
+    return { fill: true, fillOpacity: 0, color: satellite ? '#9ccb82' : monitoredColor(theme), opacity: 1, weight: 2, dashArray: undefined };
+  }
+  if (satellite) return { fill: true, fillOpacity: 0, color: '#f6f3ea', opacity: 0.8, weight: 1.2, dashArray: undefined };
+  return {
+    fill: true,
+    fillOpacity: 0,
+    color: onTiles ? OUTLINE_ON_TILES : OUTLINE[theme],
+    opacity: onTiles ? 0.7 : 1,
+    weight: onTiles ? 1.2 : 0.8,
+    dashArray: undefined,
+  };
+}
+
+/** Light / dark, following the system like the rest of admin.css. */
+function useTheme(): Theme {
+  const [theme, setTheme] = useState<Theme>(currentTheme);
+  useEffect(() => {
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!mq) return;
+    const onChange = () => setTheme(currentTheme());
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return theme;
+}
+
+// Street tiles only from this zoom (barangay scale): the province view needs nothing but the bundled
+// boundaries. KEEP IN SYNC with TILE_MIN_ZOOM in the app's outbreak-map.html.
+const TILE_MIN_ZOOM = 12;
+const MAX_ZOOM = 16;
 
 // ─── Basemap: Map (OSM, default) or Satellite (Esri imagery + place labels) ───
 // Streamed like the OSM tiles; nothing bundled. KEEP IN SYNC with the basemap section of
@@ -271,8 +336,9 @@ function baselineRows(stats: any[]) {
     .sort((a, b) => diseaseLabel(a.diseaseCode).localeCompare(diseaseLabel(b.diseaseCode)));
 }
 
-// The searched-for barangay or municipality. Blue stays distinct from all three severity colours.
-const HIGHLIGHT_STYLE: L.PathOptions = { color: '#2563eb', weight: 3, fillColor: '#2563eb', fillOpacity: 0.15 };
+// The searched-for barangay or municipality: a blue outline only (no fill, so the heat stays
+// visible). Blue stays distinct from the heat ramp and the disease colours.
+const HIGHLIGHT_STYLE: L.PathOptions = { color: currentTheme() === 'dark' ? '#8fb8da' : '#2f5d80', weight: 3, dashArray: undefined };
 
 /**
  * Search field at the top of the Baselines panel: finds a barangay or municipality from the bundled
@@ -480,7 +546,7 @@ function MapFilterPanel({
 }) {
   const count = activeCount(filters);
   const swatch = (mark: Mark, fill: string) => (
-    <span className="swatch" dangerouslySetInnerHTML={{ __html: markerSvg(mark, fill, 16, false) }} />
+    <span className="swatch" dangerouslySetInnerHTML={{ __html: markerSvg(mark, fill, 16) }} />
   );
   const chip = (key: string, pressed: boolean, onClick: () => void, content: React.ReactNode) => (
     <button key={key} type="button" className="map-filter-chip" aria-pressed={pressed} onClick={onClick}>
@@ -754,6 +820,23 @@ export default function MapPage() {
   const detections = useQuery(api.admin.mapReports);
   const [map, setMap] = useState<L.Map | null>(null);
   const barangayLayerRef = useRef<L.GeoJSON>(null);
+  // The blue-outlined area(s), from a search pick or the panel's "Show on map".
+  const highlightedRef = useRef<L.Path[]>([]);
+  const theme = useTheme();
+  // Layers: heat on, disease markers off (admin-only detail), street tiles only when zoomed in.
+  const [showHeat, setShowHeat] = useState(true);
+  const [showMarkers, setShowMarkers] = useState(false);
+  const [streetTiles, setStreetTiles] = useState(true);
+  const [zoom, setZoom] = useState(9);
+  useEffect(() => {
+    if (!map) return;
+    const onZoom = () => setZoom(map.getZoom());
+    onZoom();
+    map.on('zoomend', onZoom);
+    return () => {
+      map.off('zoomend', onZoom);
+    };
+  }, [map]);
 
   // Grouped per barangay for the polygon popup, and keyed per barangay+disease so each
   // dot picks up the tier for its own disease rather than the barangay's worst.
@@ -780,7 +863,7 @@ export default function MapPage() {
   const monitoredKey = monitored.join('|');
   const monitoredRef = useRef(new Set<string>());
   monitoredRef.current = new Set(monitored);
-  // Basemap is read through a ref too, so styleFeature keeps one identity (see BASE_STYLE's note).
+  // Basemap is read through a ref too, so styleFeature keeps one identity (see polygonStyle's note).
   const [basemap, setBasemap] = useState<Basemap>(loadBasemap);
   const basemapRef = useRef(basemap);
   basemapRef.current = basemap;
@@ -792,23 +875,72 @@ export default function MapPage() {
       /* not remembered; fine */
     }
   };
+  const [filters, setFilters] = useState<MapFilters>(EMPTY_FILTERS);
+  // Heat per barangay for the current filters (disease + level), on the fixed scale.
+  const heatByArea = useMemo(() => {
+    const rows = new Map<string, any[]>();
+    (stats ?? []).forEach((s: any) => {
+      if (s.rawReportCount <= 0 || !statMatches(s, filters)) return;
+      const key = `${s.barangay}||${s.municipality}`;
+      rows.set(key, [...(rows.get(key) ?? []), s]);
+    });
+    const heat = new Map<string, AreaHeat>();
+    rows.forEach((r, key) => heat.set(key, areaHeat(r)));
+    return heat;
+  }, [stats, filters]);
+  const heatKey = [...heatByArea.entries()].map(([k, h]) => `${k}:${h && 'heat' in h ? h.heat.toFixed(3) : 'c'}`).join('|');
+  const onTiles = basemap === 'map' && streetTiles && zoom >= TILE_MIN_ZOOM;
+  // Everything styleFeature reads, through a ref (one function identity; see polygonStyle's note).
+  const styleInputs = useRef({ heatByArea, theme, onTiles, showHeat });
+  styleInputs.current = { heatByArea, theme, onTiles, showHeat };
   const styleFeature = useMemo(
     () => (feature?: any) => {
-      const monitoredArea = monitoredRef.current.has(`${feature?.properties?.barangay}||${feature?.properties?.municipality}`);
-      if (basemapRef.current === 'satellite') return monitoredArea ? SATELLITE_MONITORED_STYLE : SATELLITE_BASE_STYLE;
-      return monitoredArea ? MONITORED_STYLE : BASE_STYLE;
+      const key = `${feature?.properties?.barangay}||${feature?.properties?.municipality}`;
+      const { heatByArea: heat, theme: t, onTiles: tiles, showHeat: heatOn } = styleInputs.current;
+      return polygonStyle({
+        heat: heat.get(key) ?? null,
+        monitored: monitoredRef.current.has(key),
+        theme: t,
+        satellite: basemapRef.current === 'satellite',
+        onTiles: tiles,
+        showHeat: heatOn,
+      });
     },
     [],
   );
   useEffect(() => {
     barangayLayerRef.current?.eachLayer((layer) => {
       const path = layer as L.Path & { feature?: any };
-      if (path.options.color === HIGHLIGHT_STYLE.color) return; // leave the search highlight alone
       path.setStyle(styleFeature(path.feature));
+      // Keep the search highlight's outline on top of the new fill.
+      if (highlightedRef.current.includes(path)) path.setStyle(HIGHLIGHT_STYLE);
     });
-  }, [monitoredKey, basemap, styleFeature]);
+  }, [monitoredKey, basemap, styleFeature, heatKey, theme, onTiles, showHeat]);
 
-  const [filters, setFilters] = useState<MapFilters>(EMPTY_FILTERS);
+  // Hatching + centroid glows, under the polygons.
+  const heatLayerRef = useRef<HeatLayer | null>(null);
+  useEffect(() => {
+    if (!map || !showHeat) return;
+    const layer = new HeatLayer(
+      () => {
+        const out: any[] = [];
+        barangayLayerRef.current?.eachLayer((l) => out.push(l));
+        return out;
+      },
+      (l) => styleInputs.current.heatByArea.get(`${l.feature?.properties?.barangay}||${l.feature?.properties?.municipality}`) ?? null,
+      () => styleInputs.current.theme,
+    );
+    layer.addTo(map);
+    heatLayerRef.current = layer;
+    return () => {
+      layer.remove();
+      heatLayerRef.current = null;
+    };
+  }, [map, showHeat]);
+  useEffect(() => {
+    heatLayerRef.current?.redraw();
+  }, [heatKey, theme]);
+
   const [filterOpen, setFilterOpen] = useState(false);
   // Clicking or dragging the map folds the panel away (the filters stay applied), as in the app.
   useEffect(() => {
@@ -855,8 +987,6 @@ export default function MapPage() {
     map?.invalidateSize();
   }, [map, panelOpen]);
   const pendingAreaPopup = useRef<(() => void) | null>(null);
-  // The blue-outlined area(s), from a search pick or the panel's "Show on map".
-  const highlightedRef = useRef<L.Path[]>([]);
   // "Show on map": fly to the barangay and open its popup once there (same guard as LocationSearch:
   // a resize mid-flight fires an early moveend, and opening the popup then would cancel the flight).
   const showArea = (area: BaselineArea) => {
@@ -895,12 +1025,23 @@ export default function MapPage() {
   return (
     <div className="map-page">
       {/* The page title lives in the app header; this line keeps the live plotted count. */}
-      <p className="map-summary" aria-live="polite">
-        <span className="map-summary-dot" aria-hidden="true" />
-        {detections
-          ? (filtering ? <><strong>{visible.length}</strong> of {reportCount} verified reports plotted</> : <><strong>{reportCount}</strong> verified reports plotted</>)
-          : 'Loading reports…'}
-      </p>
+      <div className="map-toolbar">
+        <p className="map-summary" aria-live="polite">
+          <span className="map-summary-dot" aria-hidden="true" />
+          {detections
+            ? (filtering ? <><strong>{visible.length}</strong> of {reportCount} verified reports match</> : <><strong>{reportCount}</strong> verified reports</>)
+            : 'Loading reports…'}
+          {showMarkers ? ' · shown as markers' : ''}
+        </p>
+        <fieldset className="map-layers">
+          <legend className="sr-only">Map layers</legend>
+          <label><input type="checkbox" checked={showHeat} onChange={(e) => setShowHeat(e.target.checked)} /> Heat</label>
+          <label><input type="checkbox" checked={showMarkers} onChange={(e) => setShowMarkers(e.target.checked)} /> Disease markers</label>
+          <label title={`Street map tiles load from zoom ${TILE_MIN_ZOOM}; the province view uses the bundled boundaries only.`}>
+            <input type="checkbox" checked={streetTiles} onChange={(e) => setStreetTiles(e.target.checked)} /> Street tiles (on zoom)
+          </label>
+        </fieldset>
+      </div>
 
       <div className="map-layout">
       <div className="card map-card">
@@ -923,42 +1064,43 @@ export default function MapPage() {
           ref={setMap}
           center={[8.15, 125.13]}
           zoom={9}
+          maxZoom={MAX_ZOOM}
+          preferCanvas
           zoomControl={false}
-          style={{ height: '100%', width: '100%', background: '#f4f1ea' }}
+          style={{ height: '100%', width: '100%', background: 'var(--surface-sunken)' }}
         >
           {/* Zoom bottom-left, as on the app's map. */}
           <ZoomControl position="bottomleft" />
-          {/* Voyager, not light_all: the plain grey basemap dropped roads and admin
-              boundaries almost entirely. This keeps the OSM look (green parks, orange
-              highways, visible municipal borders) while staying light. */}
+          {/* Satellite stays on demand (the toggle). Street tiles only from TILE_MIN_ZOOM: the
+              province view is the bundled boundaries alone, with no tile requests. */}
           {basemap === 'satellite' ? (
             <>
-              {/* Esri's URL order is {y}/{x}. maxNativeZoom 18: zoom 19 upscales instead of
-                  showing "Map data not yet available" tiles over rural areas. */}
+              {/* Esri's URL order is {y}/{x}. */}
               <TileLayer
                 key="esri-imagery"
                 url={`${ESRI}World_Imagery/MapServer/tile/{z}/{y}/{x}`}
                 attribution={ESRI_ATTRIBUTION}
-                maxNativeZoom={18}
-                maxZoom={19}
+                maxNativeZoom={MAX_ZOOM}
+                maxZoom={MAX_ZOOM}
               />
               <TileLayer
                 key="esri-labels"
                 url={`${ESRI}Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`}
-                maxNativeZoom={18}
-                maxZoom={19}
+                maxNativeZoom={MAX_ZOOM}
+                maxZoom={MAX_ZOOM}
               />
             </>
-          ) : (
+          ) : onTiles ? (
             <TileLayer
               key="osm"
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              maxZoom={MAX_ZOOM}
             />
-          )}
+          ) : null}
           <BasemapToggle basemap={basemap} onChange={changeBasemap} />
           <FitBounds data={barangays as any} />
-          <Legend />
+          <Legend theme={theme} showHeat={showHeat} showMarkers={showMarkers} />
 
           <GeoJSON
             ref={barangayLayerRef}
@@ -974,40 +1116,47 @@ export default function MapPage() {
                 const reported = allStats.filter((s) => s.rawReportCount > 0);
                 const bStats = reported.filter((s) => statMatches(s, filtersRef.current));
 
+                const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) =>
+                  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+                const t = currentTheme();
+                const level = (stat: any) => stat.monitoringStatus === 'collecting'
+                  ? '<span class="map-popup-level collecting">Undetermined</span>'
+                  : `<span class="map-popup-level ${stat.severityTier}">${esc(stat.severityTier)}</span>`;
                 let popupContent = `
-                  <div style="font-family: sans-serif; color: #fff; background: #222; padding: 4px; border-radius: 4px;">
-                    <b style="color: #4ade80; font-size: 15px;">${barangayName}</b><br/>
-                    <span style="color: #aaa; font-size: 12px;">${municipalityName}</span><br/>
+                  <div class="map-popup">
+                    <div class="map-popup-title">${esc(barangayName)}</div>
+                    <div class="map-popup-sub">${esc(municipalityName)}</div>
                 `;
 
                 if (bStats && bStats.length > 0) {
                   bStats.forEach((stat) => {
+                    const heat = heatOf(stat);
                     popupContent += `
-                      <hr style="border-color: #333; margin: 8px 0;" />
-                      <span style="font-size: 13px;">
-                        <strong>Active Disease:</strong> ${diseaseLabel(stat.diseaseCode)}<br/>
+                      <hr class="map-popup-rule" />
+                      <div class="map-popup-row"><strong>${esc(diseaseLabel(stat.diseaseCode))}</strong>${level(stat)}</div>
+                      ${meterHtml(heat, t)}
+                      <div class="map-popup-body">
                         ${stat.monitoringStatus === 'collecting'
-                          ? `<strong>Outbreak status:</strong> <span style="color: #9ca3af; font-weight: bold;">UNDETERMINED</span><br/>
-                             <span style="color: #9ca3af;">${undeterminedText(stat)}</span><br/>`
-                          : `<strong>Outbreak level:</strong> <span style="color: ${TIER_COLOR[stat.severityTier]}; text-transform: uppercase; font-weight: bold;">${stat.severityTier}</span><br/>
-                             ${stat.baselineFarms != null ? `<strong>Usual:</strong> ${stat.baselineFarms.toFixed(1)} farms / week${stat.monitoringStatus === 'provisional' ? ' <span style="color: #9ca3af;">(provisional)</span>' : ''}<br/>` : ''}
+                          ? `<span class="map-popup-muted">${esc(undeterminedText(stat))}</span><br/>`
+                          : `${heat !== null ? `<strong>Intensity:</strong> ${Math.round(heat * 100)}% <span class="map-popup-muted">(Moderate 50% · Severe 80%)</span><br/>` : ''}
+                             ${stat.baselineFarms != null ? `<strong>Usual:</strong> ${stat.baselineFarms.toFixed(1)} farms / week${stat.monitoringStatus === 'provisional' ? ' <span class="map-popup-muted">(provisional)</span>' : ''}<br/>` : ''}
                              <strong>Moderate at / Severe at:</strong> ${stat.moderateAt ?? '—'} / ${stat.severeAt ?? '—'} farms<br/>`}
-                        <strong>Farms (7 days):</strong> ${stat.distinctFarms}${stat.lastWeekFarms != null ? ` <span style="color: #9ca3af;">· last week ${stat.lastWeekFarms}</span>` : ''}<br/>
-                        <strong>Total Reports:</strong> ${stat.rawReportCount}
-                      </span>
+                        <strong>Farms (7 days):</strong> ${stat.distinctFarms}${stat.lastWeekFarms != null ? ` <span class="map-popup-muted">· last week ${stat.lastWeekFarms}</span>` : ''}<br/>
+                        <strong>Total reports:</strong> ${stat.rawReportCount}
+                      </div>
                     `;
                   });
                 } else {
                   popupContent += `
-                    <hr style="border-color: #333; margin: 8px 0;" />
-                    <span style="color: #888; font-size: 13px;">${reported.length > 0 ? 'No reports match the current filters.' : 'No active disease reports this week.'}</span>
+                    <hr class="map-popup-rule" />
+                    <span class="map-popup-muted">${reported.length > 0 ? 'No reports match the current filters.' : 'No active disease reports this week.'}</span>
                   `;
                 }
 
-                // Usual levels moved to the Baselines panel beside the map; just point there.
+                // Usual levels live in the Baselines panel beside the map; just point there.
                 if (hasBaseline(allStats)) {
-                  popupContent += `<hr style="border-color: #333; margin: 8px 0;" />
-                    <span style="color: ${MONITORED_COLOR}; font-size: 12px;">Baseline set · see the Baselines panel for usual levels</span>`;
+                  popupContent += `<hr class="map-popup-rule" />
+                    <span class="map-popup-baseline">Baseline set · see the Baselines panel for usual levels</span>`;
                 }
                 popupContent += `</div>`;
                 return popupContent;
@@ -1015,8 +1164,8 @@ export default function MapPage() {
             }}
           />
 
-          {/* Report dots, after the polygons so they stack above them */}
-          {visible.map(({ d, sev }, i: number) => {
+          {/* Report markers (admin layer, off by default), after the polygons so they stack above them */}
+          {showMarkers && visible.map(({ d, sev }, i: number) => {
             const recent = sev === 'past';
             const tier = recent ? 'mild' : sev;
             const daysAgo = Math.max(0, Math.round((Date.now() - d.capturedAt) / DAY_MS));
@@ -1031,31 +1180,29 @@ export default function MapPage() {
                 zIndexOffset={recent ? -1000 : tier === 'severe' ? 2000 : tier === 'moderate' ? 1000 : 0}
               >
                 <Popup>
-                  <div style={{ fontFamily: 'sans-serif', minWidth: '180px' }}>
-                    <b style={{ color: '#4ade80', fontSize: '15px' }}>{diseaseLabel(d.diseaseCode)}</b><br />
-                    <span style={{ color: '#888', fontSize: '12px' }}>
+                  <div className="map-popup">
+                    <div className="map-popup-title">{diseaseLabel(d.diseaseCode)}</div>
+                    <div className="map-popup-sub">
                       {d.barangay || 'Unresolved area'}{d.municipality ? `, ${d.municipality}` : ''}
-                    </span>
-                    <hr style={{ borderColor: '#333', margin: '8px 0' }} />
-                    <span style={{ fontSize: '13px' }}>
+                    </div>
+                    <hr className="map-popup-rule" />
+                    <div className="map-popup-body">
                       {recent ? (
-                        <><span style={{ color: '#6b7280' }}>
+                        <><span className="map-popup-muted">
                           Reported {daysAgo} days ago · no longer counted in the outbreak level
                         </span><br /></>
                       ) : undetermined ? (
                         <><strong>Outbreak status:</strong>{' '}
-                        <span style={{ color: '#9ca3af', fontWeight: 'bold' }}>UNDETERMINED</span><br />
-                        <span style={{ color: '#6b7280' }}>{undeterminedText(stat)}</span><br /></>
+                        <span className="map-popup-level collecting">Undetermined</span><br />
+                        <span className="map-popup-muted">{undeterminedText(stat)}</span><br /></>
                       ) : (
                         <><strong>Outbreak level:</strong>{' '}
-                        <span style={{ color: TIER_COLOR[tier], textTransform: 'uppercase', fontWeight: 'bold' }}>
-                          {tier}
-                        </span><br /></>
+                        <span className={`map-popup-level ${tier}`}>{tier}</span><br /></>
                       )}
                       <strong>Reported by:</strong> {d.farmerName ?? 'Farmer'}<br />
                       <strong>Confidence:</strong> {Math.round(d.confidence * 100)}%<br />
                       <strong>Reported:</strong> {new Date(d.capturedAt).toLocaleDateString()}
-                    </span>
+                    </div>
                   </div>
                 </Popup>
               </Marker>
@@ -1081,9 +1228,14 @@ export default function MapPage() {
         </div>
         <div className="card-body prose-sm">
           <p>
-            Each marker is one verified report at its recorded coordinates. Its colour shows the
-            outbreak level of that barangay <em>for that disease</em> (not how badly a leaf is affected);
-            its shape and letter show which disease (circle B = Northern Leaf Blight, square R = Common
+            <strong>Heat</strong> colours each barangay by its outbreak level this week on a fixed scale
+            (the same in the farmers' app): the distinct farms reporting a disease compared with that
+            barangay's own usual level. Moderate starts at 50% of the scale (2× usual), Severe at 80% (3×);
+            within a level the colour deepens as more farms report. A barangay shows its hottest disease
+            (narrow it with the filter), still-collecting barangays are hatched, and the colour describes the
+            whole barangay, not where the farms are. The optional <strong>disease markers</strong> are one
+            verified report each at its recorded coordinates (admin only): colour = that barangay's level for
+            that disease, shape and letter = the disease (circle B = Northern Leaf Blight, square R = Common
             Rust, diamond G = Gray Leaf Spot). Following the WHO and DA-BPI definitions of an outbreak
             (disease above its normal level), each barangay first <strong>collects data</strong>: until it has
             at least 4 weeks since its first verified scan and 10 verified scans of any kind (healthy included),
@@ -1092,30 +1244,29 @@ export default function MapPage() {
             barangay's <strong>baseline</strong> for that disease: the average farms per week over up to 12
             earlier weeks (weeks with no scans at all are skipped; "provisional" until 12 weeks). Each report
             is also weighted by model confidence (80%+ = 1.0, 60–79% = 0.6, below 60% = 0.3). After 7 days a
-            report turns into a faded grey marker (no longer counted); after 28 days it disappears. Healthy
+            report no longer counts (as a marker it turns faded grey); after 28 days it disappears. Healthy
             scans and suspended accounts are never shown. Method and sources: docs/OUTBREAK_DETECTION_METHOD.md.
           </p>
           <ul className="tier-list">
             <li>
-              <strong style={{ color: TIER_COLOR.severe }}>Severe</strong> — at least <strong>3×</strong> the
+              <strong>Severe</strong> — at least <strong>3×</strong> the
               baseline and at least 5 distinct farms, weighted score &ge; 4.0. Sends a potential-outbreak warning
               automatically.
             </li>
             <li>
-              <strong style={{ color: TIER_COLOR.moderate }}>Moderate</strong> — at least <strong>2×</strong> the
+              <strong>Moderate</strong> — at least <strong>2×</strong> the
               baseline and at least 3 distinct farms, weighted score &ge; 2.0. Sends an awareness notice
               automatically. The distinct-farm minimums stop a single user's repeat scans, or a tiny baseline,
               from raising the level.
             </li>
             <li>
-              <strong style={{ color: TIER_COLOR.mild }}>Mild</strong> — verified reports below those levels.
+              <strong>Mild</strong> — verified reports below those levels.
             </li>
             <li>
-              <strong style={{ color: '#9ca3af' }}>Undetermined</strong> — the barangay is still collecting data
-              (shown with the Mild colour on the map).
+              <strong>Undetermined</strong> — the barangay is still collecting data (hatched on the map, no heat).
             </li>
             <li>
-              <strong style={{ color: MONITORED_COLOR }}>Teal outline</strong> — the barangay has a baseline. The
+              <strong>Green outline</strong> — the barangay has a baseline. The
               <strong> Baselines</strong> panel beside the map lists each area's usual farms per week per disease and
               the farm counts that would make it Moderate or Severe (shown here only; the farmers' app keeps its map
               simple).

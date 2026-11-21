@@ -1,31 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- DARK theme values for the tokens in values/colors.xml (caps 3 dark screens). -->
-    <color name="cg_bg">#000000</color>
-    <color name="cg_surface">#111111</color>
-    <color name="cg_surface_raised">#1A1A1A</color>
-    <color name="cg_input">#1A1A1A</color>
-    <color name="cg_input_border">#333333</color>
-    <color name="cg_divider">#222222</color>
-    <color name="cg_card_border">#222222</color>
-    <color name="cg_text_primary">#FFFFFF</color>
-    <color name="cg_text_secondary">#AAAAAA</color>
-    <color name="cg_text_tertiary">#666666</color>
-    <color name="cg_accent_green">#4ADE80</color>
-    <color name="cg_accent_blue">#60A5FA</color>
-    <color name="cg_accent_amber">#F59E0B</color>
-    <color name="cg_border_green">#404ADE80</color>
-    <color name="cg_border_blue">#4060A5FA</color>
-    <color name="cg_border_amber">#40F59E0B</color>
-    <color name="cg_nav_bg">#000000</color>
-    <color name="cg_nav_indicator">#212225</color>
-    <color name="cg_avatar_bg">#222222</color>
-    <color name="cg_avatar_icon">#AAAAAA</color>
-    <color name="cg_button_secondary">#333333</color>
-    <color name="cg_on_button_secondary">#FFFFFF</color>
-    <color name="cg_green_tint">#1A2E1A</color>
-    <color name="cg_icon_button_bg">#1A2E1A</color>
+    <!-- DARK theme values for the tokens in values/colors.xml ("earth" v2). -->
+    <color name="cg_bg">#12150F</color>
+    <color name="cg_surface">#1A1E17</color>
+    <color name="cg_surface_raised">#20251C</color>
+    <color name="cg_input">#20251C</color>
+    <color name="cg_input_border">#3D4536</color>
+    <color name="cg_divider">#2D3327</color>
+    <color name="cg_border_strong">#3D4536</color>
+    <color name="cg_card_border">#2D3327</color>
+    <color name="cg_text_primary">#EDEBE3</color>
+    <color name="cg_text_secondary">#C0BEB1</color>
+    <color name="cg_text_tertiary">#9A9889</color>
+    <color name="cg_accent_green">#9CCB82</color>
+    <color name="cg_accent_blue">#8FB8DA</color>
+    <color name="cg_accent_amber">#E9B54A</color>
+    <color name="cg_border_green">#409CCB82</color>
+    <color name="cg_border_blue">#408FB8DA</color>
+    <color name="cg_border_amber">#59E9B54A</color>
+    <color name="cg_nav_bg">#1A1E17</color>
+    <color name="cg_nav_indicator">#2B3524</color>
+    <color name="cg_avatar_bg">#272D22</color>
+    <color name="cg_avatar_icon">#9A9889</color>
+    <color name="cg_button_secondary">#2D3327</color>
+    <color name="cg_on_button_secondary">#EDEBE3</color>
+    <color name="cg_green_tint">#24301F</color>
+    <color name="cg_icon_button_bg">#24301F</color>
+    <color name="cg_leaf">#9CCB82</color>
+    <color name="cg_soil">#C8A885</color>
 
-    <color name="offline_banner_bg">#3A2E00</color>
-    <color name="offline_banner_text">#FDE68A</color>
+    <color name="cg_primary">#8DBF72</color>
+    <color name="cg_primary_disabled">#3E4C36</color>
+    <color name="cg_on_primary">#10210C</color>
+    <color name="cg_danger">#F08C74</color>
+    <color name="cg_on_danger">#2A0E06</color>
+    <color name="cg_warning">#E9B54A</color>
+
+    <color name="disease_healthy">#9CCB82</color>
+    <color name="disease_blight">#5F8FD6</color>
+    <color name="disease_rust">#C47A45</color>
+    <color name="disease_gray_leaf_spot">#28A886</color>
+    <color name="disease_unknown">#B2B1A3</color>
+
+    <color name="level_mild_bg">#A87326</color>
+    <color name="level_mild_text">#120D05</color>
+    <color name="level_moderate_bg">#D08B33</color>
+    <color name="level_moderate_text">#120D05</color>
+    <color name="level_severe_bg">#F2A37F</color>
+    <color name="level_severe_text">#2A0E06</color>
+    <color name="level_collecting_bg">#1D2219</color>
+    <color name="level_collecting_text">#C0BEB1</color>
+
+    <color name="offline_banner_bg">#2C2814</color>
+    <color name="offline_banner_text">#E9B54A</color>
 </resources>

@@ -10,9 +10,11 @@
          (claude/04_DEVELOPMENT_RULES.md #11). -->
     <dimen name="touch_target_min">48dp</dimen>
 
-    <!-- Outbreak Heatmap: collapsed height of the "Reports near you" sheet, and its list height. -->
-    <dimen name="map_sheet_peek">72dp</dimen>
-    <dimen name="map_sheet_content_height">360dp</dimen>
+    <!-- Outbreak map: bottom sheet collapsed (handle + area + level) and expanded heights. -->
+    <dimen name="map_sheet_peek">96dp</dimen>
+    <dimen name="map_sheet_expanded">286dp</dimen>
+    <!-- Expanded height when the system font scale is 1.15 or more (Large text). -->
+    <dimen name="map_sheet_expanded_large_text">330dp</dimen>
 
     <!-- Check icon in the treatment review label (view_review_label.xml). -->
     <dimen name="review_label_icon_size">14dp</dimen>

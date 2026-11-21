@@ -151,3 +151,29 @@ export function isDataPoorCluster(
 ) {
   return input.status === "collecting" && input.farms >= rules.minSevereFarms && input.score >= rules.severeScore;
 }
+
+/**
+ * Heat for the outbreak map, on a FIXED 0–1 scale shared by every client (never normalised to the
+ * largest value on screen, so the same colour always means the same level). The bands line up with
+ * the alert levels: Mild stays below 0.45, Moderate starts at 0.5 (2× the baseline), Severe at 0.8
+ * (3× the baseline). Within a band the heat grows with the farms reporting, toward the next level.
+ * null = no heat: the barangay is still collecting data (shown hatched, "Not enough data yet").
+ */
+export function heatIntensity(input: {
+  tier: OutbreakTier;
+  status: MonitoringStatus;
+  farms: number;
+  moderateAt: number | null;
+  severeAt: number | null;
+}): number | null {
+  if (input.status === "collecting") return null;
+  const farms = Math.max(0, input.farms);
+  if (farms === 0) return 0;
+  const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
+  const moderateAt = Math.max(1, input.moderateAt ?? OUTBREAK_RULES.minModerateFarms);
+  const severeAt = Math.max(moderateAt + 1, input.severeAt ?? OUTBREAK_RULES.minSevereFarms);
+  const round = (x: number) => Math.round(x * 1000) / 1000;
+  if (input.tier === "severe") return round(0.8 + 0.2 * clamp01((farms - severeAt) / severeAt));
+  if (input.tier === "moderate") return round(0.5 + 0.28 * clamp01((farms - moderateAt) / (severeAt - moderateAt)));
+  return round(Math.min(0.45, 0.12 + 0.33 * farms / moderateAt));
+}

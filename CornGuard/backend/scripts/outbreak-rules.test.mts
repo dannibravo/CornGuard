@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  OUTBREAK_RULES, WEEK_MS, classifyOutbreak, farmsNeeded, isDataPoorCluster, monitoringStatus, neighbourhoodWeeks,
+  OUTBREAK_RULES, WEEK_MS, classifyOutbreak, farmsNeeded, heatIntensity, isDataPoorCluster, monitoringStatus, neighbourhoodWeeks,
   weeklyBaseline, weightOf,
 } from "../convex/lib/outbreakRules.ts";
 
@@ -113,4 +113,26 @@ test("data-poor cluster: Severe's minimums, only while collecting", () => {
   assert.equal(isDataPoorCluster({ farms: 4, score: 5, status: "collecting" }), false);
   assert.equal(isDataPoorCluster({ farms: 5, score: 3.5, status: "collecting" }), false);
   assert.equal(isDataPoorCluster({ farms: 9, score: 9, status: "provisional" }), false);
+});
+
+test("map heat: fixed scale, bands match the alert levels", () => {
+  const heat = (tier: "mild" | "moderate" | "severe", farms: number, status: "collecting" | "provisional" = "provisional") =>
+    heatIntensity({ tier, status, farms, moderateAt: 3, severeAt: 5 });
+  // Collecting data: no heat at all (hatched on the map), whatever the counts.
+  assert.equal(heat("mild", 9, "collecting"), null);
+  assert.equal(heat("mild", 0), 0);
+  // Mild never reaches the Moderate band.
+  assert.ok(heat("mild", 1)! > 0 && heat("mild", 1)! < 0.45);
+  assert.equal(heat("mild", 50), 0.45);
+  // Thresholds map exactly to 0.5 (Moderate, 2x) and 0.8 (Severe, 3x).
+  assert.equal(heat("moderate", 3), 0.5);
+  assert.ok(heat("moderate", 4)! > 0.5 && heat("moderate", 4)! < 0.8);
+  assert.equal(heat("severe", 5), 0.8);
+  assert.equal(heat("severe", 10), 1);
+  assert.equal(heat("severe", 99), 1);
+  // Monotonic within each band.
+  assert.ok(heat("mild", 2)! > heat("mild", 1)!);
+  assert.ok(heat("severe", 7)! > heat("severe", 6)!);
+  // Missing thresholds (rows from before baselines) fall back to the minimum farm counts.
+  assert.equal(heatIntensity({ tier: "moderate", status: "provisional", farms: 3, moderateAt: null, severeAt: null }), 0.5);
 });

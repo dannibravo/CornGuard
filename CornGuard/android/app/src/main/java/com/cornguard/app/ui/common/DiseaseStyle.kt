@@ -8,7 +8,10 @@ import androidx.core.graphics.ColorUtils
 import com.cornguard.app.R
 import com.cornguard.app.model.DiseaseCode
 
-/** Disease badge colours and labels from the caps 3 design (History / Map badges). */
+/**
+ * Disease badge colours and labels (History / Map / Community badges). Colours are the "earth"
+ * disease identity tokens (values/colors.xml); the badge always carries the name, never colour alone.
+ */
 object DiseaseStyle {
 
     @ColorRes
@@ -29,12 +32,34 @@ object DiseaseStyle {
         else -> diseaseCode.replace('_', ' ').replaceFirstChar { it.uppercase() }
     }
 
-    /** Coloured text on a 12%-opacity tint of the same colour, on a [R.drawable.bg_pill] background. */
+    /**
+     * Coloured text on a 12%-opacity tint of the same colour, on a [R.drawable.bg_pill] background.
+     * The text is moved toward the theme's main text colour until it reaches WCAG AA (4.5:1) on the
+     * tint, so lighter identity colours (Gray Leaf Spot teal) stay readable in both themes.
+     */
     fun applyBadge(view: TextView, diseaseCode: String, text: String = label(diseaseCode)) {
-        val color = ContextCompat.getColor(view.context, colorRes(diseaseCode))
+        val context = view.context
+        val color = ContextCompat.getColor(context, colorRes(diseaseCode))
+        val surface = ContextCompat.getColor(context, R.color.cg_surface)
+        val tint = ColorUtils.setAlphaComponent(color, BADGE_TINT_ALPHA)
         view.text = text
-        view.setTextColor(color)
+        view.setTextColor(
+            readableOn(color, ColorUtils.compositeColors(tint, surface), ContextCompat.getColor(context, R.color.cg_text_primary)),
+        )
         view.setBackgroundResource(R.drawable.bg_pill)
-        view.backgroundTintList = ColorStateList.valueOf(ColorUtils.setAlphaComponent(color, 0x20))
+        view.backgroundTintList = ColorStateList.valueOf(tint)
     }
+
+    /** [color], blended toward [strongest] in small steps until it has at least [minContrast] on [background]. */
+    fun readableOn(color: Int, background: Int, strongest: Int, minContrast: Double = 4.5): Int {
+        var ratio = 0f
+        while (ratio < 1f) {
+            val candidate = ColorUtils.blendARGB(color, strongest, ratio)
+            if (ColorUtils.calculateContrast(candidate, background) >= minContrast) return candidate
+            ratio += 0.05f
+        }
+        return strongest
+    }
+
+    private const val BADGE_TINT_ALPHA = 0x20
 }

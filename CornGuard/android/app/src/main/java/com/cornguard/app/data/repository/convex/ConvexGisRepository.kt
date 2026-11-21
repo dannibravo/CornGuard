@@ -112,7 +112,10 @@ class ConvexGisRepository(
                         lastWeekFarms = it.lastWeekFarms?.toInt(),
                         dataWeeks = it.dataWeeks.toInt(),
                         historyScans = it.historyScans.toInt(),
-                        monitoringSince = it.monitoringSince?.toLong()
+                        monitoringSince = it.monitoringSince?.toLong(),
+                        moderateAt = it.moderateAt?.toInt(),
+                        severeAt = it.severeAt?.toInt(),
+                        intensity = it.intensity
                     )
                 }
             }

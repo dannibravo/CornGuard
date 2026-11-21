@@ -81,7 +81,7 @@
                     android:importantForAccessibility="no"
                     android:minWidth="20dp"
                     android:paddingHorizontal="5dp"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/cg_on_danger"
                     android:textSize="11sp"
                     android:textStyle="bold"
                     android:visibility="gone"

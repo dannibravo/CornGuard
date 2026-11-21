@@ -4,7 +4,7 @@ import { MutationCtx, internalMutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { currentUserId } from "./lib/access";
 import {
-  BaselineSource, OUTBREAK_RULES, WEEK_MS, classifyOutbreak, monitoringStatus, neighbourhoodWeeks, weeklyBaseline,
+  BaselineSource, OUTBREAK_RULES, WEEK_MS, classifyOutbreak, heatIntensity, monitoringStatus, neighbourhoodWeeks, weeklyBaseline,
   weightOf,
 } from "./lib/outbreakRules";
 import { BARANGAY_NEIGHBORS } from "./barangayNeighbors";
@@ -266,6 +266,14 @@ export const getAllStats = query({
         moderateAt: r.moderateAt ?? null,
         severeAt: r.severeAt ?? null,
         isActiveOutbreak: r.isActiveOutbreak,
+        // Fixed-scale map heat (lib/outbreakRules.heatIntensity); null while collecting data.
+        intensity: heatIntensity({
+          tier: r.severityTier,
+          status: r.monitoringStatus ?? "collecting",
+          farms: r.distinctFarms,
+          moderateAt: r.moderateAt ?? null,
+          severeAt: r.severeAt ?? null,
+        }),
         lastUpdated: r.lastUpdated,
       }));
   },
