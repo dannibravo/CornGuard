@@ -11,7 +11,7 @@ same pattern already used for the Panes and Ligue branches on this project (see 
 
 **Every script in this directory is real, complete, runnable code — and none of it has been run.**
 There is no trained model, no real accuracy number, no confusion matrix, and no field-validation
-result anywhere in this repository. `ml/config.py`'s `MODEL_VERSION` is `"unassigned"`, matching
+result anywhere in this repository. `ml/cornguard_ml/config.py`'s `MODEL_VERSION` is `"unassigned"`, matching
 `PlaceholderCornLeafClassifier.modelVersion` on the Android side — the app has nothing to load
 until a real run happens and its output is committed deliberately.
 
@@ -22,7 +22,7 @@ corresponding script and are looking at its actual output file.
 
 ## Two pragmatic solo-context decisions
 
-`ml/config.py`'s module docstring explains these in full; summary:
+`ml/cornguard_ml/config.py`'s module docstring explains these in full; summary:
 
 - **D-04 (input normalization)** — the manuscript states both `[-1, 1]` MobileNetV2 preprocessing
   and `[0, 1]` normalization in different sections (claude/09_ML_MODEL_CONTRACT.md, "Normalization").
@@ -41,6 +41,21 @@ The class order in `config.CLASS_ORDER` is similarly **unconfirmed** — it matc
 explicit that Acenas must publish the real trained order, and it must not be assumed
 alphabetically or by convention.
 
+## Layout
+
+| Path | Contents |
+|---|---|
+| `cornguard_ml/` | Shared, importable code: `config.py`, `dataset.py`, `augmentation.py`, `model.py`, `class_weights.py`. |
+| `pipeline/` | One entry point per pipeline stage (table below). Run from `ml/` as `python -m pipeline.<stage>`. |
+| `experiments/` | One folder per audit/experiment: its code, raw run logs, CSV outputs and reports. See `experiments/README.md`. |
+| `releases/` | Tracked provenance for every model shipped in the app (labels, checksum, export info). See `releases/README.md`. |
+| `data/` | Raw images and generated manifests. Git-ignored except `data/raw/.gitkeep`. |
+| `artifacts/` | Per-run training output (`.keras`, reports). Git-ignored scratch; copy what a release needs into `releases/`. |
+
+All commands assume `ml/` is the working directory: manifests store image paths relative to it
+(e.g. `data\raw\common_rust\...`). `pip install -e .` is optional — it only makes `cornguard_ml`
+importable from other directories (IDEs, notebooks).
+
 ## Pipeline stages
 
 Each script does exactly one stage, so a stage can be re-run independently without repeating the
@@ -48,12 +63,12 @@ ones before it.
 
 | Script | Stage | Reads | Writes |
 |---|---|---|---|
-| `prepare_dataset.py` | Build dataset manifest + stratified split | `data/raw/<class>/<public\|local>/*` | `data/dataset_manifest.csv` |
-| `train.py` | Head training + fine-tuning | manifest, raw images | `artifacts/<run_id>/model.keras`, `class_weights.json`, `training_history.json`, `run_metadata.json` |
-| `evaluate.py` | Test-set evaluation | manifest, `model.keras` | `evaluation_report.json`, `confusion_matrix.png`, `evaluation_report_field.json` (if field images exist) |
-| `export_tflite.py` | TFLite conversion + re-evaluation | `model.keras` | `<model_version>.tflite`, `labels_<model_version>.json`, `<model_version>_export_info.json` |
-| `export_metadata.py` | Assemble release metadata | all of the above | `model_metadata_<model_version>.json` |
-| `parity_test.py` | Python/Keras vs. TFLite parity (contract steps 1-2 of 4) | `model.keras`, `.tflite`, reference images | parity report (stdout / `--output-path`) |
+| `pipeline/prepare_dataset.py` | Build dataset manifest + stratified split | `data/raw/<class>/<public\|local>/*` | `data/dataset_manifest.csv` |
+| `pipeline/train.py` | Head training + fine-tuning | manifest, raw images | `artifacts/<run_id>/model.keras`, `class_weights.json`, `training_history.json`, `run_metadata.json` |
+| `pipeline/evaluate.py` | Test-set evaluation | manifest, `model.keras` | `evaluation_report.json`, `confusion_matrix.png`, `evaluation_report_field.json` (if field images exist) |
+| `pipeline/export_tflite.py` | TFLite conversion + re-evaluation | `model.keras` | `<model_version>.tflite`, `labels_<model_version>.json`, `<model_version>_export_info.json` |
+| `pipeline/export_metadata.py` | Assemble release metadata | all of the above | `model_metadata_<model_version>.json` |
+| `pipeline/parity_test.py` | Python/Keras vs. TFLite parity (contract steps 1-2 of 4) | `model.keras`, `.tflite`, reference images | parity report (stdout / `--output-path`) |
 
 `export_metadata.py` refuses to run if any upstream artifact is missing — it will not fill a
 metric field with a guessed number.
@@ -66,18 +81,18 @@ pip install -r requirements.txt
 
 # 1. Populate data/raw/<class>/public/*.jpg and/or data/raw/<class>/local/*.jpg first —
 #    this pipeline does not download or generate images.
-python prepare_dataset.py --dataset-version v1
+python -m pipeline.prepare_dataset --dataset-version v1
 
-python train.py --run-id v1-baseline
+python -m pipeline.train --run-id v1-baseline
 
-python evaluate.py --model-path artifacts/v1-baseline/model.keras --run-id v1-baseline
+python -m pipeline.evaluate --model-path artifacts/v1-baseline/model.keras --run-id v1-baseline
 
-python export_tflite.py --model-path artifacts/v1-baseline/model.keras \
+python -m pipeline.export_tflite --model-path artifacts/v1-baseline/model.keras \
     --run-id v1-baseline --model-version cornguard_mobilenetv2_v1
 
-python export_metadata.py --run-id v1-baseline --model-version cornguard_mobilenetv2_v1
+python -m pipeline.export_metadata --run-id v1-baseline --model-version cornguard_mobilenetv2_v1
 
-python parity_test.py --keras-model-path artifacts/v1-baseline/model.keras \
+python -m pipeline.parity_test --keras-model-path artifacts/v1-baseline/model.keras \
     --tflite-model-path artifacts/v1-baseline/cornguard_mobilenetv2_v1.tflite \
     --reference-images path/to/some/reference/images/*.jpg
 ```

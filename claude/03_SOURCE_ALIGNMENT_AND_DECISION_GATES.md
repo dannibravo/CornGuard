@@ -175,7 +175,7 @@ Acenas must publish the exact preprocessing contract used by the final exported 
 No final TFLite integration PR may merge until model preprocessing is frozen and documented in `09_ML_MODEL_CONTRACT.md` or its project-local equivalent.
 
 ### Pragmatic solo-context continuation (ml/ training pipeline)
-`ml/config.py` defaults `NORMALIZATION_MODE` to `[-1, 1]` MobileNetV2 preprocessing
+`ml/cornguard_ml/config.py` defaults `NORMALIZATION_MODE` to `[-1, 1]` MobileNetV2 preprocessing
 (`tf.keras.applications.mobilenet_v2.preprocess_input`) so the training pipeline is real,
 runnable code rather than blocked indefinitely on this gate. **This is not Acenas's frozen
 decision** — it is a solo-context default, same treatment as the D-01/D-10 continuations
@@ -207,7 +207,7 @@ The final report must record:
 - whether augmentation is training-only.
 
 ### Pragmatic solo-context continuation (ml/ training pipeline)
-`ml/config.py` defaults `TRAIN_SPLIT`/`VAL_SPLIT`/`TEST_SPLIT` to 70/15/15 so
+`ml/cornguard_ml/config.py` defaults `TRAIN_SPLIT`/`VAL_SPLIT`/`TEST_SPLIT` to 70/15/15 so
 `prepare_dataset.py` can produce a real stratified manifest rather than being blocked on this
 gate. **This is not the adviser/research team's approved split** — same treatment as the D-01/D-10
 continuations elsewhere in this file. No dataset manifest or trained model has actually been
