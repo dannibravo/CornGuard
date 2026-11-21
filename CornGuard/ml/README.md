@@ -74,5 +74,6 @@ described in [PIPELINE.md](PIPELINE.md).
 | `v1_training_audit/`, `v2_baseline/`, `v2_field_aug_experiment/`, `v2_field_domain_planning/`, `field_gap_evaluation_comparison_20261030/` | Audit, experiment and field-evaluation records |
 
 Run them from the `ml/` directory with `pip install -r requirements.txt`. Their outputs (`artifacts/`) and image data
-(`data/raw/`, `data/not_corn_public/`, ...) are git-ignored by `ml/.gitignore`. The corn gate is not wired into this
-branch's Android app yet.
+(`data/raw/`, `data/not_corn_public/`, ...) are git-ignored by `ml/.gitignore`. The exported corn gate
+(`cornguard_corn_gate_v1`) runs in the Android app before the disease model; see "Corn / not-corn gate" in
+`android/README.md`.

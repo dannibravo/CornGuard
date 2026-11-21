@@ -56,6 +56,8 @@
     <string name="scan_permission_denied_camera">Camera permission is needed to take a photo.</string>
     <string name="scan_permission_denied_gallery">Gallery permission is needed to choose a photo.</string>
     <string name="scan_invalid_image">That photo couldn\'t be read. Please try another one.</string>
+    <string name="scan_not_corn">This doesn\'t look like a corn leaf (corn match: %1$d%%). Nothing
+        was saved. Try again with a close, clear photo of one corn leaf.</string>
 
     <!-- Result sheet -->
     <string name="result_confidence_format">Confidence: %1$s%%</string>

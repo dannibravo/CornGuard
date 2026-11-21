@@ -29,8 +29,10 @@ import com.cornguard.app.data.repository.local.LocalDiagnosisHistoryRepository
 import com.cornguard.app.data.repository.local.LocalDiseaseReferenceRepository
 import com.cornguard.app.location.BarangayResolver
 import com.cornguard.app.location.LocationHelper
+import com.cornguard.app.model.CornGate
 import com.cornguard.app.model.CornLeafClassifier
 import com.cornguard.app.model.PlaceholderCornLeafClassifier
+import com.cornguard.app.model.TfliteCornGate
 import com.cornguard.app.model.TfliteCornLeafClassifier
 import com.cornguard.app.permissions.PermissionManager
 import com.cornguard.app.util.ConnectivityObserver
@@ -75,6 +77,14 @@ object ServiceLocator {
         } else {
             PlaceholderCornLeafClassifier()
         }
+    }
+
+    /**
+     * Corn / not-corn check that runs before [cornLeafClassifier] on every scan (see [CornGate]).
+     * Null on a dev build without `assets/corn_gate.tflite`; scans then run ungated.
+     */
+    val cornGate: CornGate? by lazy {
+        if (TfliteCornGate.isAvailable(appContext)) TfliteCornGate(appContext) else null
     }
 
     val permissionManager: PermissionManager by lazy { PermissionManager(appContext) }
