@@ -87,6 +87,11 @@ Implementation may rely on Firebase/client offline caching rather than a custom 
 
 The exact Firebase database product is Decision D-01. The entities below are logical and can map to Firestore collections or Realtime Database nodes.
 
+> **D-01 resolved:** the cloud database is **Convex**, not Firestore or Realtime Database — the
+> entities below map to Convex tables instead (see `backend/convex/schema.ts` for the actual,
+> resolved mapping). Kept below as the original logical contract; still accurate at the entity
+> level, just not the "Firebase" framing.
+
 ## User
 
 Fields:

@@ -31,10 +31,16 @@ Provide farmers with a practical tool that can identify Common Rust, Gray Leaf S
 
 ### Cloud / Community
 
-- Firebase Authentication
-- Firebase Firestore or Realtime Database — final choice must be frozen before cloud implementation
-- Firebase Cloud Storage
-- Firebase Cloud Messaging
+> **Superseded.** D-01 was resolved: the project moved to **Convex** (database, auth, file
+> storage, server functions) instead of either Firebase option below. Firebase Cloud Messaging is
+> the one piece that's still Firebase, kept for push delivery only. See `backend/README.md` and
+> `android/README.md`'s D-01 note for the resolved architecture; the list below is the pre-D-01
+> plan, kept for history.
+
+- ~~Firebase Authentication~~ → Convex Auth (Password provider)
+- ~~Firebase Firestore or Realtime Database — final choice must be frozen before cloud implementation~~ → Convex (resolved, D-01)
+- ~~Firebase Cloud Storage~~ → Convex file storage
+- Firebase Cloud Messaging — kept, push delivery only
 
 ### GIS
 

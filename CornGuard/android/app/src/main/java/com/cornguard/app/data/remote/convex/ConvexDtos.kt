@@ -136,9 +136,9 @@ data class MapReportDto(
     val latitude: Double,
     val longitude: Double,
     val barangay: String,
-    val municipality: String,
-    /** The reporter's profile name; "Farmer" when unset (or from an older backend). */
-    val farmerName: String = "Farmer"
+    val municipality: String
+    // No reporter identity field: the backend's general mapReports query stopped sending one
+    // (privacy fix, see backend/convex/diagnosisRecords.ts).
 )
 
 @Serializable

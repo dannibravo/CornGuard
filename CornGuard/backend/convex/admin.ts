@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx, internalMutation, mutation, query } from "./_generated/server";
 import { scheduleRecompute } from "./barangayStats";
+import { recentDiseaseReports, stageOf } from "./diagnosisRecords";
 import { requireAdmin } from "./lib/access";
 import { isDataPoorCluster } from "./lib/outbreakRules";
 import { resolveOpenReports } from "./reports";
@@ -130,6 +131,43 @@ export const dataPoorClusters = query({
         barangay: s.barangay, municipality: s.municipality, diseaseCode: s.diseaseCode,
         farms: s.distinctFarms, reports: s.rawReportCount, score: s.weightedScore, lastUpdated: s.lastUpdated,
       }));
+  },
+});
+
+/**
+ * Admin-only twin of `diagnosisRecords.mapReports`: same verified, last-28-days disease reports,
+ * but at full precision — exact farm coordinates and the reporter's real name — for cluster
+ * investigation and dispute resolution. The general map never returns this; see the privacy note
+ * on `diagnosisRecords.mapReports`.
+ */
+export const mapReports = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    const records = await recentDiseaseReports(ctx, undefined);
+    const names = new Map<Id<"users">, string>();
+    const out = [];
+    for (const r of records) {
+      if (r.latitude === undefined || r.longitude === undefined) continue;
+      let farmerName = names.get(r.userId);
+      if (farmerName === undefined) {
+        farmerName = nameOf(await ctx.db.get(r.userId));
+        names.set(r.userId, farmerName);
+      }
+      out.push({
+        stage: stageOf(r.capturedAt),
+        recordId: r._id,
+        diseaseCode: r.diseaseCode,
+        confidence: r.confidence,
+        capturedAt: r.capturedAt,
+        latitude: r.latitude,
+        longitude: r.longitude,
+        barangay: r.barangay,
+        municipality: r.municipality,
+        farmerName,
+      });
+    }
+    return out;
   },
 });
 

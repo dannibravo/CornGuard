@@ -748,7 +748,10 @@ export default function MapPage() {
   const stats = useQuery(api.barangayStats.getAllStats, { includeBaselines: true });
   // Individual verified reports — these are what get drawn as dots. The aggregated
   // stats below only supply each dot's severity tier now, not a polygon fill.
-  const detections = useQuery(api.diagnosisRecords.mapReports);
+  // Admin-only query: exact coordinates + reporter name, for investigation. The general
+  // diagnosisRecords.mapReports (used by the farmer-facing app) no longer returns either —
+  // see its privacy note in backend/convex/diagnosisRecords.ts.
+  const detections = useQuery(api.admin.mapReports);
   const [map, setMap] = useState<L.Map | null>(null);
   const barangayLayerRef = useRef<L.GeoJSON>(null);
 

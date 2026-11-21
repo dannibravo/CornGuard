@@ -69,3 +69,8 @@ decision-gate section, not silently assumed. D-07 (outbreak thresholds) and D-02
 were **not** worked around this way — they require expert/team input no amount of solo continuation
 substitutes for, and the code (`getHeatmapAggregates`, `outbreakRules`) stays correctly inert
 until those resolve for real.
+
+**Later note:** D-01 was revisited and resolved since the note above was written — the project
+moved from Firestore to Convex (see `claude/03_SOURCE_ALIGNMENT_AND_DECISION_GATES.md`'s D-01
+"Resolved" note and `backend/README.md`). The provisioning history above describes what was true
+at the time; it is not the current backend.

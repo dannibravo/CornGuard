@@ -5,6 +5,8 @@ import { assertOwnerOrAdmin, currentUserId, requireActiveUser } from "./lib/acce
 import { HEALTHY, RECENT_MS, WINDOW_MS, scheduleRecompute } from "./barangayStats";
 import { areaKey } from "./outbreakAlerts";
 import { areaField } from "./schema";
+import { BARANGAY_CENTROIDS } from "./lib/barangayCentroids";
+import { locationFor } from "./lib/mapPrivacy";
 
 /** Cap for server-side aggregation — capstone scale, same bound the Firestore version used. */
 const MAX_SCAN = 1000;
@@ -148,7 +150,7 @@ export const remove = mutation({
  * show. Never Healthy scans, never scans from suspended accounts (they don't count toward severity
  * either).
  */
-async function recentDiseaseReports(ctx: QueryCtx, diseaseCode: string | undefined) {
+export async function recentDiseaseReports(ctx: QueryCtx, diseaseCode: string | undefined) {
   const since = Date.now() - RECENT_MS;
   const records = (await verifiedRecords(ctx, diseaseCode))
     .filter((r) => r.capturedAt >= since && r.diseaseCode !== HEALTHY);
@@ -166,42 +168,48 @@ async function recentDiseaseReports(ctx: QueryCtx, diseaseCode: string | undefin
 }
 
 /** "active" reports count toward the outbreak level (last 7 days); "recent" ones are shown faded (7-28 days). */
-const stageOf = (capturedAt: number) => (capturedAt >= Date.now() - WINDOW_MS ? "active" : "recent");
+export const stageOf = (capturedAt: number) => (capturedAt >= Date.now() - WINDOW_MS ? "active" : "recent");
 
 /**
- * One heatmap marker per verified disease report with coordinates from the last 28 days
- * (signed-in users only: markers are farm locations). Severity comes from barangayStats.getAllStats.
- * `farmerName` is the reporter's profile name ("Farmer" if unset), as on community posts.
+ * One heatmap marker per verified disease report from the last 28 days (signed-in users only).
+ *
+ * Privacy: this is the general-audience map, so it never returns who reported something. A
+ * viewer's own reports keep their exact farm coordinates (it's their own data); everyone else's
+ * are coarsened to their barangay's approximate centroid, and dropped entirely if that barangay
+ * has no known centroid — never shown at the exact pin. A farm's exact location is otherwise
+ * private (see `users.farmsForUser`); this query must not be the one exception to that. Admins
+ * who need the exact point and the reporter's identity (cluster investigation, dispute
+ * resolution) use `admin.mapReports` instead, which is role-gated and unaffected by this change.
  */
 export const mapReports = query({
   args: {},
   handler: async (ctx) => {
-    if (!(await currentUserId(ctx))) return [];
+    const viewerId = await currentUserId(ctx);
+    if (!viewerId) return [];
     // The age filter uses the clock, but Convex re-runs a query only when data it read changes. Reading
     // the severity rows ties this query to the daily decay cron (which rewrites every row), so open maps
     // drop expired markers at least once a day — the same schedule on which the levels decay.
     await ctx.db.query("barangayDiseaseStats").collect();
     const records = await recentDiseaseReports(ctx, undefined);
-    const names = new Map<Id<"users">, string>();
     const out = [];
     for (const r of records) {
       if (r.latitude === undefined || r.longitude === undefined) continue;
-      let farmerName = names.get(r.userId);
-      if (farmerName === undefined) {
-        farmerName = (await ctx.db.get(r.userId))?.name ?? "Farmer";
-        names.set(r.userId, farmerName);
-      }
+      const location = locationFor(
+        BARANGAY_CENTROIDS,
+        { userId: r.userId, barangay: r.barangay, municipality: r.municipality, latitude: r.latitude, longitude: r.longitude },
+        viewerId,
+      );
+      if (!location) continue; // non-owner, and no centroid known for this barangay: drop it, never leak the exact pin.
       out.push({
         stage: stageOf(r.capturedAt),
         recordId: r._id,
         diseaseCode: r.diseaseCode,
         confidence: r.confidence,
         capturedAt: r.capturedAt,
-        latitude: r.latitude,
-        longitude: r.longitude,
+        latitude: location.latitude,
+        longitude: location.longitude,
         barangay: r.barangay,
         municipality: r.municipality,
-        farmerName,
       });
     }
     return out;
