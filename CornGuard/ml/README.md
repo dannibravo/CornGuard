@@ -60,3 +60,19 @@ than on the dataset's lab photos; more labelled field photos are the main way to
    `TfliteCornLeafClassifierTest.kt`.
 3. Rebuild and run the instrumented tests (`connectedDebugAndroidTest`).
 4. The app needs TFLite 2.17 or newer to load models converted with TensorFlow 2.20.
+
+## Script pipeline and corn gate (from `develop`)
+
+Alongside the Colab notebook, this folder also has the script-based pipeline from the `develop` branch. It is
+described in [PIPELINE.md](PIPELINE.md).
+
+| Files | What they do |
+|---|---|
+| `config.py`, `prepare_dataset.py`, `dataset.py`, `augmentation.py`, `class_weights.py`, `model.py`, `train.py`, `evaluate.py` | Prepare the manifest, train and evaluate the 4-class MobileNetV2 disease model |
+| `export_tflite.py`, `export_metadata.py`, `parity_test.py` | Convert to TFLite and check it against the Keras model |
+| `build_not_corn_public.py`, `train_corn_gate.py`, `export_corn_gate.py`, `predict_corn_gate.py`, `corn_gate_eval.py` | Corn / not-corn gate: build the not-corn set, train, export, test photos |
+| `v1_training_audit/`, `v2_baseline/`, `v2_field_aug_experiment/`, `v2_field_domain_planning/`, `field_gap_evaluation_comparison_20261030/` | Audit, experiment and field-evaluation records |
+
+Run them from the `ml/` directory with `pip install -r requirements.txt`. Their outputs (`artifacts/`) and image data
+(`data/raw/`, `data/not_corn_public/`, ...) are git-ignored by `ml/.gitignore`. The corn gate is not wired into this
+branch's Android app yet.

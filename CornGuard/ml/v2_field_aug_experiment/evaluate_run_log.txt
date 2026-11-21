@@ -1,0 +1,17 @@
+2026-10-30 02:27:16.995671: I tensorflow/core/util/port.cc:113] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-10-30 02:27:19.660103: I tensorflow/core/util/port.cc:113] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-10-30 02:27:29.144860: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+WARNING:tensorflow:From <repo>\ml\.venv\Lib\site-packages\keras\src\backend\tensorflow\core.py:233: The name tf.placeholder is deprecated. Please use tf.compat.v1.placeholder instead.
+
+2026-10-30 02:27:56.790770: W tensorflow/core/framework/local_rendezvous.cc:404] Local rendezvous is aborting with status: OUT_OF_RANGE: End of sequence
+{
+  "accuracy": 0.9166666666666666,
+  "precision_macro": 0.8937033714829624,
+  "recall_macro": 0.891553544494721,
+  "f1_macro": 0.892327069995055,
+  "sample_count": 624
+}
+Meets accuracy threshold (0.9): True
+Meets F1-macro threshold (0.88): True
+No local/field-sourced images in the test split yet — skipping the separate field evaluation report required by claude/09_ML_MODEL_CONTRACT.md.
