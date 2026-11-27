@@ -22,6 +22,14 @@ interface DiagnosisHistoryRepository {
     suspend fun getById(localId: Long): DiagnosisRecordEntity?
     suspend fun saveScan(record: DiagnosisRecordEntity): Long
     suspend fun markShared(localId: Long, cloudRecordId: String)
+    fun observeById(localId: Long): Flow<DiagnosisRecordEntity?>
+
+    // Offline share queue (data.sync.ShareQueue): scans the farmer asked to share while offline.
+    suspend fun queueShare(localId: Long, queuedAt: Long)
+    suspend fun cancelQueuedShare(localId: Long)
+    suspend fun setShareError(localId: Long, error: String?)
+    suspend fun getQueuedShares(userId: String): List<DiagnosisRecordEntity>
+    fun observeQueuedCount(userId: String?): Flow<Int>
     suspend fun updateLocation(
         localId: Long,
         barangay: String,

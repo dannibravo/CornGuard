@@ -4,6 +4,7 @@ import androidx.room.testing.MigrationTestHelper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -71,6 +72,28 @@ class AppDatabaseMigrationTest {
             assertEquals("unreviewed", it.getString(1))
             assertEquals("", it.getString(2))
             assertEquals(0L, it.getLong(3))
+        }
+    }
+
+    @Test
+    fun migrate3To4_keepsScansAndLeavesThemOutOfTheShareQueue() {
+        helper.createDatabase(TEST_DB, 3).apply {
+            execSQL(
+                "INSERT INTO diagnosis_records (diseaseCode, displayLabel, confidence, imageUriOrLocalPath, " +
+                    "capturedAt, modelVersion, sharedToCloud) " +
+                    "VALUES ('common_rust', 'Common Rust', 0.9, '/x.jpg', 1, 'cornguard_mobilenetv2_v4', 0)"
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(TEST_DB, 4, true, AppDatabase.MIGRATION_3_4)
+
+        db.query("SELECT diseaseCode, shareQueuedAt, shareLastError FROM diagnosis_records").use {
+            it.moveToFirst()
+            assertEquals("common_rust", it.getString(0))
+            // Existing scans are never queued for sharing by the migration (D-11: sharing is opt-in).
+            assertTrue(it.isNull(1))
+            assertTrue(it.isNull(2))
         }
     }
 

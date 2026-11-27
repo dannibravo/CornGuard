@@ -67,4 +67,8 @@
     <!-- Offline banner (warning tones) -->
     <color name="offline_banner_bg">#FBF1D9</color>
     <color name="offline_banner_text">#8A5A0B</color>
+
+    <!-- Warning notices (low-confidence result, waiting-to-share chip): same tones as the banner, both themes. -->
+    <color name="notice_warning_bg">@color/offline_banner_bg</color>
+    <color name="notice_warning_text">@color/offline_banner_text</color>
 </resources>

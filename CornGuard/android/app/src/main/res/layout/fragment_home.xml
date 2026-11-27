@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Dashboard (caps 3 design): greeting + three tinted action cards. -->
+<!--
+    Home (UI mock phase 2): greeting with bell + profile/settings button, "Your barangay" outbreak
+    card, the Scan card, and the last scan. Map, Scan, Community and History are bottom-bar tabs.
+-->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -12,15 +15,15 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingHorizontal="24dp"
-        android:paddingTop="24dp"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="20dp"
         android:paddingBottom="24dp">
 
-        <!-- Greeting, with the notification bell (signed-in only) at the end. -->
+        <!-- Greeting · bell (signed-in only) · profile & settings -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="top"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <LinearLayout
@@ -35,26 +38,26 @@
                     android:layout_height="wrap_content"
                     android:text="@string/home_welcome_back"
                     android:textColor="@color/cg_text_secondary"
-                    android:textSize="20sp" />
+                    android:textSize="16sp" />
 
                 <TextView
                     android:id="@+id/homeName"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
                     android:ellipsize="end"
+                    android:fontFamily="@font/inter_semibold_family"
                     android:maxLines="1"
                     android:text="@string/default_farmer_name"
                     android:textColor="@color/cg_text_primary"
-                    android:textSize="36sp"
+                    android:textSize="26sp"
                     android:textStyle="bold"
                     tools:text="Farmer" />
             </LinearLayout>
 
             <FrameLayout
                 android:id="@+id/homeBellContainer"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:layout_marginStart="8dp"
                 android:visibility="gone"
                 tools:visibility="visible">
@@ -73,8 +76,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="20dp"
                     android:layout_gravity="top|end"
-                    android:layout_marginTop="6dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginEnd="2dp"
                     android:background="@drawable/bg_pill"
                     android:backgroundTint="@color/cg_danger"
                     android:gravity="center"
@@ -88,14 +91,162 @@
                     tools:text="3"
                     tools:visibility="visible" />
             </FrameLayout>
+
+            <!-- Settings moved here from the old 3-tab bar. Initials when the name is known. -->
+            <FrameLayout
+                android:id="@+id/homeProfileButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="@string/home_settings_a11y"
+                android:focusable="true">
+
+                <TextView
+                    android:id="@+id/homeProfileInitials"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/bg_circle"
+                    android:backgroundTint="@color/cg_nav_indicator"
+                    android:fontFamily="@font/inter_semibold_family"
+                    android:gravity="center"
+                    android:importantForAccessibility="no"
+                    android:textColor="@color/cg_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:visibility="gone"
+                    tools:text="JC"
+                    tools:visibility="visible" />
+
+                <ImageView
+                    android:id="@+id/homeProfileIcon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_settings"
+                    app:tint="@color/cg_text_primary" />
+            </FrameLayout>
         </LinearLayout>
 
+        <!-- Your barangay: this week's outbreak level (opens the Map tab). -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/homeAreaCard"
+            style="@style/Widget.CornGuard.Card.Dashboard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="18dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/home_area_label"
+                            android:textAllCaps="true"
+                            android:textColor="@color/cg_text_secondary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/homeAreaName"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="@font/inter_semibold_family"
+                            android:textColor="@color/cg_text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            tools:text="Kalugmanan, Manolo Fortich" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/homeAreaBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:background="@drawable/bg_pill"
+                        android:fontFamily="@font/inter_semibold_family"
+                        android:gravity="center"
+                        android:minHeight="28dp"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="4dp"
+                        android:textSize="13sp"
+                        android:visibility="gone"
+                        tools:backgroundTint="@color/level_severe_bg"
+                        tools:text="Severe"
+                        tools:textColor="@color/level_severe_text"
+                        tools:visibility="visible" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/homeAreaExplanation"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:textColor="@color/cg_text_primary"
+                    android:textSize="15sp"
+                    tools:text="Potential outbreak · Severe: 6 farms reported Common Rust in the last 7 days." />
+
+                <LinearLayout
+                    android:id="@+id/homeAreaFooter"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/homeAreaUpdated"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="@color/cg_text_tertiary"
+                        android:textSize="13sp"
+                        tools:text="Updated just now" />
+
+                    <TextView
+                        android:id="@+id/homeAreaSeeMap"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:drawablePadding="2dp"
+                        android:text="@string/home_area_see_map"
+                        android:textColor="@color/cg_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        app:drawableEndCompat="@drawable/ic_chevron_right"
+                        app:drawableTint="@color/cg_primary" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Scan: the main action (opens the Scan tab). -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/homeScanCard"
             style="@style/Widget.CornGuard.Card.Dashboard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="16dp"
             android:clickable="true"
             android:focusable="true"
             app:strokeColor="@color/cg_border_green">
@@ -103,121 +254,134 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_horizontal"
-                android:orientation="vertical"
-                android:padding="28dp">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="18dp">
 
-                <ImageView
+                <FrameLayout
                     android:layout_width="56dp"
                     android:layout_height="56dp"
-                    android:importantForAccessibility="no"
-                    android:src="@drawable/ic_leaf"
-                    app:tint="@color/cg_accent_green" />
+                    android:background="@drawable/bg_circle"
+                    android:backgroundTint="@color/cg_primary">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/home_scan_title"
-                    android:textAppearance="@style/TextAppearance.CornGuard.CardTitle"
-                    android:textSize="24sp" />
+                    <ImageView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_gravity="center"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_camera"
+                        app:tint="@color/cg_on_primary" />
+                </FrameLayout>
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:gravity="center"
-                    android:text="@string/home_scan_subtitle"
-                    android:textAppearance="@style/TextAppearance.CornGuard.Secondary"
-                    android:textSize="16sp" />
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/home_scan_card_title"
+                        android:textAppearance="@style/TextAppearance.CornGuard.CardTitle"
+                        android:textSize="20sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/home_scan_card_subtitle"
+                        android:textAppearance="@style/TextAppearance.CornGuard.Secondary"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:drawablePadding="4dp"
+                        android:gravity="center_vertical"
+                        android:text="@string/home_scan_card_offline"
+                        android:textColor="@color/cg_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        app:drawableStartCompat="@drawable/ic_check_circle"
+                        app:drawableTint="@color/cg_primary" />
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/homeCommunityCard"
-            style="@style/Widget.CornGuard.Card.Dashboard"
+        <!-- Last scan (this account's newest, from Room: works offline). -->
+        <LinearLayout
+            android:id="@+id/homeLastScanSection"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:clickable="true"
-            android:focusable="true"
-            app:strokeColor="@color/cg_border_blue">
+            android:orientation="vertical"
+            android:visibility="gone"
+            tools:visibility="visible">
 
-            <LinearLayout
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/home_last_scan"
+                android:textAppearance="@style/TextAppearance.CornGuard.SectionHeader" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/homeLastScanCard"
+                style="@style/Widget.CornGuard.Card.Dashboard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_horizontal"
-                android:orientation="vertical"
-                android:padding="28dp">
+                android:layout_marginTop="8dp"
+                android:clickable="true"
+                android:focusable="true">
 
-                <ImageView
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:importantForAccessibility="no"
-                    android:src="@drawable/ic_people"
-                    app:tint="@color/cg_accent_blue" />
-
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/home_community_title"
-                    android:textAppearance="@style/TextAppearance.CornGuard.CardTitle"
-                    android:textSize="24sp" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="14dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:gravity="center"
-                    android:text="@string/home_community_subtitle"
-                    android:textAppearance="@style/TextAppearance.CornGuard.Secondary"
-                    android:textSize="16sp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/homeMapCard"
-            style="@style/Widget.CornGuard.Card.Dashboard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:clickable="true"
-            android:focusable="true"
-            app:strokeColor="@color/cg_border_amber">
+                        <TextView
+                            android:id="@+id/homeLastScanTitle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/inter_semibold_family"
+                            android:textColor="@color/cg_text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            tools:text="Common Rust · 87.0%" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_horizontal"
-                android:orientation="vertical"
-                android:padding="28dp">
+                        <TextView
+                            android:id="@+id/homeLastScanMeta"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:textAppearance="@style/TextAppearance.CornGuard.Meta"
+                            tools:text="Nov 27, 2026 9:14 AM" />
+                    </LinearLayout>
 
-                <ImageView
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:importantForAccessibility="no"
-                    android:src="@drawable/ic_map"
-                    app:tint="@color/cg_accent_amber" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/home_map_title"
-                    android:textAppearance="@style/TextAppearance.CornGuard.CardTitle"
-                    android:textSize="24sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:gravity="center"
-                    android:text="@string/home_map_subtitle"
-                    android:textAppearance="@style/TextAppearance.CornGuard.Secondary"
-                    android:textSize="16sp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+                    <TextView
+                        android:id="@+id/homeLastScanStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:background="@drawable/bg_pill"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="4dp"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        tools:text="Waiting to share" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>

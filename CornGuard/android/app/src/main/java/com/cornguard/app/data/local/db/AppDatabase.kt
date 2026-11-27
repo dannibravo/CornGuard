@@ -18,7 +18,7 @@ import com.cornguard.app.data.local.db.entity.DiseaseReferenceEntity
  */
 @Database(
     entities = [DiagnosisRecordEntity::class, DiseaseReferenceEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -46,6 +46,14 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v4: scans gain the offline share queue (`shareQueuedAt`, `shareLastError`). */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `diagnosis_records` ADD COLUMN `shareQueuedAt` INTEGER")
+                db.execSQL("ALTER TABLE `diagnosis_records` ADD COLUMN `shareLastError` TEXT")
+            }
+        }
+
         @Volatile
         private var instance: AppDatabase? = null
 
@@ -55,7 +63,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     DATABASE_NAME
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
             }
         }
     }

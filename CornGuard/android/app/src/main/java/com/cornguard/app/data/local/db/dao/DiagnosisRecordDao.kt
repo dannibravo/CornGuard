@@ -38,8 +38,41 @@ interface DiagnosisRecordDao {
     @Query("SELECT * FROM diagnosis_records WHERE localId = :localId")
     suspend fun getById(localId: Long): DiagnosisRecordEntity?
 
-    @Query("UPDATE diagnosis_records SET sharedToCloud = 1, cloudRecordId = :cloudRecordId WHERE localId = :localId")
+    @Query("SELECT * FROM diagnosis_records WHERE localId = :localId")
+    fun observeById(localId: Long): Flow<DiagnosisRecordEntity?>
+
+    /** Shared: also leaves the offline share queue. */
+    @Query(
+        "UPDATE diagnosis_records SET sharedToCloud = 1, cloudRecordId = :cloudRecordId, " +
+            "shareQueuedAt = NULL, shareLastError = NULL WHERE localId = :localId"
+    )
     suspend fun markShared(localId: Long, cloudRecordId: String)
+
+    /** Joins the offline share queue (no-op once shared). */
+    @Query(
+        "UPDATE diagnosis_records SET shareQueuedAt = :queuedAt, shareLastError = NULL " +
+            "WHERE localId = :localId AND sharedToCloud = 0"
+    )
+    suspend fun queueShare(localId: Long, queuedAt: Long)
+
+    @Query("UPDATE diagnosis_records SET shareQueuedAt = NULL, shareLastError = NULL WHERE localId = :localId")
+    suspend fun cancelQueuedShare(localId: Long)
+
+    @Query("UPDATE diagnosis_records SET shareLastError = :error WHERE localId = :localId")
+    suspend fun setShareError(localId: Long, error: String?)
+
+    /** [userId]'s scans waiting to be shared, oldest request first. */
+    @Query(
+        "SELECT * FROM diagnosis_records WHERE userId = :userId AND sharedToCloud = 0 " +
+            "AND shareQueuedAt IS NOT NULL ORDER BY shareQueuedAt ASC"
+    )
+    suspend fun getQueuedShares(userId: String): List<DiagnosisRecordEntity>
+
+    @Query(
+        "SELECT COUNT(*) FROM diagnosis_records WHERE userId IS :userId AND sharedToCloud = 0 " +
+            "AND shareQueuedAt IS NOT NULL"
+    )
+    fun observeQueuedCount(userId: String?): Flow<Int>
 
     /** Where a shared scan was filed: its barangay, map point and (if shared from one) the farm. */
     @Query(

@@ -1,7 +1,6 @@
 package com.cornguard.app.ui.map
 
 import android.annotation.SuppressLint
-import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.os.Bundle
 import android.os.SystemClock
@@ -16,7 +15,6 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
-import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnLayout
@@ -37,7 +35,6 @@ import com.cornguard.app.databinding.FragmentMapBinding
 import com.cornguard.app.di.ServiceLocator
 import com.cornguard.app.model.DiseaseCode
 import com.cornguard.app.ui.common.DiseaseGlyphDrawable
-import com.cornguard.app.ui.common.DiseaseStyle
 import com.cornguard.app.ui.common.runCatchingCancellable
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.button.MaterialButton
@@ -91,7 +88,8 @@ class MapFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.mapBackButton.setOnClickListener { findNavController().popBackStack() }
+        // Map is a bottom-bar tab: no Back arrow (the tabs and system Back navigate).
+        binding.mapBackButton.visibility = View.GONE
         binding.mapSignInButton.setOnClickListener { findNavController().navigate(R.id.authFragment) }
 
         binding.mapVerifiedRecyclerView.layoutManager = LinearLayoutManager(requireContext())
@@ -194,60 +192,9 @@ class MapFragment : Fragment() {
         b.mapAreaName.text = area.first
         b.mapAreaMunicipality.text = area.second
         val summary = MapAreaSummary.summarize(latestStats.orEmpty(), area.first, area.second, diseaseFilter)
-        val (labelRes, bgRes, textRes) = when (summary.level) {
-            MapAreaSummary.Level.SEVERE -> Triple(R.string.map_level_severe, R.color.level_severe_bg, R.color.level_severe_text)
-            MapAreaSummary.Level.MODERATE ->
-                Triple(R.string.map_level_moderate, R.color.level_moderate_bg, R.color.level_moderate_text)
-            MapAreaSummary.Level.MILD -> Triple(R.string.map_level_mild, R.color.level_mild_bg, R.color.level_mild_text)
-            MapAreaSummary.Level.COLLECTING ->
-                Triple(R.string.map_level_collecting, R.color.level_collecting_bg, R.color.level_collecting_text)
-            MapAreaSummary.Level.NONE -> Triple(R.string.map_level_none, R.color.cg_button_secondary, R.color.cg_text_secondary)
-        }
-        val context = requireContext()
-        b.mapLevelBadge.apply {
-            visibility = View.VISIBLE
-            setText(labelRes)
-            setTextColor(ContextCompat.getColor(context, textRes))
-            backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(context, bgRes))
-            contentDescription = getString(R.string.map_level_badge_a11y, getString(labelRes))
-        }
+        AreaLevelText.applyBadge(b.mapLevelBadge, summary.level)
         b.mapAreaExplanation.visibility = View.VISIBLE
-        b.mapAreaExplanation.text = explanation(summary)
-    }
-
-    private fun explanation(summary: MapAreaSummary.Summary): String {
-        val lead = summary.lead ?: return diseaseFilter
-            ?.let { getString(R.string.map_explain_none_filtered, DiseaseStyle.label(it)) }
-            ?: getString(R.string.map_explain_none)
-        val farms = resources.getQuantityString(R.plurals.map_farms, lead.distinctFarms, lead.distinctFarms)
-        val disease = DiseaseStyle.label(lead.diseaseCode)
-        val parts = mutableListOf<String>()
-        parts += when (summary.level) {
-            MapAreaSummary.Level.COLLECTING -> getString(
-                R.string.map_explain_collecting,
-                MapAreaSummary.warmupWeeks(lead, System.currentTimeMillis()), MapAreaSummary.WARMUP_WEEKS,
-                lead.historyScans.coerceAtMost(MapAreaSummary.WARMUP_SCANS), MapAreaSummary.WARMUP_SCANS,
-                farms, disease
-            )
-            MapAreaSummary.Level.SEVERE -> getString(R.string.map_explain_severe, farms, disease)
-            MapAreaSummary.Level.MODERATE -> getString(R.string.map_explain_moderate, farms, disease)
-            else -> getString(R.string.map_explain_mild, farms, disease)
-        }
-        if (summary.level != MapAreaSummary.Level.COLLECTING) {
-            lead.baselineFarms?.let { parts += getString(R.string.map_explain_usual, String.format("%.1f", it)) }
-        }
-        if (summary.others.isNotEmpty()) {
-            parts += getString(R.string.map_explain_also, summary.others.joinToString(", ") { other ->
-                val level = when {
-                    other.monitoringStatus == "collecting" -> R.string.map_level_collecting
-                    other.severityTier == "severe" -> R.string.map_level_severe
-                    other.severityTier == "moderate" -> R.string.map_level_moderate
-                    else -> R.string.map_level_mild
-                }
-                getString(R.string.map_explain_other_item, DiseaseStyle.label(other.diseaseCode), getString(level))
-            })
-        }
-        return parts.joinToString(" ")
+        b.mapAreaExplanation.text = AreaLevelText.explanation(requireContext(), summary, diseaseFilter)
     }
 
     @SuppressLint("SetJavaScriptEnabled")

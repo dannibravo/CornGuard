@@ -25,6 +25,18 @@ class LocalDiagnosisHistoryRepository(
     override suspend fun markShared(localId: Long, cloudRecordId: String) =
         dao.markShared(localId, cloudRecordId)
 
+    override fun observeById(localId: Long): Flow<DiagnosisRecordEntity?> = dao.observeById(localId)
+
+    override suspend fun queueShare(localId: Long, queuedAt: Long) = dao.queueShare(localId, queuedAt)
+
+    override suspend fun cancelQueuedShare(localId: Long) = dao.cancelQueuedShare(localId)
+
+    override suspend fun setShareError(localId: Long, error: String?) = dao.setShareError(localId, error)
+
+    override suspend fun getQueuedShares(userId: String): List<DiagnosisRecordEntity> = dao.getQueuedShares(userId)
+
+    override fun observeQueuedCount(userId: String?): Flow<Int> = dao.observeQueuedCount(userId)
+
     override suspend fun updateLocation(
         localId: Long,
         barangay: String,

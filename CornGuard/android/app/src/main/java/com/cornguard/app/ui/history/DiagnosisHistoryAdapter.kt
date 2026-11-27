@@ -53,17 +53,25 @@ class DiagnosisHistoryAdapter(
             val context = binding.root.context
             DiseaseStyle.applyBadge(binding.recordDiseaseBadge, record.diseaseCode, record.displayLabel)
 
-            val chipColor = ContextCompat.getColor(
-                context,
-                if (record.sharedToCloud) R.color.cg_primary else R.color.cg_text_secondary
-            )
-            binding.recordSyncBadge.setText(
-                if (record.sharedToCloud) R.string.history_badge_shared else R.string.history_badge_local
-            )
-            binding.recordSyncBadge.setTextColor(chipColor)
+            // On device · Waiting to share (offline share queue) · Shared.
             binding.recordSyncBadge.setBackgroundResource(R.drawable.bg_pill)
-            binding.recordSyncBadge.backgroundTintList =
-                ColorStateList.valueOf(ColorUtils.setAlphaComponent(chipColor, 0x20))
+            if (record.isShareQueued) {
+                binding.recordSyncBadge.setText(R.string.history_badge_waiting)
+                binding.recordSyncBadge.setTextColor(ContextCompat.getColor(context, R.color.notice_warning_text))
+                binding.recordSyncBadge.backgroundTintList =
+                    ColorStateList.valueOf(ContextCompat.getColor(context, R.color.notice_warning_bg))
+            } else {
+                val chipColor = ContextCompat.getColor(
+                    context,
+                    if (record.sharedToCloud) R.color.cg_primary else R.color.cg_text_secondary
+                )
+                binding.recordSyncBadge.setText(
+                    if (record.sharedToCloud) R.string.history_badge_shared else R.string.history_badge_local
+                )
+                binding.recordSyncBadge.setTextColor(chipColor)
+                binding.recordSyncBadge.backgroundTintList =
+                    ColorStateList.valueOf(ColorUtils.setAlphaComponent(chipColor, 0x20))
+            }
 
             binding.recordDate.text = TimeFormat.dateTime(record.capturedAt)
             binding.recordConfidence.text =
