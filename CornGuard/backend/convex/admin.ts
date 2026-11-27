@@ -1,7 +1,9 @@
 import { ConvexError, v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx, internalMutation, mutation, query } from "./_generated/server";
-import { scheduleRecompute } from "./barangayStats";
+import { HEALTHY, scheduleRecompute } from "./barangayStats";
+import { logVerification } from "./lib/verificationLog";
+import { aggregateWeekly, weekStarts, type WeeklyInput } from "./lib/weeklyReports";
 import { recentDiseaseReports, stageOf } from "./diagnosisRecords";
 import { requireAdmin } from "./lib/access";
 import { isDataPoorCluster } from "./lib/outbreakRules";
@@ -20,7 +22,12 @@ export const setRecordVerification = mutation({
     if (status === "verified" && (!record.barangay.trim() || !record.municipality.trim())) {
       throw new ConvexError("This scan has no location, so it can't be placed on the map. Reject it instead.");
     }
+    if (record.verificationStatus === status) return; // already so: no change, nothing to log
     await ctx.db.patch(id, { verificationStatus: status, verifiedBy: admin._id, verifiedAt: Date.now() });
+    await logVerification(ctx, {
+      targetType: "diagnosisRecord", targetId: id, fromStatus: record.verificationStatus, toStatus: status,
+      reason: "admin_review", actorId: admin._id,
+    });
     await scheduleRecompute(ctx, record); // heatmap severity changes with verification
   },
 });
@@ -30,10 +37,81 @@ export const setPostVerification = mutation({
   handler: async (ctx, { postId, status }) => {
     const admin = await requireAdmin(ctx);
     const id = ctx.db.normalizeId("communityPosts", postId);
-    if (!id || !(await ctx.db.get(id))) throw new ConvexError("Post not found.");
+    const post = id ? await ctx.db.get(id) : null;
+    if (!id || !post) throw new ConvexError("Post not found.");
+    if (post.verificationStatus === status) return;
     await ctx.db.patch(id, { verificationStatus: status, verifiedBy: admin._id, verifiedAt: Date.now() });
+    await logVerification(ctx, {
+      targetType: "communityPost", targetId: id, fromStatus: post.verificationStatus, toStatus: status,
+      reason: "admin_review", actorId: admin._id,
+    });
   },
 });
+
+/**
+ * One scan's or post's verification history, oldest first (the append-only `verificationEvents`).
+ * Items shared before the trail existed only show changes made since; their current status (and
+ * last reviewer, if any) is still on the item itself.
+ */
+export const verificationHistory = query({
+  args: { targetType: v.union(v.literal("diagnosisRecord"), v.literal("communityPost")), targetId: v.string() },
+  handler: async (ctx, { targetType, targetId }) => {
+    await requireAdmin(ctx);
+    const events = await ctx.db
+      .query("verificationEvents")
+      .withIndex("by_target", (q) => q.eq("targetType", targetType).eq("targetId", targetId))
+      .take(200);
+    const names = new Map<Id<"users">, string>();
+    const out = [];
+    for (const e of events) {
+      let actorName: string | null = null;
+      if (e.actorId) {
+        if (!names.has(e.actorId)) names.set(e.actorId, nameOf(await ctx.db.get(e.actorId)));
+        actorName = names.get(e.actorId)!;
+      }
+      out.push({
+        eventId: e._id, at: e.at, fromStatus: e.fromStatus ?? null, toStatus: e.toStatus, reason: e.reason, actorName,
+      });
+    }
+    return out;
+  },
+});
+
+/**
+ * Verified disease reports (never Healthy, never from suspended accounts — the same set the map and
+ * outbreak engine count) grouped by PHT week, barangay and disease, for the dashboard's weekly chart
+ * and its CSV export. `endAt` is the client's "now" (queries must not read the clock).
+ */
+export const weeklyReports = query({
+  args: { weeks: v.number(), endAt: v.number() },
+  handler: async (ctx, { weeks, endAt }) => {
+    await requireAdmin(ctx);
+    const starts = weekStarts(endAt, weeks);
+    const from = starts[0];
+    // by_status is ordered by share time, which is never before capture (minus clock skew), so
+    // stop at the first record shared well before the window.
+    const SKEW_MS = 5 * 60 * 1000;
+    const records: WeeklyInput[] = [];
+    const suspended = new Map<Id<"users">, boolean>();
+    let scanned = 0;
+    for await (const r of ctx.db
+      .query("diagnosisRecords")
+      .withIndex("by_status", (q) => q.eq("verificationStatus", "verified"))
+      .order("desc")) {
+      if (r._creationTime < from - SKEW_MS || ++scanned > WEEKLY_MAX_SCAN) break;
+      if (r.diseaseCode === HEALTHY || r.capturedAt < from) continue;
+      if (!suspended.has(r.userId)) suspended.set(r.userId, (await ctx.db.get(r.userId))?.accountStatus === "suspended");
+      if (suspended.get(r.userId)) continue;
+      records.push({
+        userId: r.userId, diseaseCode: r.diseaseCode, barangay: r.barangay, municipality: r.municipality, capturedAt: r.capturedAt,
+      });
+    }
+    return { weekStarts: starts, rows: aggregateWeekly(records, starts), truncated: scanned > WEEKLY_MAX_SCAN };
+  },
+});
+
+/** Upper bound on records one weekly-report request reads (capstone scale; the UI says when it's hit). */
+const WEEKLY_MAX_SCAN = 5000;
 
 export const setPostModeration = mutation({
   args: { postId: v.string(), status: moderationStatus },

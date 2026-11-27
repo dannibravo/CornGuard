@@ -259,6 +259,25 @@ export default defineSchema({
     readAt: v.optional(v.number()),
   }).index("by_recipient", ["recipientUserId"]),
 
+  // Append-only audit trail of verification status changes (lib/verificationLog.ts). Never patched
+  // or deleted, even when its scan or post is removed. D-02 asks for this history so a technician
+  // role, if approved, can be added without a destructive migration.
+  verificationEvents: defineTable({
+    targetType: v.union(v.literal("diagnosisRecord"), v.literal("communityPost")),
+    targetId: v.string(),
+    // Missing on the first event (the status the item was created with).
+    fromStatus: v.optional(verificationStatus),
+    toStatus: verificationStatus,
+    // "shared" / "posted" = created unverified, "auto_verified" = the share rule verified it,
+    // "admin_review" = an admin verified or rejected it.
+    reason: v.union(
+      v.literal("shared"), v.literal("posted"), v.literal("auto_verified"), v.literal("admin_review"),
+    ),
+    // Missing = automatic (no person acted).
+    actorId: v.optional(v.id("users")),
+    at: v.number(),
+  }).index("by_target", ["targetType", "targetId"]),
+
   // Treatment guides, one per class the model can detect, managed in the admin website
   // (diseaseReferences.ts). The app syncs them into its Room cache and reads that offline.
   diseaseReferences: defineTable({
