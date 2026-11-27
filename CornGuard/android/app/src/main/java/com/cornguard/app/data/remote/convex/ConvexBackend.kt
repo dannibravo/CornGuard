@@ -4,6 +4,7 @@ import android.content.Context
 import dev.convex.android.ConvexClientWithAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -66,14 +67,20 @@ internal suspend inline fun <reified T> CornGuardConvexClient.queryOnce(
 
 /**
  * Live query as a Flow. Like the Firestore snapshot listeners this replaces, a failed update
- * emits [fallback] instead of terminating the collector. Subscribes on [Dispatchers.IO] (see
- * [queryOnce]); values are still delivered in the collector's context.
+ * emits [fallback] instead of terminating the collector. If the client itself fails (e.g.
+ * ClientException "channel closed" when the deployment can't be reached), the flow emits
+ * [fallback] once and ends instead of throwing: an uncaught throw from a background collector
+ * (ServiceLocator's treatment-guide sync) would crash the app at launch, breaking the offline path.
+ * Subscribes on [Dispatchers.IO] (see [queryOnce]); values are still delivered in the collector's context.
  */
 internal inline fun <reified T> CornGuardConvexClient.observe(
     name: String,
     args: Map<String, Any?>,
     fallback: T
-): Flow<T> = subscribe<T>(name, args).map { it.getOrDefault(fallback) }.flowOn(Dispatchers.IO)
+): Flow<T> = subscribe<T>(name, args)
+    .map { it.getOrDefault(fallback) }
+    .flowOn(Dispatchers.IO)
+    .catch { emit(fallback) }
 
 /** Server messages from `ConvexError` arrive JSON-quoted; strip that for display. */
 internal fun Throwable.readableConvexMessage(): String {
