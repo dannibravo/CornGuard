@@ -1,0 +1,29 @@
+[warn] no files yet for bdmf_sb4wwjs8bz Gray_Leaf_Spot (data/downloads/field/bdmf_sb4wwjs8bz/RAW_Image/Gray_Leaf_Spot)
+collected: Counter({('public', 'Common_Rust'): 1306, ('public', 'Healthy'): 1162, ('field', 'Healthy'): 1147, ('public', 'Blight'): 1146, ('public', 'Gray_Leaf_Spot'): 574, ('field', 'Gray_Leaf_Spot'): 555, ('field', 'Common_Rust'): 134})
+unreadable dropped: {('bdmf_sb4wwjs8bz', 'Common_Rust'): 48}
+Dataset 3 hashes loaded: 2328
+removed as possible Dataset 3 overlap (pHash <= 12 or same SHA): {('public', 'Blight'): 2, ('public', 'Common_Rust'): 5, ('public', 'Gray_Leaf_Spot'): 4, ('public', 'Healthy'): 6, ('field', 'Healthy'): 9, ('field', 'Gray_Leaf_Spot'): 3}
+field images removed as near-duplicates of public images: {}
+conflicting-label images dropped: 6; duplicate copies dropped: 154
+final counts (domain, label, split):
+   ('field', 'Common_Rust', 'train') 11
+   ('field', 'Common_Rust', 'val') 3
+   ('field', 'Gray_Leaf_Spot', 'test') 80
+   ('field', 'Gray_Leaf_Spot', 'train') 393
+   ('field', 'Gray_Leaf_Spot', 'val') 79
+   ('field', 'Healthy', 'test') 154
+   ('field', 'Healthy', 'train') 748
+   ('field', 'Healthy', 'val') 156
+   ('public', 'Blight', 'test') 171
+   ('public', 'Blight', 'train') 799
+   ('public', 'Blight', 'val') 171
+   ('public', 'Common_Rust', 'test') 195
+   ('public', 'Common_Rust', 'train') 910
+   ('public', 'Common_Rust', 'val') 195
+   ('public', 'Gray_Leaf_Spot', 'test') 85
+   ('public', 'Gray_Leaf_Spot', 'train') 397
+   ('public', 'Gray_Leaf_Spot', 'val') 85
+   ('public', 'Healthy', 'test') 174
+   ('public', 'Healthy', 'train') 808
+   ('public', 'Healthy', 'val') 173
+field groups per class: {'Blight': 0, 'Common_Rust': 9, 'Gray_Leaf_Spot': 54, 'Healthy': 128}
