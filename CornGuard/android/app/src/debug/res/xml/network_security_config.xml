@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DEBUG BUILDS ONLY (src/debug). Lets a debug build talk to a local Convex backend
+     (`npx convex dev` on the developer PC, http://127.0.0.1:3210, forwarded with
+     `adb reverse tcp:3210 tcp:3210`). Release builds keep Android's default: HTTPS only. -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>
