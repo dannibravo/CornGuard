@@ -1821,3 +1821,48 @@ a:hover { text-decoration: underline; text-underline-offset: 2px; }
 .cg-marker svg { display: block; overflow: visible; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45)); }
 /* Reports 14-28 days old: still shown, but faded — they no longer count toward the level. */
 .cg-marker-recent { opacity: 0.8; }
+
+/* ===== Dashboard: weekly verified reports chart (components/WeeklyReportsCard.tsx) ===== */
+.weekly-range select {
+  height: 32px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--text); font: inherit; font-size: 13px;
+}
+.weekly-empty { margin: 8px 0; color: var(--text-2); font-size: 14px; }
+.weekly-chart-skeleton { height: 220px; border-radius: var(--radius-md); }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 8px; padding: 0; list-style: none; font-size: 13px; color: var(--text); }
+.chart-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.chart-swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.weekly-chart { position: relative; width: 100%; min-height: 220px; }
+.weekly-chart svg { display: block; overflow: visible; }
+.chart-grid { stroke: var(--border); stroke-width: 1; }
+.chart-baseline { stroke: var(--border-strong); stroke-width: 1; }
+.chart-tick { fill: var(--text-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+.chart-value { fill: var(--text); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.chart-hit { fill: transparent; }
+.chart-col { outline: none; cursor: default; }
+.chart-col.is-active .chart-hit { fill: color-mix(in srgb, var(--text) 5%, transparent); }
+.chart-col:focus-visible .chart-hit { stroke: var(--focus); stroke-width: 2; }
+.chart-tooltip {
+  position: absolute; transform: translateX(-50%); z-index: 2; pointer-events: none;
+  display: flex; flex-direction: column; gap: 4px; min-width: 170px; padding: 8px 10px;
+  border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface);
+  box-shadow: var(--shadow-md); color: var(--text); font-size: 12px;
+}
+.chart-tooltip-row { display: flex; align-items: center; gap: 6px; }
+.chart-tooltip-row .num { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; }
+.chart-tooltip-total { padding-top: 4px; border-top: 1px solid var(--border); font-weight: 600; }
+.weekly-table { margin-top: 12px; font-size: 13px; }
+.weekly-table summary { cursor: pointer; color: var(--brand-text); font-weight: 600; }
+.weekly-table-scroll { overflow-x: auto; margin-top: 8px; }
+.weekly-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ===== Review: verification history (components/VerificationHistoryModal.tsx) ===== */
+.history-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+.history-item {
+  display: grid; grid-template-columns: minmax(150px, auto) 1fr; gap: 4px 16px; padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.history-item:last-child { border-bottom: 0; }
+.history-when { grid-row: span 2; color: var(--text-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.history-change { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; color: var(--text-3); }
+.history-who { color: var(--text); font-size: 13.5px; }

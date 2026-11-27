@@ -50,7 +50,8 @@ class CommunityFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.communityHeader.headerTitle.setText(R.string.community_title)
-        binding.communityHeader.headerBackButton.setOnClickListener { findNavController().popBackStack() }
+        // Community is a bottom-bar tab: no Back arrow (the tabs and system Back navigate).
+        binding.communityHeader.headerBackButton.visibility = View.GONE
 
         binding.communityRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.communityRecyclerView.adapter = adapter

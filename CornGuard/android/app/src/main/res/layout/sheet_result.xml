@@ -107,6 +107,51 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Low confidence (below the auto-verify cut-off, model.ConfidenceBand): say so and offer a retake. -->
+        <LinearLayout
+            android:id="@+id/resultLowConfidence"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_input"
+            android:backgroundTint="@color/notice_warning_bg"
+            android:orientation="horizontal"
+            android:padding="14dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginTop="1dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_warning"
+                app:tint="@color/notice_warning_text" />
+
+            <TextView
+                android:id="@+id/resultLowConfidenceText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:textColor="@color/notice_warning_text"
+                android:textSize="15sp"
+                tools:text="Not sure. Retake the photo closer to one leaf, in good light." />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/resultRetakeButton"
+            style="@style/Widget.CornGuard.Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:minHeight="56dp"
+            android:text="@string/result_retake"
+            android:visibility="gone"
+            app:icon="@drawable/ic_camera"
+            app:iconGravity="textStart"
+            tools:visibility="visible" />
+
         <com.google.android.material.card.MaterialCardView
             style="@style/Widget.CornGuard.Card.Inset"
             android:layout_width="match_parent"
@@ -223,6 +268,18 @@
             tools:text="Sign in to share this result with the community."
             tools:visibility="visible" />
 
+        <!-- Offline share queue: the farmer can take back a share that hasn't been sent yet. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/shareCancelButton"
+            style="@style/Widget.CornGuard.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:minHeight="48dp"
+            android:text="@string/result_share_cancel"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -243,7 +300,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
-                android:text="@string/result_saved_note"
+                android:text="@string/result_saved_local"
                 android:textAppearance="@style/TextAppearance.CornGuard.Meta" />
         </LinearLayout>
     </LinearLayout>

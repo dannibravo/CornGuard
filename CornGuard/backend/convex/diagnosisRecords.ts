@@ -7,6 +7,7 @@ import { areaKey } from "./outbreakAlerts";
 import { areaField } from "./schema";
 import { BARANGAY_CENTROIDS } from "./lib/barangayCentroids";
 import { locationFor } from "./lib/mapPrivacy";
+import { logVerification } from "./lib/verificationLog";
 
 /** Cap for server-side aggregation — capstone scale, same bound the Firestore version used. */
 const MAX_SCAN = 1000;
@@ -110,6 +111,10 @@ export const share = mutation({
       farmId: farm?._id,
       verificationStatus: autoVerify ? "verified" : "unverified",
       source: "ai_scan",
+    });
+    await logVerification(ctx, {
+      targetType: "diagnosisRecord", targetId: id, fromStatus: null,
+      toStatus: autoVerify ? "verified" : "unverified", reason: autoVerify ? "auto_verified" : "shared", actorId: null,
     });
     await scheduleRecompute(ctx, args);
     return id;

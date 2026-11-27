@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../convex';
 import { Icon, type IconName } from '../components/Icon';
 import { HelpText, PageSection } from '../components/ui';
+import { WeeklyReportsCard } from '../components/WeeklyReportsCard';
 
 type Tile = { key: string; label: string; icon: IconName; to?: string; tone?: 'warning' | 'danger'; hint?: string };
 
@@ -54,6 +55,8 @@ export default function DashboardPage() {
           {OVERVIEW.map((t) => <StatTile key={t.key} tile={t} value={loading ? null : val(t.key)} />)}
         </div>
       </section>
+
+      <WeeklyReportsCard />
 
       <PageSection title="How alerts work">
         <HelpText summary="Show how outbreak alerts are decided" defaultOpen={false}>

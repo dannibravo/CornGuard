@@ -7,7 +7,11 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
+import androidx.core.text.bold
+import androidx.core.text.buildSpannedString
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import coil.load
 import com.cornguard.app.R
@@ -15,6 +19,8 @@ import com.cornguard.app.data.local.db.entity.DiagnosisRecordEntity
 import com.cornguard.app.data.model.Farm
 import com.cornguard.app.databinding.SheetResultBinding
 import com.cornguard.app.di.ServiceLocator
+import com.cornguard.app.model.ConfidenceBand
+import com.cornguard.app.ui.scan.ScanFragment
 import com.cornguard.app.ui.common.CornGuardBottomSheet
 import com.cornguard.app.ui.common.runCatchingCancellable
 import com.cornguard.app.ui.common.TimeFormat
@@ -22,6 +28,7 @@ import com.cornguard.app.ui.treatment.FullDetailsBottomSheet
 import com.cornguard.app.ui.treatment.ReviewLabelBinder
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -32,6 +39,10 @@ import java.io.File
  * action (D-11: a scan is private by default). CornGuard saves every scan automatically, so the
  * design's "Save to History" button becomes a "Saved to History" note. A farmer with saved farms
  * (My Farms) picks which farm the scan is from, and it is filed at that farm.
+ *
+ * Offline, "Share" still files the scan under its barangay but queues it (data.sync.ShareQueue),
+ * which sends it once the phone is back online; the farmer can cancel until then. Below the
+ * auto-verify cut-off ([ConfidenceBand.LOW]) the sheet says it isn't sure and offers a retake.
  */
 class ResultBottomSheet : CornGuardBottomSheet() {
 
@@ -40,6 +51,11 @@ class ResultBottomSheet : CornGuardBottomSheet() {
 
     private val localId: Long get() = requireArguments().getLong(ARG_LOCAL_ID)
     private var sharedToCloud = false
+    /** Waiting in the offline share queue (live from Room). */
+    private var shareQueued = false
+    private var shareLastError: String? = null
+    private var online = true
+    private var sharing = false
     /** The farmer's saved farms, and the one this scan will be filed at (null = Settings barangay). */
     private var farms: List<Farm> = emptyList()
     private var selectedFarm: Farm? = null
@@ -55,6 +71,10 @@ class ResultBottomSheet : CornGuardBottomSheet() {
         binding.resultCloseButton.setOnClickListener { dismiss() }
         binding.shareToCommunityButton.setOnClickListener { shareToCommunity() }
         binding.resultFarmChooser.setOnClickListener { chooseFarm() }
+        binding.shareCancelButton.setOnClickListener { cancelQueuedShare() }
+        binding.resultRetakeButton.setOnClickListener { retake() }
+        online = ServiceLocator.connectivityObserver.isCurrentlyOnline()
+        observeShareState()
 
         viewLifecycleOwner.lifecycleScope.launch {
             val record = ServiceLocator.diagnosisHistoryRepository.getById(localId)
@@ -81,10 +101,11 @@ class ResultBottomSheet : CornGuardBottomSheet() {
     private fun renderFarmChoice() {
         val b = _binding ?: return
         val signedIn = ServiceLocator.authRepository.getCurrentUser() != null
-        val choosing = !sharedToCloud && farms.isNotEmpty()
+        val open = !sharedToCloud && !shareQueued
+        val choosing = open && farms.isNotEmpty()
         b.resultFarmLabel.visibility = if (choosing) View.VISIBLE else View.GONE
         b.resultFarmChooser.visibility = if (choosing) View.VISIBLE else View.GONE
-        b.resultFarmHint.visibility = if (!sharedToCloud && signedIn && farms.isEmpty()) View.VISIBLE else View.GONE
+        b.resultFarmHint.visibility = if (open && signedIn && farms.isEmpty()) View.VISIBLE else View.GONE
         val label = selectedFarm?.let { farmLabel(it) } ?: getString(R.string.result_farm_none)
         b.resultFarmChooser.text = "$label  \u25BE"
     }
@@ -119,7 +140,30 @@ class ResultBottomSheet : CornGuardBottomSheet() {
 
     private fun bind(record: DiagnosisRecordEntity) {
         binding.resultLabel.text = record.displayLabel
-        binding.resultConfidence.text = getString(R.string.result_confidence_format, TimeFormat.percent(record.confidence))
+        val band = ConfidenceBand.of(record.confidence)
+        binding.resultConfidence.text = getString(
+            R.string.result_confidence_band,
+            TimeFormat.percent(record.confidence),
+            getString(
+                when (band) {
+                    ConfidenceBand.HIGH -> R.string.result_band_high
+                    ConfidenceBand.MEDIUM -> R.string.result_band_medium
+                    ConfidenceBand.LOW -> R.string.result_band_low
+                }
+            )
+        )
+        val low = band == ConfidenceBand.LOW
+        // Low confidence reads in the warning tone (the layout's green otherwise), as in the mock.
+        if (low) binding.resultConfidence.setTextColor(ContextCompat.getColor(requireContext(), R.color.notice_warning_text))
+        binding.resultLowConfidence.visibility = if (low) View.VISIBLE else View.GONE
+        binding.resultRetakeButton.visibility = if (low) View.VISIBLE else View.GONE
+        if (low) {
+            binding.resultLowConfidenceText.text = buildSpannedString {
+                bold { append(getString(R.string.result_low_title)) }
+                append(' ')
+                append(getString(R.string.result_low_body))
+            }
+        }
         binding.resultThumbnail.load(File(record.imageUriOrLocalPath)) { crossfade(true) }
 
         renderLocation(record)
@@ -140,7 +184,43 @@ class ResultBottomSheet : CornGuardBottomSheet() {
         }
 
         sharedToCloud = record.sharedToCloud
+        shareQueued = record.isShareQueued
+        shareLastError = record.shareLastError
         renderShareState()
+    }
+
+    /** Shared / queued / failed-retry state follows Room (the share queue updates it in the background). */
+    private fun observeShareState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    ServiceLocator.diagnosisHistoryRepository.observeById(localId).filterNotNull().collect { record ->
+                        val justShared = record.sharedToCloud && !sharedToCloud
+                        sharedToCloud = record.sharedToCloud
+                        shareQueued = record.isShareQueued
+                        shareLastError = record.shareLastError
+                        renderShareState()
+                        if (justShared) renderLocation(record)
+                    }
+                }
+                ServiceLocator.connectivityObserver.observe().collect { isOnline ->
+                    online = isOnline
+                    renderShareState()
+                }
+            }
+        }
+    }
+
+    /** A low-confidence result: back to the camera (closing this sheet, or opening Scan from History). */
+    private fun retake() {
+        if (parentFragment is ScanFragment) dismiss() else navigateTo(R.id.scanFragment)
+    }
+
+    private fun cancelQueuedShare() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            ServiceLocator.diagnosisHistoryRepository.cancelQueuedShare(localId)
+            _binding?.shareError?.visibility = View.GONE
+        }
     }
 
     /**
@@ -191,10 +271,30 @@ class ResultBottomSheet : CornGuardBottomSheet() {
     }
 
     private fun renderShareState() {
-        binding.shareToCommunityButton.isEnabled = !sharedToCloud
-        binding.shareToCommunityButton.setText(
-            if (sharedToCloud) R.string.result_shared_action_done else R.string.result_share_action
+        val b = _binding ?: return
+        b.shareToCommunityButton.isEnabled = !sharedToCloud && !shareQueued && !sharing
+        b.shareToCommunityButton.setText(
+            when {
+                sharedToCloud -> R.string.result_shared_action_done
+                shareQueued -> R.string.result_share_queued
+                !online -> R.string.result_share_when_online
+                else -> R.string.result_share_action
+            }
         )
+        b.shareCancelButton.visibility = if (shareQueued) View.VISIBLE else View.GONE
+        b.resultSavedNote.setText(
+            when {
+                sharedToCloud -> R.string.result_saved_shared
+                shareQueued -> R.string.result_saved_waiting
+                else -> R.string.result_saved_local
+            }
+        )
+        val retryError = shareLastError
+        if (shareQueued && retryError != null) {
+            showShareNotice(getString(R.string.result_share_retry_error, retryError), isError = true)
+        } else if (sharedToCloud) {
+            b.shareError.visibility = View.GONE
+        }
         renderFarmChoice()
     }
 
@@ -206,6 +306,8 @@ class ResultBottomSheet : CornGuardBottomSheet() {
             return
         }
 
+        // Offline: file it now and queue it (ShareQueue sends it once online).
+        val sendNow = ServiceLocator.connectivityObserver.isCurrentlyOnline()
         setSharing(true)
         viewLifecycleOwner.lifecycleScope.launch {
             val record = runCatchingCancellable { ServiceLocator.diagnosisHistoryRepository.getById(localId) }.getOrNull()
@@ -220,6 +322,9 @@ class ResultBottomSheet : CornGuardBottomSheet() {
             val farm = selectedFarm
             val barangay = if (farm != null) {
                 resolver.find(farm.barangay, farm.municipality)
+            } else if (!sendNow) {
+                // Offline: the last-known Settings area cached on this phone.
+                ServiceLocator.profileAreaStore.get(user.uid)?.let { resolver.find(it.barangay, it.municipality) }
             } else {
                 val profile = runCatchingCancellable { ServiceLocator.userFarmRepository.getUserProfile(user.uid) }
                 if (profile.isFailure) {
@@ -254,6 +359,10 @@ class ResultBottomSheet : CornGuardBottomSheet() {
                 barangay = barangay.name, municipality = barangay.municipality, province = barangay.province,
                 latitude = lat, longitude = lng
             )
+            if (!sendNow) {
+                queueShare(user.uid, farm?.farmId)
+                return@launch
+            }
             val result = runCatchingCancellable {
                 val cloudRecordId = ServiceLocator.diagnosisSharingRepository.shareScan(
                     record = filed,
@@ -268,20 +377,39 @@ class ResultBottomSheet : CornGuardBottomSheet() {
                 sharedToCloud = true
                 renderShareState()
                 renderLocation(filed.copy(sharedToCloud = true))
+            } else if (!ServiceLocator.connectivityObserver.isCurrentlyOnline()) {
+                // The connection dropped mid-share: queue it rather than make the farmer retry.
+                queueShare(user.uid, farm?.farmId)
             } else {
                 showShareError(R.string.result_share_failed)
             }
         }
     }
 
-    private fun setSharing(sharing: Boolean) {
-        binding.shareProgress.visibility = if (sharing) View.VISIBLE else View.GONE
-        binding.shareToCommunityButton.isEnabled = !sharing && !sharedToCloud
+    private suspend fun queueShare(uid: String, farmId: String?) {
+        ServiceLocator.diagnosisHistoryRepository.queueShare(localId, System.currentTimeMillis())
+        ServiceLocator.shareQueue.kick()
+        rememberFarm(uid, farmId)
+        setSharing(false)
+        showShareNotice(getString(R.string.result_share_queued_notice), isError = false)
     }
 
-    private fun showShareError(messageRes: Int) {
-        binding.shareError.visibility = View.VISIBLE
-        binding.shareError.setText(messageRes)
+    private fun setSharing(sharing: Boolean) {
+        this.sharing = sharing
+        val b = _binding ?: return
+        b.shareProgress.visibility = if (sharing) View.VISIBLE else View.GONE
+        renderShareState()
+    }
+
+    private fun showShareError(messageRes: Int) = showShareNotice(getString(messageRes), isError = true)
+
+    private fun showShareNotice(message: String, isError: Boolean) {
+        val b = _binding ?: return
+        b.shareError.visibility = View.VISIBLE
+        b.shareError.text = message
+        b.shareError.setTextColor(
+            ContextCompat.getColor(requireContext(), if (isError) R.color.cg_danger else R.color.cg_text_secondary)
+        )
     }
 
     override fun onDestroyView() {

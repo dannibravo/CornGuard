@@ -25,9 +25,9 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 /**
- * Single-activity shell hosting res/navigation/nav_graph.xml. The bottom bar has the design's
- * three tabs (Dashboard / History / Settings); Scan, Community and Map are opened from the
- * Dashboard cards and keep the Dashboard tab highlighted.
+ * Single-activity shell hosting res/navigation/nav_graph.xml. The bottom bar has five tabs
+ * (Home / Map / Scan / Community / History). Settings and Alerts open from Home and keep the Home
+ * tab highlighted.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -51,7 +51,7 @@ class MainActivity : AppCompatActivity() {
             // The farm pin picker needs the whole screen (map + name field above the keyboard).
             binding.bottomNavigationView.visibility =
                 if (destination.id == R.id.farmPickerFragment) android.view.View.GONE else android.view.View.VISIBLE
-            if (destination.id in DASHBOARD_CHILDREN) {
+            if (destination.id in HOME_CHILDREN) {
                 binding.bottomNavigationView.menu.findItem(R.id.homeFragment).isChecked = true
             }
         }
@@ -59,6 +59,11 @@ class MainActivity : AppCompatActivity() {
         observeConnectivity()
         observeOnboarding()
         if (savedInstanceState == null) handleNotificationIntent(intent)
+    }
+
+    /** Opens a bottom-bar tab as if it were tapped (Home's cards use this). */
+    fun selectTab(destinationId: Int) {
+        binding.bottomNavigationView.selectedItemId = destinationId
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -149,7 +154,6 @@ class MainActivity : AppCompatActivity() {
         const val EXTRA_POST_ID = "com.cornguard.app.POST_ID"
         private const val PREFS_PERMISSIONS = "permissions"
         private const val KEY_ASKED_NOTIFICATIONS = "asked_notifications"
-        private val DASHBOARD_CHILDREN =
-            setOf(R.id.scanFragment, R.id.communityFragment, R.id.mapFragment, R.id.notificationsFragment)
+        private val HOME_CHILDREN = setOf(R.id.notificationsFragment, R.id.profileFragment)
     }
 }

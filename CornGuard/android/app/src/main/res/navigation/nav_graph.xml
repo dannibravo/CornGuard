@@ -6,29 +6,25 @@
     app:startDestination="@id/homeFragment">
 
     <!--
-        Bottom-nav destinations: homeFragment (Dashboard), historyFragment, profileFragment
-        (Settings). Scan, Community and Map open from the Dashboard cards, Notifications from its
-        bell. The diagnosis result, full details, create-post, comments and edit-profile screens
-        are bottom sheets opened in code, not graph destinations.
+        Bottom-nav destinations (5 tabs): homeFragment, mapFragment, scanFragment,
+        communityFragment, historyFragment. Home's cards open Scan and Map as those tabs (via the
+        bottom bar, so the back stack matches a tab tap); its profile button opens Settings
+        (profileFragment) and its bell Notifications. The diagnosis result, full details,
+        create-post, comments and edit-profile screens are bottom sheets opened in code, not graph
+        destinations.
     -->
 
     <fragment
         android:id="@+id/homeFragment"
         android:name="com.cornguard.app.ui.home.HomeFragment"
-        android:label="@string/nav_dashboard"
+        android:label="@string/nav_home"
         tools:layout="@layout/fragment_home">
-        <action
-            android:id="@+id/action_home_to_scan"
-            app:destination="@id/scanFragment" />
-        <action
-            android:id="@+id/action_home_to_community"
-            app:destination="@id/communityFragment" />
-        <action
-            android:id="@+id/action_home_to_map"
-            app:destination="@id/mapFragment" />
         <action
             android:id="@+id/action_home_to_notifications"
             app:destination="@id/notificationsFragment" />
+        <action
+            android:id="@+id/action_home_to_profile"
+            app:destination="@id/profileFragment" />
     </fragment>
 
     <fragment

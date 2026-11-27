@@ -25,6 +25,7 @@ import com.cornguard.app.data.repository.convex.ConvexGisRepository
 import com.cornguard.app.data.repository.convex.ConvexNotificationRepository
 import com.cornguard.app.data.repository.convex.ConvexUserFarmRepository
 import com.cornguard.app.data.repository.convex.observeTreatmentGuides
+import com.cornguard.app.data.sync.ShareQueue
 import com.cornguard.app.data.repository.local.LocalDiagnosisHistoryRepository
 import com.cornguard.app.data.repository.local.LocalDiseaseReferenceRepository
 import com.cornguard.app.location.BarangayResolver
@@ -120,6 +121,16 @@ object ServiceLocator {
         ConvexDiagnosisSharingRepository(convexBackend.client, convexBackend.uploader)
     }
 
+    /** Sends scans the farmer chose to share while offline, once online (data.sync.ShareQueue). */
+    val shareQueue: ShareQueue by lazy {
+        ShareQueue(
+            history = diagnosisHistoryRepository,
+            share = { record, uid -> diagnosisSharingRepository.shareScan(record, uid, record.farmId) },
+            signedInUid = authRepository.observeAuthState().map { it?.uid },
+            online = connectivityObserver.observe(),
+        )
+    }
+
     val communityRepository: CommunityRepository by lazy {
         ConvexCommunityRepository(convexBackend.client, convexBackend.uploader)
     }
@@ -185,6 +196,7 @@ object ServiceLocator {
             // Keeps a signed-in user signed in across restarts (refresh-token exchange).
             appScope.launch { runCatching { convexAuthRepository.restoreSession() } }
             appScope.launch { claimGuestScansOnSignIn() }
+            shareQueue.start(appScope)
         }
     }
 }

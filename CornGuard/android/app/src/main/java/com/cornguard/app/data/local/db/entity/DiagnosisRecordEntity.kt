@@ -44,5 +44,18 @@ data class DiagnosisRecordEntity(
 
     val modelVersion: String,
     val sharedToCloud: Boolean = false,
-    val cloudRecordId: String? = null
-)
+    val cloudRecordId: String? = null,
+
+    /**
+     * When the farmer chose "Share" while it couldn't be sent (offline), epoch millis; null = not
+     * waiting. Still an explicit, opt-in share (D-11): data.sync.ShareQueue only sends scans the
+     * farmer asked to share, and clears this once [sharedToCloud] is set or they cancel.
+     */
+    val shareQueuedAt: Long? = null,
+
+    /** Why the last automatic share attempt failed (shown on the result sheet); null = none yet. */
+    val shareLastError: String? = null
+) {
+    /** Waiting in the offline share queue. */
+    val isShareQueued: Boolean get() = shareQueuedAt != null && !sharedToCloud
+}

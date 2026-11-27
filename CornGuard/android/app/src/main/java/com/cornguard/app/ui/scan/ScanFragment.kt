@@ -91,7 +91,8 @@ class ScanFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.scanBackButton.setOnClickListener { findNavController().popBackStack() }
+        // Scan is a bottom-bar tab: no Back arrow (the tabs and system Back navigate).
+        binding.scanBackButton.visibility = View.GONE
         binding.scanCameraButton.setOnClickListener { onCameraClicked() }
         binding.scanGalleryButton.setOnClickListener { onGalleryClicked() }
         binding.scanArea.setOnClickListener {

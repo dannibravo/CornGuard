@@ -9,9 +9,7 @@
     <string name="notification_channel_awareness_description">A crop disease rising to a moderate level in or near your barangay.</string>
 
     <!-- Bottom navigation (caps 3 design: Dashboard / History / Settings) -->
-    <string name="nav_dashboard">Dashboard</string>
     <string name="nav_history">History</string>
-    <string name="nav_settings">Settings</string>
 
     <!-- Common -->
     <string name="action_back">Back</string>
@@ -25,12 +23,6 @@
 
     <!-- Dashboard -->
     <string name="home_welcome_back">Welcome back,</string>
-    <string name="home_scan_title">Scan Corn</string>
-    <string name="home_scan_subtitle">Identify diseases instantly</string>
-    <string name="home_community_title">Community</string>
-    <string name="home_community_subtitle">Share reports and insights with other farmers</string>
-    <string name="home_map_title">Outbreak Map</string>
-    <string name="home_map_subtitle">View active crop disease outbreaks in Bukidnon</string>
 
     <!-- Notifications (Dashboard bell) -->
     <string name="notifications_title">Notifications</string>
@@ -60,7 +52,6 @@
         was saved. Try again with a close, clear photo of one corn leaf.</string>
 
     <!-- Result sheet -->
-    <string name="result_confidence_format">Confidence: %1$s%%</string>
     <string name="result_location_captured">Location captured</string>
     <string name="result_location_area">%1$s, %2$s</string>
     <!-- A scan's location always comes from Settings (the profile's barangay). -->
@@ -72,7 +63,6 @@
     <string name="picker_title">Select Barangay</string>
     <string name="picker_search_hint">Search barangay or municipality</string>
     <string name="picker_empty">No barangay matches your search.</string>
-    <string name="result_saved_note">Saved to History</string>
     <string name="result_meta_format">Scanned %1$s · %2$s</string>
     <string name="result_share_action">Share to Community</string>
     <string name="result_shared_action_done">Shared to Community</string>
@@ -339,4 +329,45 @@
     <string name="edit_profile_mobile">Mobile number (optional)</string>
     <string name="edit_profile_pick_area">Tap to choose your barangay</string>
     <string name="edit_profile_save_failed">Couldn\'t save your profile. Check your connection and try again.</string>
+    <!-- 5-tab navigation (UI mock phase 2). Settings moved to Home's profile button. -->
+    <string name="nav_home">Home</string>
+    <string name="nav_map">Map</string>
+    <string name="nav_scan">Scan</string>
+    <string name="nav_community">Feed</string>
+
+    <!-- Home -->
+    <string name="home_settings_a11y">Profile and settings</string>
+    <string name="home_area_label">Your barangay</string>
+    <string name="home_area_see_map">See map</string>
+    <string name="home_area_updated_now">Updated just now</string>
+    <string name="home_area_updated_ago">Last updated %1$s ago · connect to refresh</string>
+    <string name="home_area_offline_never">Connect to the internet to see this week\'s level.</string>
+    <string name="home_area_not_set">Set your barangay in Settings to see outbreak levels near you.</string>
+    <string name="home_area_signed_out">Sign in to see outbreak levels in your barangay.</string>
+    <string name="home_area_a11y">Your barangay, %1$s. %2$s. %3$s Opens the outbreak map.</string>
+    <string name="home_scan_card_title">Scan corn leaf</string>
+    <string name="home_scan_card_subtitle">Take a photo of one leaf</string>
+    <string name="home_scan_card_offline">Works without internet</string>
+    <string name="home_last_scan">Last scan</string>
+    <string name="home_last_scan_title">%1$s · %2$s%%</string>
+
+    <!-- Result: confidence band, low-confidence retake, save/share status -->
+    <string name="result_confidence_band">%1$s%% sure · %2$s</string>
+    <string name="result_band_high">High confidence</string>
+    <string name="result_band_medium">Medium confidence</string>
+    <string name="result_band_low">Low confidence</string>
+    <string name="result_low_title">Not sure.</string>
+    <string name="result_low_body">Retake the photo closer to one leaf, in good light. If you share this, an admin checks it before it counts on the map.</string>
+    <string name="result_retake">Retake photo</string>
+    <string name="result_saved_local">Saved on this phone · not shared</string>
+    <string name="result_saved_waiting">Saved on this phone · waiting for internet to share</string>
+    <string name="result_saved_shared">Saved on this phone · shared</string>
+    <string name="result_share_when_online">Share when back online</string>
+    <string name="result_share_queued">Will share when online</string>
+    <string name="result_share_cancel">Cancel sharing</string>
+    <string name="result_share_queued_notice">Saved. It will be shared automatically when you\'re back online.</string>
+    <string name="result_share_retry_error">The last try didn\'t go through (%1$s). CornGuard will try again.</string>
+
+    <!-- History: offline share queue -->
+    <string name="history_badge_waiting">Waiting to share</string>
 </resources>

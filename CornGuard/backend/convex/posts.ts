@@ -4,6 +4,7 @@ import { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, QueryCtx } from "./_generated/server";
 import { assertOwnerOrAdmin, currentUserId, isAdmin, requireActiveUser } from "./lib/access";
 import { areaKey } from "./outbreakAlerts";
+import { logVerification } from "./lib/verificationLog";
 import { reportedTargetIds } from "./reports";
 import { areaField } from "./schema";
 
@@ -114,13 +115,17 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const user = await requireActiveUser(ctx);
     // Status fields and the counter are never client-supplied.
-    return await ctx.db.insert("communityPosts", {
+    const id = await ctx.db.insert("communityPosts", {
       ...args,
       userId: user._id,
       verificationStatus: "unverified",
       moderationStatus: "visible",
       upvoteCount: 0,
     });
+    await logVerification(ctx, {
+      targetType: "communityPost", targetId: id, fromStatus: null, toStatus: "unverified", reason: "posted", actorId: null,
+    });
+    return id;
   },
 });
 

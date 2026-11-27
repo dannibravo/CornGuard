@@ -168,10 +168,11 @@
         <item name="android:color">@color/cg_nav_indicator</item>
     </style>
 
+    <!-- 12sp so five labels (e.g. "Community") fit a 72dp tab without truncating. -->
     <style name="TextAppearance.CornGuard.NavLabel" parent="TextAppearance.Material3.LabelMedium">
         <item name="android:fontFamily">@font/inter</item>
         <item name="fontFamily">@font/inter</item>
-        <item name="android:textSize">14sp</item>
+        <item name="android:textSize">12sp</item>
     </style>
     <!-- Disease pills on the outbreak map sheet: 40dp, 14sp SemiBold, 18dp glyph, 8dp side padding. -->
     <style name="Widget.CornGuard.MapPill" parent="Widget.Material3.Button.OutlinedButton">
