@@ -4,6 +4,7 @@ import { api } from '../convex';
 import { DataTable } from '../components/DataTable';
 import { ImageThumb } from '../components/ImageThumb';
 import { Tabs } from '../components/Tabs';
+import { VerificationHistoryModal } from '../components/VerificationHistoryModal';
 import { ActionGroup, Alert, Button, Note } from '../components/ui';
 import { date, diseaseLabel, pct, REPORT_REASON_LABEL, statusBadge } from '../labels';
 
@@ -78,6 +79,7 @@ function ScansTab() {
   const scans = useQuery(api.admin.listRecords, status === 'all' ? {} : { status }) as Scan[] | undefined;
   const setVerification = useMutation(api.admin.setRecordVerification);
   const { wrap, banner, isBusy, rowBusy } = useAction();
+  const [history, setHistory] = useState<Scan | null>(null);
 
   return (
     <>
@@ -111,10 +113,12 @@ function ScansTab() {
             : <span className="badge badge-red" title="Can't be placed on the map, so it can't be verified">No location</span> },
           { key: 'capturedAt', header: 'Scanned', sortable: true, width: '150px', hideBelow: 'md', render: (r) => <span className="cell-date">{date(r.capturedAt)}</span> },
           { key: 'status', header: 'Status', width: '120px', render: (r) => <span className={`badge badge-dot ${statusBadge(r.status)}`} title={r.verifiedBy ? `by ${r.verifiedBy}` : 'automatic / not reviewed'}>{r.status.toUpperCase()}</span> },
-          { key: 'actions', header: '', width: '180px', align: 'right', render: (r) => {
+          { key: 'actions', header: '', width: '220px', align: 'right', render: (r) => {
             const locked = rowBusy(r.recordId);
             return (
               <ActionGroup align="end">
+                <Button size="sm" variant="ghost" icon="clock" aria-label={`Verification history of ${r.userName}'s scan`} title="Verification history"
+                  onClick={() => setHistory(r)} />
                 {r.status !== 'verified' && <Button size="sm" variant="primary" icon="check" disabled={!r.barangay || locked} busy={isBusy(`${r.recordId}:verify`)}
                   title={r.barangay ? undefined : "No location: this scan can't be placed on the map"}
                   onClick={wrap(`${r.recordId}:verify`, () => setVerification({ recordId: r.recordId, status: 'verified' }))}>Verify</Button>}
@@ -125,6 +129,8 @@ function ScansTab() {
           } },
         ]}
       />
+      <VerificationHistoryModal onClose={() => setHistory(null)}
+        target={history && { targetType: 'diagnosisRecord', targetId: history.recordId, title: `${diseaseLabel(history.diseaseCode)} scan by ${history.userName}` }} />
     </>
   );
 }
@@ -144,6 +150,7 @@ function PostsTab() {
   const setVerification = useMutation(api.admin.setPostVerification);
   const setModeration = useMutation(api.admin.setPostModeration);
   const { wrap, banner, isBusy, rowBusy } = useAction();
+  const [history, setHistory] = useState<Post | null>(null);
 
   const scanSignal = (p: Post) => {
     if (!p.linkedScan) return <span className="badge badge-gray">no linked scan</span>;
@@ -207,11 +214,13 @@ function PostsTab() {
               <span className={`badge ${statusBadge(r.verificationStatus)}`}>{r.verificationStatus}</span>
               <span className={`badge ${statusBadge(r.moderationStatus)}`}>{r.moderationStatus}</span>
             </div>) },
-          { key: 'actions', header: '', width: '200px', align: 'right', render: (r) => {
+          { key: 'actions', header: '', width: '240px', align: 'right', render: (r) => {
             const k = (a: string) => `${r.postId}:${a}`;
             const locked = rowBusy(r.postId);
             return (
               <ActionGroup align="end">
+                <Button size="sm" variant="ghost" icon="clock" aria-label={`Verification history of “${r.title}”`} title="Verification history"
+                  onClick={() => setHistory(r)} />
                 {r.verificationStatus !== 'verified' && <Button size="sm" variant="primary" disabled={locked} busy={isBusy(k('verify'))} onClick={wrap(k('verify'), () => setVerification({ postId: r.postId, status: 'verified' }))}>Verify</Button>}
                 {r.verificationStatus !== 'rejected' && <Button size="sm" variant="secondary" disabled={locked} busy={isBusy(k('reject'))} onClick={wrap(k('reject'), () => setVerification({ postId: r.postId, status: 'rejected' }))}>Reject</Button>}
                 {r.moderationStatus === 'visible'
@@ -223,6 +232,8 @@ function PostsTab() {
           } },
         ]}
       />
+      <VerificationHistoryModal onClose={() => setHistory(null)}
+        target={history && { targetType: 'communityPost', targetId: history.postId, title: `“${history.title}”` }} />
     </>
   );
 }

@@ -41,6 +41,8 @@ const PATHS = {
   trash: <><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></>,
   plus: <><path d="M12 5v14" /><path d="M5 12h14" /></>,
   arrowLeft: <><path d="M19 12H5" /><path d="m12 19-7-7 7-7" /></>,
+  download: <><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></>,
+  clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
   /** CornGuard mark: corn cob silhouette in its husk. Filled, not stroked (see FILLED); the kernel
    *  grooves are cut out with evenodd. Same shape as public/favicon.svg — keep in sync. */
   corn: <>
