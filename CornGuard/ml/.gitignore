@@ -17,3 +17,6 @@ __pycache__/
 
 .venv/
 *.log
+
+# v5 field retraining: resized image cache built by v5_field/train_v5.py
+data/v5_cache/
