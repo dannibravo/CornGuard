@@ -10,7 +10,7 @@ disease reaches a moderate or severe level. Admins review reports and follow the
 | `backend/` | Convex backend: accounts, scans, community, outbreak severity, push notifications | [backend/README.md](backend/README.md) |
 | `admin-web/` | CornGuard Admin website (React + Convex) | [admin-web/README.md](admin-web/README.md) |
 | `ml/` | Model training notebook | [ml/README.md](ml/README.md) |
-| `docs/` | Testing guide, emulator setup and project documents | [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md), [docs/ANDROID_EMULATOR_SETUP.md](docs/ANDROID_EMULATOR_SETUP.md) |
+| `../docs/` (repo root) | Testing guide, emulator setup and project documents | [docs/TESTING_GUIDE.md](../docs/TESTING_GUIDE.md), [docs/ANDROID_EMULATOR_SETUP.md](../docs/ANDROID_EMULATOR_SETUP.md) |
 | `claude/` | Team process and planning docs | |
 
 Third-party data and libraries (barangay boundaries, Leaflet, OpenStreetMap) are credited in
@@ -29,7 +29,7 @@ To install on a phone (Android 8.0 or newer):
 
 This is a **debug build** for testing. It connects to the project's development backend; scanning works offline, while
 sign-in, Community, the Outbreak Map and notifications need internet. Test accounts are listed in
-[docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md).
+[docs/TESTING_GUIDE.md](../docs/TESTING_GUIDE.md).
 
 ### Publishing a new APK (maintainers)
 

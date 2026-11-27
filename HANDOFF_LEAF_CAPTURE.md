@@ -126,7 +126,7 @@ Known stale test: `EmulatorLeafImagesTest` expects the v3 SHA (`DFE14E…`) but 
 
 ## 8. Guided one-leaf capture — what to build (from the existing plan, adjusted by §5)
 
-Source of truth: `CornGuard/docs/MULTI_PHOTO_LEAF_CAPTURE_PLAN.md` (status "Proposal, not approved"; user has now
+Source of truth: `docs/MULTI_PHOTO_LEAF_CAPTURE_PLAN.md` (status "Proposal, not approved"; user has now
 approved the **one-leaf guided capture** direction). Part A, plan steps 1–3:
 
 1. **`feature/camerax-capture`** — replace the system-camera `TakePicture` intent in `ScanFragment.launchCamera()`
