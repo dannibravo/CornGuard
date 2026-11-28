@@ -32,7 +32,7 @@
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
                 android:paddingTop="12dp"
-                android:paddingBottom="96dp"
+                android:paddingBottom="16dp"
                 tools:listitem="@layout/item_community_post" />
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
@@ -85,6 +85,7 @@
                 android:text="@string/auth_required_signin_cta" />
         </LinearLayout>
 
+        <!-- Floats over the feed, always visible; the list has no extra bottom space for it. -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/communityCreatePostButton"
             android:layout_width="wrap_content"
