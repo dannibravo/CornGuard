@@ -2,7 +2,23 @@
 
 CornGuard bundles or displays the following third-party material.
 
-## Barangay boundaries: `android/app/src/main/assets/geo/bukidnon-barangays.json`
+## Barangay boundaries (admin web): `admin-web/src/assets/bukidnon-barangays.json`
+
+The admin web's map uses more detailed outlines than the app: Bukidnon's 464 barangays from the
+`hires` GeoJSON of **philippines-json-maps** v1.1.1 (https://github.com/faeldon/philippines-json-maps,
+release asset `geojson-hires.zip`), PSGC 3Q 2026. Built by `admin-web/scripts/build-boundaries.mjs`:
+properties are reduced to `barangay` and `municipality`, and the names are kept exactly as in the
+app's file below (a few spellings differ in the source, e.g. "Kahaponan" for our "Kahapunan"), so
+statistics and search match. Coordinates are rounded to 6 decimal places.
+
+Data attribution, as the repository requests: boundaries from OCHA's Common Operational Datasets
+(COD-AB) for the Philippines, produced by NAMRIA (National Mapping and Resource Information
+Authority, https://namria.gov.ph/) and the Philippine Statistics Authority (PSA,
+https://psa.gov.ph/classification/psgc/), licensed CC BY-IGO 3.0
+(http://creativecommons.org/licenses/by/3.0/igo/legalcode). The repository's scripts and maps are
+released under the MIT License ("Copyright (c) James Faeldon."; same terms as the MIT text below).
+
+## Barangay boundaries (app): `android/app/src/main/assets/geo/bukidnon-barangays.json`
 
 A Bukidnon-only extract (464 barangays) of `2023-10-24/enriched_t0p005/adm4.geojson` from
 **barangay-boundaries-repository** (https://github.com/bendlikeabamboo/barangay-boundaries-repository).
