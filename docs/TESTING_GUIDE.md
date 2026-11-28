@@ -1020,13 +1020,13 @@ The result sheet slides up after every scan, and when a History item is tapped.
 #### W-MAP-01 · Web map
 **Platform:** 💻 Web
 **Steps:** 1. Open "Outbreak Map". 2. Click a dot and a barangay. 3. Read the card below the map.
-**Expected result:** The same map as the app (boundaries, severity-coloured markers with disease shapes, faded grey markers for 1–4-week-old reports, legend, popups) with "Individual verified reports across Bukidnon — N plotted". Below: "How the outbreak level is assigned" explaining the collecting-data period (Undetermined), the weekly baseline, Severe (3×), Moderate (2×) and Mild, and the cut-off examples.
+**Expected result:** The same map as the app (boundaries, severity-coloured markers with disease shapes, faded grey markers for 1–4-week-old reports, legend, popups) with "N verified reports · last 28 days, in total" above the map. Below: "How the outbreak level is assigned" explaining the collecting-data period (Undetermined), the weekly baseline, Severe (3×), Moderate (2×) and Mild, and the cut-off examples.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
 #### W-MAP-02 · Usual levels (admin only)
 **Platform:** 💻 Web + 📱 App
 **Steps:** 1. Seed a baseline with no reports this week (W-OUT-04 step 1, e.g. `diseaseTotals:{northern_leaf_blight:15, gray_leaf_spot:10, common_rust:12}`). 2. On the web "Outbreak Map", find Casisang (search) and click it. 3. Clear the search. 4. Open the same barangay in the app's map.
-**Expected result:** On the web, Casisang has a **teal outline** (legend: "Baseline set"). Its popup says "No active disease reports this week", then "Usual levels (baseline from 4 weeks, provisional)" with, per disease, the usual farms/week and "this week 0 · Moderate at N · Severe at N" (here NLB 3.8 · 8 · 12, GLS 2.5 · 5 · 8, Common Rust 3.0 · 6 · 9). After clearing the search the outline is still teal. In the **app**, the same barangay has a plain outline and only "No active disease reports".
+**Expected result:** On the web, Casisang has a **teal outline** (legend: "Baseline set"). Its popup says only "No active disease reports this week". In the Baselines panel, Casisang reads "Based on 4 weeks of reports · may still change" and, per disease, "Normal: about N a week" with "This week: 0 farms · Moderate if N+ farms · Severe if N+ farms" (here NLB about 4 · 8+ · 12+, GLS about 3 · 5+ · 8+, Common Rust about 3 · 6+ · 9+). No decimals are shown. After clearing the search the outline is still teal. In the **app**, the same barangay has a plain outline and only "No active disease reports".
 **Explanation:** Admins check alerts against the usual level; farmers' map stays simple.
 **Result:** ☐ Pass ☐ Fail — Notes: ____________
 
@@ -1050,7 +1050,7 @@ The result sheet slides up after every scan, and when a History item is tapped.
 **Platform:** 📱 Mobile app + 💻 Web
 **Steps:**
 1. Phone: sign in as `demo@cornguard.app`, stay signed in, leave the phone on the home screen.
-2. Website or app: open the map popup for Poblacion, City of Valencia. If it has no history yet, its status is "Undetermined · Collecting data". Give it past data: `node scripts/alert-scenarios.mjs history Poblacion "City of Valencia"`. The popup now shows a level and "Usual: 0.0 farms / week (provisional)".
+2. Website or app: open the map popup for Poblacion, City of Valencia. If it has no history yet, its status is "Undetermined · Collecting data". Give it past data: `node scripts/alert-scenarios.mjs history Poblacion "City of Valencia"`. The popup now shows a level; on the website the disease line reads "N farm(s) reported it in the last 7 days. Normal: less than 1 a week."
 3. From three demo accounts (demo2, demo3, demo4), share one confident (80%+) scan each of the same disease in Poblacion. Wait about a minute. Phone: the awareness notice arrives ("… cases rising in Poblacion").
 4. From two more accounts (demo5, demo6), share one more each (five farms in total). Wait about a minute. (Shortcut for steps 2–4: run `node scripts/seed-map-demo.mjs`; it may send only the Severe warning if the level jumps straight from Mild.)
 5. Phone: the potential-outbreak warning arrives; tap it. The Outbreak Map shows red, softly pulsing "B" markers in Valencia.

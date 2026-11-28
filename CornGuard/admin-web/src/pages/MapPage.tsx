@@ -14,8 +14,6 @@ import {
   RAMP,
   areaHeat,
   currentTheme,
-  heatOf,
-  meterHtml,
   rampColor,
   strokeFor,
   type AreaHeat,
@@ -617,6 +615,20 @@ function undeterminedText(stat: any) {
     `${Math.min(stat?.historyScans ?? 0, WARMUP_SCANS)} of ${WARMUP_SCANS} earlier scans)`;
 }
 
+/** "1 farm" / "3 farms". */
+function farmsText(n: number) {
+  return `${n} farm${n === 1 ? '' : 's'}`;
+}
+
+/**
+ * A baseline in plain words, never as a decimal: "0.4 farms / week" read like a count of
+ * infected farms, so show "less than 1 a week" / "about 2 a week" instead.
+ */
+function usualText(baselineFarms: number) {
+  const b = Number(baselineFarms);
+  return b < 1 ? 'less than 1 a week' : `about ${Math.round(b)} a week`;
+}
+
 type BaselineArea = {
   key: string;
   barangay: string;
@@ -721,7 +733,7 @@ function BaselinePanel({
         <span>
           <span className="baseline-panel-title">Baselines</span>
           <span className="baseline-panel-sub">
-            {areas.length} areas · {loading ? 'loading baselines…' : `${withBaseline} with a baseline`}
+            {loading ? 'Loading normal levels…' : `${withBaseline} of ${areas.length} areas ${withBaseline === 1 ? 'has' : 'have'} a normal level set`}
           </span>
         </span>
         <span aria-hidden="true" title="Collapse">&#9656;</span>
@@ -760,19 +772,20 @@ function BaselinePanel({
                   {hasBaseline ? (
                     <>
                       <p className="baseline-meta">
-                        From {borrowed ? `nearby areas (${borrowed.neighbourAreas ?? '?'} barangays), ` : ''}
-                        {weeks} week{weeks === 1 ? '' : 's'}{provisional ? ' · provisional' : ''}
+                        Based on {weeks} week{weeks === 1 ? '' : 's'} of reports
+                        {borrowed ? ` from ${borrowed.neighbourAreas ?? '?'} nearby barangays` : ''}
+                        {provisional ? ' · may still change' : ''}
                       </p>
                       {area.baselines.map((s) => (
                         <div key={s.diseaseCode} className="baseline-disease">
                           <div className="baseline-disease-row">
                             <strong>{diseaseLabel(s.diseaseCode)}</strong>
-                            <span>{Number(s.baselineFarms).toFixed(1)} farms / week</span>
+                            <span>Normal: {usualText(s.baselineFarms)}</span>
                           </div>
                           <div className="baseline-meta">
-                            This week {s.distinctFarms ?? 0}
-                            {s.moderateAt != null && <> · Moderate at {s.moderateAt}</>}
-                            {s.severeAt != null && <> · Severe at {s.severeAt}</>}
+                            This week: {farmsText(s.distinctFarms ?? 0)}
+                            {s.moderateAt != null && <> · Moderate if {s.moderateAt}+ farms</>}
+                            {s.severeAt != null && <> · Severe if {s.severeAt}+ farms</>}
                             {s.excludedWeeks > 0 && (
                               <> · {s.excludedWeeks} outbreak week{s.excludedWeeks === 1 ? '' : 's'} left out</>
                             )}
@@ -1029,7 +1042,9 @@ export default function MapPage() {
         <p className="map-summary" aria-live="polite">
           <span className="map-summary-dot" aria-hidden="true" />
           {detections
-            ? (filtering ? <><strong>{visible.length}</strong> of {reportCount} verified reports match</> : <><strong>{reportCount}</strong> verified reports</>)
+            ? (filtering
+              ? <><strong>{visible.length}</strong> of {reportCount} verified reports match · last 28 days, in total</>
+              : <><strong>{reportCount}</strong> verified report{reportCount === 1 ? '' : 's'} · last 28 days, in total</>)
             : 'Loading reports…'}
           {showMarkers ? ' · shown as markers' : ''}
         </p>
@@ -1118,9 +1133,8 @@ export default function MapPage() {
 
                 const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) =>
                   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
-                const t = currentTheme();
                 const level = (stat: any) => stat.monitoringStatus === 'collecting'
-                  ? '<span class="map-popup-level collecting">Undetermined</span>'
+                  ? '<span class="map-popup-level collecting">Not enough data yet</span>'
                   : `<span class="map-popup-level ${stat.severityTier}">${esc(stat.severityTier)}</span>`;
                 let popupContent = `
                   <div class="map-popup">
@@ -1129,20 +1143,21 @@ export default function MapPage() {
                 `;
 
                 if (bStats && bStats.length > 0) {
+                  // One plain sentence per disease: how many farms this week, and what is normal.
+                  // Thresholds and history live in the Baselines panel.
                   bStats.forEach((stat) => {
-                    const heat = heatOf(stat);
+                    const farms = `${farmsText(stat.distinctFarms ?? 0)} reported it in the last 7 days.`;
+                    const usual = stat.monitoringStatus !== 'collecting' && stat.baselineFarms != null
+                      ? ` Normal: ${usualText(stat.baselineFarms)}.`
+                      : '';
                     popupContent += `
                       <hr class="map-popup-rule" />
                       <div class="map-popup-row"><strong>${esc(diseaseLabel(stat.diseaseCode))}</strong>${level(stat)}</div>
-                      ${meterHtml(heat, t)}
                       <div class="map-popup-body">
+                        ${esc(farms + usual)}
                         ${stat.monitoringStatus === 'collecting'
-                          ? `<span class="map-popup-muted">${esc(undeterminedText(stat))}</span><br/>`
-                          : `${heat !== null ? `<strong>Intensity:</strong> ${Math.round(heat * 100)}% <span class="map-popup-muted">(Moderate 50% · Severe 80%)</span><br/>` : ''}
-                             ${stat.baselineFarms != null ? `<strong>Usual:</strong> ${stat.baselineFarms.toFixed(1)} farms / week${stat.monitoringStatus === 'provisional' ? ' <span class="map-popup-muted">(provisional)</span>' : ''}<br/>` : ''}
-                             <strong>Moderate at / Severe at:</strong> ${stat.moderateAt ?? '—'} / ${stat.severeAt ?? '—'} farms<br/>`}
-                        <strong>Farms (7 days):</strong> ${stat.distinctFarms}${stat.lastWeekFarms != null ? ` <span class="map-popup-muted">· last week ${stat.lastWeekFarms}</span>` : ''}<br/>
-                        <strong>Total reports:</strong> ${stat.rawReportCount}
+                          ? `<br/><span class="map-popup-muted">${esc(undeterminedText(stat))}</span>`
+                          : ''}
                       </div>
                     `;
                   });
@@ -1153,11 +1168,6 @@ export default function MapPage() {
                   `;
                 }
 
-                // Usual levels live in the Baselines panel beside the map; just point there.
-                if (hasBaseline(allStats)) {
-                  popupContent += `<hr class="map-popup-rule" />
-                    <span class="map-popup-baseline">Baseline set · see the Baselines panel for usual levels</span>`;
-                }
                 popupContent += `</div>`;
                 return popupContent;
               });
