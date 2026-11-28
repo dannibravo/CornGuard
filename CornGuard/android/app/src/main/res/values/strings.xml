@@ -36,7 +36,14 @@
     <!-- Scan -->
     <string name="scan_title">Scan Corn Leaf</string>
     <string name="scan_ready_title">Ready to scan</string>
-    <string name="scan_ready_subtitle">Take a photo or choose from gallery</string>
+    <string name="scan_ready_subtitle">Take a close photo of one leaf, or choose one from the gallery</string>
+    <!-- Frame-the-leaf step: only the boxed part is analysed (ML_V5_FIELD_RETRAINING.md §9). -->
+    <string name="scan_frame_title">Frame the leaf</string>
+    <string name="scan_frame_hint">Move the box onto one leaf. Drag a corner or pinch to resize it.
+        Keep soil, sky and hands out of the box.</string>
+    <string name="scan_frame_analyze">Analyze leaf</string>
+    <string name="scan_frame_retake">Choose another photo</string>
+    <string name="scan_frame_image_description">Your photo with a box over the part to analyze</string>
     <string name="scan_area_format">Scans filed under %1$s, %2$s, or a farm you pick when sharing · &lt;u&gt;Change in Settings&lt;/u&gt;</string>
     <string name="scan_area_not_set"><u>Set your barangay in Settings</u> to share scans to the Outbreak Map</string>
     <string name="scan_area_signed_out"><u>Sign in</u> to share scans to the Outbreak Map</string>

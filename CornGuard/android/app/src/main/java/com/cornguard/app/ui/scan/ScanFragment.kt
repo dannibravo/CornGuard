@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -40,6 +41,11 @@ import kotlinx.coroutines.withContext
  * Before classification, [ServiceLocator.cornGate] rejects photos that aren't corn leaves; those
  * show a "try again" message and are not saved.
  *
+ * Frame the leaf: each photo first opens a step where the farmer moves a square box ([LeafFrameView])
+ * onto one leaf. The gate still checks the whole photo (how it was trained), but only the boxed crop
+ * goes to the disease model and is saved, because soil, sky and hands in the frame make the model
+ * call healthy leaves diseased (ML_V5_FIELD_RETRAINING.md §9).
+ *
  * A scan is filed under the farmer's Settings barangay ([ServiceLocator.profileAreaStore]) — the only
  * place a location is set; the screen shows it. The GPS fix from [ServiceLocator.locationHelper]
  * (when [AppPermission.LOCATION] is already granted) is kept only to place the map dot, and only
@@ -54,6 +60,14 @@ class ScanFragment : Fragment() {
     private val binding get() = _binding!!
 
     private var pendingCameraUri: Uri? = null
+
+    /** The photo shown in the frame-the-leaf step; null when the step is closed. */
+    private var framingPhoto: Bitmap? = null
+
+    // System Back while framing closes the step instead of leaving the Scan tab.
+    private val closeFrameStepOnBack = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() = hideFrameStep()
+    }
 
     private val cameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -95,6 +109,9 @@ class ScanFragment : Fragment() {
         binding.scanBackButton.visibility = View.GONE
         binding.scanCameraButton.setOnClickListener { onCameraClicked() }
         binding.scanGalleryButton.setOnClickListener { onGalleryClicked() }
+        binding.scanFrameAnalyzeButton.setOnClickListener { onAnalyzeFramed() }
+        binding.scanFrameRetakeButton.setOnClickListener { hideFrameStep() }
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, closeFrameStepOnBack)
         binding.scanArea.setOnClickListener {
             val signedIn = ServiceLocator.authRepository.getCurrentUser() != null
             findNavController().navigate(if (signedIn) R.id.profileFragment else R.id.authFragment)
@@ -173,26 +190,53 @@ class ScanFragment : Fragment() {
                 showError(getString(R.string.scan_invalid_image))
                 return@launch
             }
-            // Corn gate first: a photo that isn't a corn leaf never reaches the disease classifier,
-            // is never saved to history, and never opens the result sheet.
+            setProcessing(false)
+            showFrameStep(bitmap)
+        }
+    }
+
+    private fun showFrameStep(photo: Bitmap) {
+        framingPhoto = photo
+        binding.scanFrameView.setImage(photo)
+        binding.scanFrameStep.visibility = View.VISIBLE
+        closeFrameStepOnBack.isEnabled = true
+    }
+
+    private fun hideFrameStep() {
+        framingPhoto = null
+        binding.scanFrameView.clear()
+        binding.scanFrameStep.visibility = View.GONE
+        closeFrameStepOnBack.isEnabled = false
+    }
+
+    private fun onAnalyzeFramed() {
+        val photo = framingPhoto ?: return
+        val leaf = binding.scanFrameView.cropToFrame() ?: return
+        clearError()
+        setProcessing(true)
+        viewLifecycleOwner.lifecycleScope.launch {
+            // Corn gate first, on the whole photo: a photo that isn't a corn leaf never reaches the
+            // disease classifier, is never saved to history, and never opens the result sheet.
             val outcome = withContext(Dispatchers.Default) {
                 runCatching {
-                    val gate = ServiceLocator.cornGate?.check(bitmap)
+                    val gate = ServiceLocator.cornGate?.check(photo)
                     if (gate != null && !gate.isCorn) {
                         ScanOutcome.NotCorn(gate)
                     } else {
-                        ScanOutcome.Detected(ServiceLocator.cornLeafClassifier.classify(bitmap))
+                        ScanOutcome.Detected(ServiceLocator.cornLeafClassifier.classify(leaf))
                     }
                 }
             }
             setProcessing(false)
+            hideFrameStep()
 
             outcome.onSuccess { result ->
                 when (result) {
                     is ScanOutcome.NotCorn -> showError(
                         getString(R.string.scan_not_corn, (result.gate.cornProbability * 100).toInt())
                     )
-                    is ScanOutcome.Detected -> onDetectionSuccess(bitmap, result.detection)
+                    // The saved image is the crop, so history shows what was actually analysed.
+                    is ScanOutcome.Detected -> onDetectionSuccess(leaf, result.detection)
                 }
             }
             outcome.onFailure { error ->
@@ -262,6 +306,8 @@ class ScanFragment : Fragment() {
         binding.scanProcessingOverlay.visibility = if (processing) View.VISIBLE else View.GONE
         binding.scanCameraButton.isEnabled = !processing
         binding.scanGalleryButton.isEnabled = !processing
+        binding.scanFrameAnalyzeButton.isEnabled = !processing
+        binding.scanFrameRetakeButton.isEnabled = !processing
     }
 
     private fun showError(message: String) {
@@ -275,6 +321,7 @@ class ScanFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        framingPhoto = null
         _binding = null
     }
 
