@@ -2,6 +2,8 @@ import { useQuery } from 'convex/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON, Marker, Popup, ZoomControl, useMap } from 'react-leaflet';
 import { api } from '../convex';
+// More detailed than the app's copy (philippines-json-maps "hires", same barangay names); rebuilt
+// with scripts/build-boundaries.mjs. Source and credits: THIRD_PARTY_NOTICES.md.
 // @ts-ignore
 import barangays from '../assets/bukidnon-barangays.json';
 import 'leaflet/dist/leaflet.css';
@@ -240,9 +242,6 @@ function useTheme(): Theme {
   return theme;
 }
 
-// Street tiles only from this zoom (barangay scale): the province view needs nothing but the bundled
-// boundaries. (The app now loads street tiles at every zoom; admins opt in with the toggle.)
-const TILE_MIN_ZOOM = 12;
 const MAX_ZOOM = 16;
 
 // ─── Basemap: Map (OSM, default) or Satellite (Esri imagery + place labels) ───
@@ -334,9 +333,13 @@ function baselineRows(stats: any[]) {
     .sort((a, b) => diseaseLabel(a.diseaseCode).localeCompare(diseaseLabel(b.diseaseCode)));
 }
 
-// The searched-for barangay or municipality: a blue outline only (no fill, so the heat stays
-// visible). Blue stays distinct from the heat ramp and the disease colours.
-const HIGHLIGHT_STYLE: L.PathOptions = { color: currentTheme() === 'dark' ? '#8fb8da' : '#2f5d80', weight: 3, dashArray: undefined };
+// The searched-for (or "Show on map") barangay or municipality: an outline only (no fill, so the
+// heat stays visible). Picked for the map underneath, not the UI theme: a light blue on the light
+// street tiles in dark mode was nearly invisible. Strong blue on the map, bright yellow on satellite;
+// both stay distinct from the amber-to-red heat ramp.
+function highlightStyle(satellite: boolean): L.PathOptions {
+  return { color: satellite ? '#ffd60a' : '#1a56db', weight: 4, opacity: 1, dashArray: undefined };
+}
 
 /**
  * Search field at the top of the Baselines panel: finds a barangay or municipality from the bundled
@@ -349,13 +352,16 @@ function LocationSearch({
   map,
   layerRef,
   highlightRef,
+  highlightStyle: styleForHighlight,
   onPick,
   autoFocus = false,
 }: {
   map: L.Map | null;
   layerRef: React.RefObject<L.GeoJSON>;
-  // Shared with the Baselines panel's "Show on map", so only one area is ever outlined blue.
+  // Shared with the Baselines panel's "Show on map", so only one area is ever outlined.
   highlightRef: React.MutableRefObject<L.Path[]>;
+  /** The outline for the current basemap (see highlightStyle). */
+  highlightStyle: () => L.PathOptions;
   onPick?: (entry: LocationEntry) => void;
   autoFocus?: boolean;
 }) {
@@ -397,7 +403,7 @@ function LocationSearch({
 
     const bounds = L.latLngBounds([]);
     matches.forEach((layer) => {
-      layer.setStyle(HIGHLIGHT_STYLE);
+      layer.setStyle(styleForHighlight());
       layer.bringToFront();
       bounds.extend(layer.getBounds());
     });
@@ -680,7 +686,7 @@ function BaselinePanel({
   open: boolean;
   setOpen: (open: boolean) => void;
   onShow: (area: BaselineArea) => void;
-  search: Pick<React.ComponentProps<typeof LocationSearch>, 'map' | 'layerRef' | 'highlightRef'>;
+  search: Pick<React.ComponentProps<typeof LocationSearch>, 'map' | 'layerRef' | 'highlightRef' | 'highlightStyle'>;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   // Set by the collapsed strip's search button: focus the search once the panel has opened.
@@ -836,20 +842,10 @@ export default function MapPage() {
   // The blue-outlined area(s), from a search pick or the panel's "Show on map".
   const highlightedRef = useRef<L.Path[]>([]);
   const theme = useTheme();
-  // Layers: heat on, disease markers off (admin-only detail), street tiles only when zoomed in.
+  // Layers: heat on, disease markers off (admin-only detail), street map on.
   const [showHeat, setShowHeat] = useState(true);
   const [showMarkers, setShowMarkers] = useState(false);
   const [streetTiles, setStreetTiles] = useState(true);
-  const [zoom, setZoom] = useState(9);
-  useEffect(() => {
-    if (!map) return;
-    const onZoom = () => setZoom(map.getZoom());
-    onZoom();
-    map.on('zoomend', onZoom);
-    return () => {
-      map.off('zoomend', onZoom);
-    };
-  }, [map]);
 
   // Grouped per barangay for the polygon popup, and keyed per barangay+disease so each
   // dot picks up the tier for its own disease rather than the barangay's worst.
@@ -902,7 +898,8 @@ export default function MapPage() {
     return heat;
   }, [stats, filters]);
   const heatKey = [...heatByArea.entries()].map(([k, h]) => `${k}:${h && 'heat' in h ? h.heat.toFixed(3) : 'c'}`).join('|');
-  const onTiles = basemap === 'map' && streetTiles && zoom >= TILE_MIN_ZOOM;
+  // Street tiles at every zoom when ticked: a ticked box with a blank province view looked broken.
+  const onTiles = basemap === 'map' && streetTiles;
   // Everything styleFeature reads, through a ref (one function identity; see polygonStyle's note).
   const styleInputs = useRef({ heatByArea, theme, onTiles, showHeat });
   styleInputs.current = { heatByArea, theme, onTiles, showHeat };
@@ -926,7 +923,7 @@ export default function MapPage() {
       const path = layer as L.Path & { feature?: any };
       path.setStyle(styleFeature(path.feature));
       // Keep the search highlight's outline on top of the new fill.
-      if (highlightedRef.current.includes(path)) path.setStyle(HIGHLIGHT_STYLE);
+      if (highlightedRef.current.includes(path)) path.setStyle(highlightStyle(basemapRef.current === 'satellite'));
     });
   }, [monitoredKey, basemap, styleFeature, heatKey, theme, onTiles, showHeat]);
 
@@ -1011,11 +1008,11 @@ export default function MapPage() {
       if (p && p.barangay === area.barangay && p.municipality === area.municipality) matches.push(layer);
     });
     if (matches.length === 0) return;
-    // Blue outline, as a search pick gets; replaces whatever was highlighted before.
+    // Same outline as a search pick gets; replaces whatever was highlighted before.
     highlightedRef.current.forEach((layer) => group.resetStyle(layer));
     const bounds = L.latLngBounds([]);
     matches.forEach((layer) => {
-      layer.setStyle(HIGHLIGHT_STYLE);
+      layer.setStyle(highlightStyle(basemapRef.current === 'satellite'));
       layer.bringToFront();
       bounds.extend(layer.getBounds());
     });
@@ -1052,8 +1049,8 @@ export default function MapPage() {
           <legend className="sr-only">Map layers</legend>
           <label><input type="checkbox" checked={showHeat} onChange={(e) => setShowHeat(e.target.checked)} /> Heat</label>
           <label><input type="checkbox" checked={showMarkers} onChange={(e) => setShowMarkers(e.target.checked)} /> Disease markers</label>
-          <label title={`Street map tiles load from zoom ${TILE_MIN_ZOOM}; the province view uses the bundled boundaries only.`}>
-            <input type="checkbox" checked={streetTiles} onChange={(e) => setStreetTiles(e.target.checked)} /> Street tiles (on zoom)
+          <label title="Show the OpenStreetMap street map under the barangay boundaries.">
+            <input type="checkbox" checked={streetTiles} onChange={(e) => setStreetTiles(e.target.checked)} /> Street map
           </label>
         </fieldset>
       </div>
@@ -1086,8 +1083,8 @@ export default function MapPage() {
         >
           {/* Zoom bottom-left, as on the app's map. */}
           <ZoomControl position="bottomleft" />
-          {/* Satellite stays on demand (the toggle). Street tiles only from TILE_MIN_ZOOM: the
-              province view is the bundled boundaries alone, with no tile requests. */}
+          {/* Satellite stays on demand (the toggle). Street tiles whenever "Street map" is ticked;
+              unticked, the map is the bundled boundaries alone, with no tile requests. */}
           {basemap === 'satellite' ? (
             <>
               {/* Esri's URL order is {y}/{x}. */}
@@ -1226,7 +1223,7 @@ export default function MapPage() {
         open={panelOpen}
         setOpen={setPanelOpen}
         onShow={showArea}
-        search={{ map, layerRef: barangayLayerRef, highlightRef: highlightedRef }}
+        search={{ map, layerRef: barangayLayerRef, highlightRef: highlightedRef, highlightStyle: () => highlightStyle(basemapRef.current === 'satellite') }}
       />
       </div>
 
