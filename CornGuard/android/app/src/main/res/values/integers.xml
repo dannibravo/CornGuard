@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Overrides Navigation's default fade (150ms) for bottom-tab switches: half as long feels
+         snappier while still smooth. The nav graph's actions have no animations of their own. -->
+    <integer name="config_navAnimTime">75</integer>
+</resources>

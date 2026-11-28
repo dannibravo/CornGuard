@@ -1,20 +1,11 @@
 package com.cornguard.app.ui.map
 
-import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.os.Bundle
 import android.os.SystemClock
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.ConsoleMessage
-import android.webkit.JavascriptInterface
-import android.webkit.RenderProcessGoneDetail
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
-import android.webkit.WebView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnLayout
@@ -23,11 +14,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
-import androidx.navigation.navOptions
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.webkit.WebViewAssetLoader
-import androidx.webkit.WebViewClientCompat
-import com.cornguard.app.BuildConfig
 import com.cornguard.app.R
 import com.cornguard.app.data.model.BarangayStat
 import com.cornguard.app.data.model.Farm
@@ -55,6 +42,9 @@ import org.json.JSONObject
  * sheet shows the selected barangay (the farmer's own by default, or the one tapped on the map)
  * with its level, the disease pills that filter the heat, and the earlier "Reports near you"
  * lists. While the sheet moves, the page's bottom inset follows it (window.setBottomInset).
+ *
+ * The WebView and the tab's state (selection, disease filter, sheet lists) live in
+ * [MapWebViewHolder], so switching back to the Map tab shows the ready map at once.
  */
 class MapFragment : Fragment() {
 
@@ -64,16 +54,16 @@ class MapFragment : Fragment() {
     private val verifiedAdapter = MapOccurrenceAdapter()
     private val nearbyAdapter = NearbyReportAdapter()
 
-    private var pageReady = false
+    private val pageReady get() = MapWebViewHolder.pageReady
     private var signedIn = false
     private var keyboardOpen = false
     private var latestStats: List<BarangayStat>? = null
     /** The signed-in farmer's own farms (My Farms), drawn as private pins. */
     private var latestFarms: List<Farm> = emptyList()
     /** The barangay shown in the sheet: tapped on the map, else the farmer's profile barangay. */
-    private var selectedArea: Pair<String, String>? = null
+    private var selectedArea by MapWebViewHolder::selectedArea
     /** null = all diseases. */
-    private var diseaseFilter: String? = null
+    private var diseaseFilter by MapWebViewHolder::diseaseFilter
     private lateinit var sheetBehavior: BottomSheetBehavior<View>
     private val pills = mutableListOf<Pair<MaterialButton, String?>>()
 
@@ -101,7 +91,7 @@ class MapFragment : Fragment() {
         setUpPills()
         refreshSheet()
 
-        setUpWebView()
+        attachWebView()
         watchKeyboard()
         observeAuthState()
     }
@@ -171,10 +161,12 @@ class MapFragment : Fragment() {
         }
     }
 
+    private fun refreshPills() = pills.forEach { (button, c) -> button.isChecked = c == diseaseFilter }
+
     /** Single choice; tapping the selected pill keeps it selected. */
     private fun selectDisease(code: String?) {
         diseaseFilter = code
-        pills.forEach { (button, c) -> button.isChecked = c == code }
+        refreshPills()
         evaluate("window.setDiseaseFilter(${JSONObject.quote(code.orEmpty())})")
         refreshSheet()
     }
@@ -198,88 +190,49 @@ class MapFragment : Fragment() {
         b.mapAreaExplanation.text = AreaLevelText.explanation(requireContext(), summary, diseaseFilter)
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
-    private fun setUpWebView() {
-        val assetLoader = WebViewAssetLoader.Builder()
-            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(requireContext()))
-            // Inter for the page's controls and legend, from res/font (no network needed).
-            .addPathHandler("/res/", WebViewAssetLoader.ResourcesPathHandler(requireContext()))
-            .build()
-        // Debug builds only: lets the map be inspected from Chrome (chrome://inspect).
-        WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
-        binding.mapWebView.apply {
-            settings.javaScriptEnabled = true
-            // localStorage: the page remembers the Map / Satellite choice (off by default in a WebView).
-            settings.domStorageEnabled = true
-            settings.allowFileAccess = false
-            settings.allowContentAccess = false
-            webViewClient = object : WebViewClientCompat() {
-                override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
-                    assetLoader.shouldInterceptRequest(request.url)
-
-                // The map page's renderer can be killed (low memory, renderer crash). Without this the
-                // WebView stays blank — or the whole app is killed. A dead WebView can't be reused, so
-                // reopen this screen with a fresh one.
-                override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
-                    Log.w(BRIDGE_NAME, "Map renderer gone (crashed=${detail.didCrash()}), reloading the map screen")
-                    pageReady = false
-                    view.post { reopenAfterRendererLoss() }
-                    return true
-                }
-            }
-            webChromeClient = object : WebChromeClient() {
-                override fun onConsoleMessage(message: ConsoleMessage): Boolean {
-                    Log.d(BRIDGE_NAME, "${message.message()} (${message.sourceId()}:${message.lineNumber()})")
-                    return true
-                }
-            }
-            addJavascriptInterface(Bridge(), BRIDGE_NAME)
-            loadUrl(MAP_URL)
+    private val mapListener = object : MapWebViewHolder.Listener {
+        override fun onPageReady() {
+            if (_binding != null) pushAll(firstLoad = true)
         }
+
+        override fun onAreaSelected(area: Pair<String, String>) {
+            if (_binding == null) return
+            refreshSheet()
+            sheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+        }
+
+        override fun onRendererGone() = recoverFromRendererLoss()
     }
 
-    private fun reopenAfterRendererLoss() {
+    /** Re-attaches the kept map; a page that is already loaded gets this screen's state at once. */
+    private fun attachWebView() {
+        MapWebViewHolder.attach(binding.mapWebContainer, mapListener)
+        if (pageReady) pushAll(firstLoad = false)
+    }
+
+    /**
+     * Everything the page needs from this screen. [firstLoad] also sets the chrome, which fits the
+     * province; a re-attached page keeps the farmer's view (its bottom inset follows the sheet).
+     */
+    private fun pushAll(firstLoad: Boolean) {
+        evaluate("window.setTheme($isNightMode)")
+        evaluate("window.setDiseaseFilter(${JSONObject.quote(diseaseFilter.orEmpty())})")
+        if (firstLoad) pushChrome()
+        pushData(latestStats)
+        pushFarms(latestFarms)
+        pushSelection()
+    }
+
+    /** The renderer died: show a fresh map in place, unless it just died too (then go back). */
+    private fun recoverFromRendererLoss() {
         if (_binding == null || !isAdded) return
         val now = SystemClock.elapsedRealtime()
-        val nav = findNavController()
         if (now - lastRendererRecoveryAt < RECOVERY_COOLDOWN_MS) {
-            // It died again right after reopening — don't loop; go back instead.
-            nav.popBackStack()
+            findNavController().popBackStack()
             return
         }
         lastRendererRecoveryAt = now
-        nav.navigate(R.id.mapFragment, arguments, navOptions { popUpTo(R.id.mapFragment) { inclusive = true } })
-    }
-
-    /** Called from the page (on a WebView thread); work is posted to the main thread. */
-    private inner class Bridge {
-        /** Leaflet and the boundaries are loaded. */
-        @JavascriptInterface
-        fun onReady() {
-            binding.mapWebView.post {
-                if (_binding == null) return@post
-                pageReady = true
-                evaluate("window.setTheme($isNightMode)")
-                pushChrome()
-                pushData(latestStats)
-                pushFarms(latestFarms)
-                pushSelection()
-            }
-        }
-
-        /** The farmer tapped a barangay (or picked one in the map's search). */
-        @JavascriptInterface
-        fun onAreaSelected(json: String) {
-            val area = runCatching {
-                JSONObject(json).let { it.getString("barangay") to it.getString("municipality") }
-            }.getOrNull() ?: return
-            binding.mapWebView.post {
-                if (_binding == null) return@post
-                selectedArea = area
-                refreshSheet()
-                sheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
-            }
-        }
+        attachWebView()
     }
 
     private val isNightMode: Boolean
@@ -313,7 +266,9 @@ class MapFragment : Fragment() {
                         loadGisData(user!!.uid)
                     } else {
                         latestStats = emptyList()
-                        selectedArea = null
+                        MapWebViewHolder.clearState()
+                        refreshPills()
+                        evaluate("window.setDiseaseFilter('')")
                         pushData(latestStats)
                         refreshSheet()
                     }
@@ -381,11 +336,13 @@ class MapFragment : Fragment() {
     }
 
     private fun evaluate(script: String) {
-        _binding?.mapWebView?.evaluateJavascript(script, null)
+        if (_binding != null) MapWebViewHolder.evaluate(script)
     }
 
     /** The profile barangay: the sheet's default area and the "Reports near you" lists. */
     private fun loadGisData(uid: String) {
+        // Back on the tab: the last lists show at once while they refresh.
+        MapWebViewHolder.sheet?.takeIf { it.uid == uid }?.let { showSheetLists(it) }
         viewLifecycleOwner.lifecycleScope.launch {
             val profile = runCatchingCancellable { ServiceLocator.userFarmRepository.getUserProfile(uid) }.getOrNull()
             if (_binding == null) return@launch
@@ -419,29 +376,33 @@ class MapFragment : Fragment() {
             }.getOrDefault(emptyList())
             if (_binding == null) return@launch
 
-            verifiedAdapter.submitList(occurrences)
-            binding.mapVerifiedEmpty.visibility = if (occurrences.isEmpty()) View.VISIBLE else View.GONE
-            nearbyAdapter.submitList(nearbyReports)
-            binding.mapNearbyEmpty.visibility = if (nearbyReports.isEmpty()) View.VISIBLE else View.GONE
+            val sheet = MapWebViewHolder.SheetCache(uid, profile.barangay, profile.municipality, occurrences, nearbyReports)
+            MapWebViewHolder.sheet = sheet
+            showSheetLists(sheet)
         }
     }
 
+    private fun showSheetLists(sheet: MapWebViewHolder.SheetCache) {
+        binding.mapArea.text = getString(
+            R.string.map_area_format,
+            listOf(sheet.barangay, sheet.municipality).filter { it.isNotBlank() }.joinToString(", ")
+        )
+        verifiedAdapter.submitList(sheet.occurrences)
+        binding.mapVerifiedEmpty.visibility = if (sheet.occurrences.isEmpty()) View.VISIBLE else View.GONE
+        nearbyAdapter.submitList(sheet.nearby)
+        binding.mapNearbyEmpty.visibility = if (sheet.nearby.isEmpty()) View.VISIBLE else View.GONE
+    }
+
     override fun onDestroyView() {
-        pageReady = false
-        binding.mapWebView.apply {
-            removeJavascriptInterface(BRIDGE_NAME)
-            stopLoading()
-            destroy()
-        }
+        // Keep the loaded map for the next visit (MapWebViewHolder); only unhook this screen.
+        MapWebViewHolder.detach(mapListener)
         super.onDestroyView()
         _binding = null
     }
 
     companion object {
-        private const val BRIDGE_NAME = "CornGuardMap"
         private const val RECOVERY_COOLDOWN_MS = 15_000L
         private var lastRendererRecoveryAt = 0L
-        private const val MAP_URL = "https://appassets.androidplatform.net/assets/map/outbreak-map.html"
         /** System font scale treated as "Large text" (taller expanded sheet). */
         private const val LARGE_TEXT_SCALE = 1.15f
 

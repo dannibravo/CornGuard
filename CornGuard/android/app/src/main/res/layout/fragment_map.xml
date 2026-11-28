@@ -12,8 +12,9 @@
     android:layout_height="match_parent"
     android:background="@color/cg_bg">
 
-    <WebView
-        android:id="@+id/mapWebView"
+    <!-- MapFragment puts the long-lived map WebView in here (MapWebViewHolder). -->
+    <FrameLayout
+        android:id="@+id/mapWebContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 

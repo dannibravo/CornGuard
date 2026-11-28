@@ -82,14 +82,24 @@ class CommunityFragment : Fragment() {
                     binding.communitySignedOut.visibility = if (signedIn) View.GONE else View.VISIBLE
                     binding.communityCreatePostButton.visibility = if (signedIn) View.VISIBLE else View.GONE
                     binding.communitySwipeRefresh.visibility = if (signedIn) View.VISIBLE else View.GONE
-                    if (signedIn) loadFeed() else binding.communityEmptyState.visibility = View.GONE
+                    if (signedIn) {
+                        // Back on the tab: show the last feed at once, then refresh quietly.
+                        val cached = feedCache?.takeIf { it.first == user!!.uid }?.second
+                        if (cached != null && adapter.currentList.isEmpty()) showPosts(cached)
+                        loadFeed(showSpinner = cached == null)
+                    } else {
+                        feedCache = null
+                        binding.communityEmptyState.visibility = View.GONE
+                    }
                 }
             }
         }
     }
 
-    private fun loadFeed() {
-        binding.communitySwipeRefresh.isRefreshing = true
+    /** [showSpinner] = false refreshes in the background (the cached feed is already showing). */
+    private fun loadFeed(showSpinner: Boolean = true) {
+        if (showSpinner) binding.communitySwipeRefresh.isRefreshing = true
+        val uid = ServiceLocator.authRepository.getCurrentUser()?.uid
         viewLifecycleOwner.lifecycleScope.launch {
             val result = runCatchingCancellable {
                 ServiceLocator.communityRepository.getPostsFeed(areaFilter = null, diseaseTag = null)
@@ -97,20 +107,28 @@ class CommunityFragment : Fragment() {
             binding.communitySwipeRefresh.isRefreshing = false
             val posts = result.getOrNull()
             if (posts == null) {
-                binding.communityEmptyState.visibility = View.VISIBLE
-                binding.communityEmptyState.setText(R.string.community_load_failed)
+                // Keep a cached feed on screen if there is one; only an empty screen gets the error.
+                if (adapter.currentList.isEmpty()) {
+                    binding.communityEmptyState.visibility = View.VISIBLE
+                    binding.communityEmptyState.setText(R.string.community_load_failed)
+                }
                 return@launch
             }
-            // A new post lands at the top; RecyclerView keeps the old first item anchored, which
-            // hid the new one above the screen. Jump to it (not on likes etc., where the top is unchanged).
-            val newTop = posts.firstOrNull()?.postId
-            val topChanged = newTop != null && newTop != adapter.currentList.firstOrNull()?.postId
-            adapter.submitList(posts) {
-                if (topChanged) _binding?.communityRecyclerView?.scrollToPosition(0)
-            }
-            binding.communityEmptyState.setText(R.string.community_empty)
-            binding.communityEmptyState.visibility = if (posts.isEmpty()) View.VISIBLE else View.GONE
+            if (uid != null) feedCache = uid to posts
+            showPosts(posts)
         }
+    }
+
+    private fun showPosts(posts: List<CommunityPost>) {
+        // A new post lands at the top; RecyclerView keeps the old first item anchored, which
+        // hid the new one above the screen. Jump to it (not on likes etc., where the top is unchanged).
+        val newTop = posts.firstOrNull()?.postId
+        val topChanged = newTop != null && newTop != adapter.currentList.firstOrNull()?.postId
+        adapter.submitList(posts) {
+            if (topChanged) _binding?.communityRecyclerView?.scrollToPosition(0)
+        }
+        binding.communityEmptyState.setText(R.string.community_empty)
+        binding.communityEmptyState.visibility = if (posts.isEmpty()) View.VISIBLE else View.GONE
     }
 
     /** Optimistic like toggle, then the server's counts replace it. */
@@ -164,6 +182,9 @@ class CommunityFragment : Fragment() {
     }
 
     companion object {
+        /** Last feed (with the uid it was loaded for), so returning to the tab shows posts at once. */
+        private var feedCache: Pair<String, List<CommunityPost>>? = null
+
         const val RESULT_FEED_CHANGED = "community_feed_changed"
         const val ARG_OPEN_POST_ID = "openPostId"
     }
