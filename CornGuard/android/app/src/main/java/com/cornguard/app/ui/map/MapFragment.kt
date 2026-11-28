@@ -152,9 +152,10 @@ class MapFragment : Fragment() {
         return ((b.root.height - sheet.top).coerceAtLeast(0) / resources.displayMetrics.density).toInt()
     }
 
-    private fun pushBottomInset() {
+    /** [pan] = false when the sheet only hides/shows for the keyboard, so the map doesn't jump. */
+    private fun pushBottomInset(pan: Boolean = true) {
         if (!pageReady) return
-        evaluate("window.setBottomInset(${visibleSheetDp()})")
+        evaluate("window.setBottomInset(${visibleSheetDp()}, $pan)")
     }
 
     private fun setUpPills() {
@@ -365,7 +366,7 @@ class MapFragment : Fragment() {
 
     private fun updateSheetVisibility() {
         binding.mapReportsSheet.visibility = if (signedIn && !keyboardOpen) View.VISIBLE else View.GONE
-        binding.root.post { pushBottomInset() }
+        binding.root.post { pushBottomInset(pan = false) }
     }
 
     /** Sends { stats } to the page (null = nothing new). */

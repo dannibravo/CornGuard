@@ -17,7 +17,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Floating top row; its height is the map's top inset (Leaflet's zoom/search sit below it). -->
+    <!-- Floating top row; its height is the map's top inset. The Back button is hidden on the Map tab,
+         so the page puts its closed search button level with the title chip. -->
     <FrameLayout
         android:id="@+id/mapHeader"
         android:layout_width="match_parent"

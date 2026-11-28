@@ -243,7 +243,7 @@ function useTheme(): Theme {
 }
 
 // Street tiles only from this zoom (barangay scale): the province view needs nothing but the bundled
-// boundaries. KEEP IN SYNC with TILE_MIN_ZOOM in the app's outbreak-map.html.
+// boundaries. (The app now loads street tiles at every zoom; admins opt in with the toggle.)
 const TILE_MIN_ZOOM = 12;
 const MAX_ZOOM = 16;
 

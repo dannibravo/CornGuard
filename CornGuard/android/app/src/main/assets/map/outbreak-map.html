@@ -8,8 +8,8 @@
   <!--
     Outbreak heatmap (UI redesign v2, "earth" palette). Loaded by MapFragment in a WebView.
       * Leaflet 1.9.4 and the NAMRIA/PSA barangay boundaries are bundled, so the map draws offline.
-        Street tiles (OpenStreetMap) are only requested from TILE_MIN_ZOOM; the province view is
-        boundaries only (no tile requests). Satellite (Esri) stays opt-in. Choice in localStorage.
+        Street tiles (OpenStreetMap) load at every zoom so the province view is not a blank page;
+        the boundaries still draw offline. Satellite (Esri) stays opt-in. Choice in localStorage.
         KEEP IN SYNC with BasemapToggle in admin-web/src/pages/MapPage.tsx.
       * Each barangay is coloured by its outbreak heat this week on a FIXED scale (backend
         outbreakRules.heatIntensity; heatOf() below is the fallback copy — KEEP IN SYNC): Moderate
@@ -64,6 +64,11 @@
     }
     .leaflet-container { background: var(--page); font-family: inherit; }
     .leaflet-top { padding-top: var(--chrome-top); }
+    /* The app's top row has no Back button on the Map tab, so the closed search button sits level
+       with the title chip (row padding 12dp = 2px + Leaflet's 10px control margin). Open, the search
+       box drops below the row, since the native chip would cover it. */
+    .leaflet-top.leaflet-left { padding-top: 2px; }
+    .leaflet-top.leaflet-left .search:not(.collapsed) { margin-top: calc(var(--chrome-top) + 8px); }
     .leaflet-bottom { padding-bottom: var(--chrome-bottom); transition: padding-bottom 0s; }
     .cg-heat { pointer-events: none; }
 
@@ -253,8 +258,14 @@
     // ---- Map ----
     // Canvas renderer: one <canvas> for 464 polygons instead of 464 SVG paths.
     const MAX_ZOOM = 16;
-    const map = L.map('map', { zoomControl: false, preferCanvas: true, maxZoom: MAX_ZOOM }).setView([8.15, 125.13], 9);
-    L.control.zoom({ position: 'topleft' }).addTo(map);
+    // trackResize off: Leaflet's own handler re-centres on every resize, so the map jumped each time
+    // the soft keyboard opened or closed for the search. Here the top-left stays put instead.
+    const map = L.map('map', { zoomControl: false, preferCanvas: true, maxZoom: MAX_ZOOM, trackResize: false })
+      .setView([8.15, 125.13], 9);
+    window.addEventListener('resize', () => map.invalidateSize({ pan: false, debounceMoveend: true }));
+    // Zoom bottom-left under the Map/Satellite toggle (added later, so Leaflet stacks it above);
+    // the top-left corner is the location search's alone.
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
     map.createPane('heatPane').style.zIndex = 350; // under the polygons (overlayPane, 400)
     map.attributionControl.setPrefix(false);
     map.attributionControl.addAttribution('<a href="https://leafletjs.com">Leaflet</a> | Boundaries &copy; NAMRIA, PSA');
@@ -277,9 +288,12 @@
 
     // Called while the sheet is dragged (CSS px = dp). Moves the legend/attribution with the sheet
     // and pans by half the change, so the point at the centre of the visible map stays put.
+    // pan = false when the sheet is only hidden/shown for the soft keyboard: then the map holds still.
     let pendingInset = null;
-    window.setBottomInset = function (px) {
+    let pendingPan = true;
+    window.setBottomInset = function (px, pan) {
       pendingInset = Math.max(0, Math.round(px || 0));
+      if (pan === false) pendingPan = false;
       if (!window.__insetFrame) {
         window.__insetFrame = requestAnimationFrame(() => {
           window.__insetFrame = null;
@@ -287,7 +301,8 @@
           if (delta === 0) return;
           chrome.bottom = pendingInset;
           applyChrome();
-          map.panBy([0, delta / 2], { animate: false });
+          if (pendingPan) map.panBy([0, delta / 2], { animate: false });
+          pendingPan = true;
         });
       }
     };
@@ -328,11 +343,12 @@
     }
 
     // ---- Basemap ----
-    // Street tiles only from TILE_MIN_ZOOM (barangay scale): the province view needs nothing but the
-    // bundled boundaries, so it costs no tile requests (OSM's tile policy forbids heavy use).
+    // Street tiles load at every zoom: without them the province view was a flat beige page with
+    // outlines only, which read as a broken map. Province zoom is a dozen or so heavily-cached OSM
+    // tiles, well inside OSM's tile policy. (Admin web keeps its own opt-in "Street tiles" toggle.)
     // Satellite is the farmer's explicit choice and loads at every zoom.
     // KEEP IN SYNC with BasemapToggle / SATELLITE_* in admin-web/src/pages/MapPage.tsx.
-    const TILE_MIN_ZOOM = 12;
+    const TILE_MIN_ZOOM = 0;
     const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: MAX_ZOOM
