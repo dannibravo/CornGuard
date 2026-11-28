@@ -17,7 +17,7 @@ HERE = Path(__file__).resolve().parent
 RAW = HERE / "raw"
 OUT = HERE.parent.parent / "app" / "src" / "main" / "res" / "drawable-nodpi"
 
-GREEN = (46, 125, 50)          # cg_primary #2E7D32
+GREEN = (47, 93, 58)           # cg_primary #2F5D3A (earth palette)
 WHITE = (255, 255, 255)
 OUT_WIDTH = 900                # px; plenty for a phone card, keeps files small
 STROKE = 9
@@ -72,7 +72,9 @@ def draw_slide(spec):
         pw, ph = int(tw + 44), FONT_SIZE + 30
         gap = 16
         side = m.get("side", "below")
-        if side == "below":
+        if "at" in m:            # explicit label position (raw coords), when no side has room
+            px, py = m["at"][0] - cx, m["at"][1] - cy
+        elif side == "below":
             px, py = x + w / 2 - pw / 2, y + h + gap
         elif side == "above":
             px, py = x + w / 2 - pw / 2, y - ph - gap

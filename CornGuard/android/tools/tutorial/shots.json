@@ -1,146 +1,203 @@
 {
- "_comment": "One entry per tutorial slide, in order. Coordinates are in the raw 1080x1920 emulator capture. crop = [x, y, w, h]; each mark = box [x, y, w, h] + number + short label (side: below|above|left|right). Run annotate.py after editing. Output names must match R.drawable.tutorial_* in OnboardingDialogFragment.",
+ "_comment": "One entry per tutorial slide, in order. Coordinates are in the raw 1080x1920 emulator capture. crop = [x, y, w, h]; each mark = box [x, y, w, h] + number + short label (side: below|above|left|right|inside, or \"at\": [x, y] to place the label explicitly). Run annotate.py after editing. Output names must match R.drawable.tutorial_* in OnboardingDialogFragment.",
  "slides": [
   {
    "out": "tutorial_01_home",
-   "raw": "01_dashboard.png",
+   "raw": "01_home.png",
    "crop": [
     0,
     90,
     1080,
-    1450
+    1060
    ],
    "marks": [
     {
      "box": [
-      64,
-      420,
-      952,
-      498
+      53,
+      329,
+      974,
+      440
      ],
      "n": 1,
-     "label": "Scan a leaf",
-     "side": "inside"
+     "label": "Your barangay",
+     "side": "below",
+     "at": [
+      400,
+      590
+     ]
     },
     {
      "box": [
-      64,
-      973,
-      952,
-      551
+      53,
+      811,
+      974,
+      312
      ],
      "n": 2,
-     "label": "Community",
-     "side": "inside"
+     "label": "Scan a leaf",
+     "side": "below",
+     "at": [
+      710,
+      852
+     ]
     },
     {
      "box": [
-      895,
-      130,
-      110,
-      110
+      775,
+      145,
+      105,
+      105
      ],
      "n": 3,
      "label": "Alerts",
      "side": "left"
+    },
+    {
+     "box": [
+      910,
+      143,
+      107,
+      107
+     ],
+     "n": 4,
+     "label": "Settings",
+     "side": "below",
+     "at": [
+      800,
+      254
+     ]
     }
    ]
   },
   {
-   "out": "tutorial_02_home_more",
-   "raw": "01b_dashboard_scrolled.png",
+   "out": "tutorial_02_tabs",
+   "raw": "01_home.png",
    "crop": [
     0,
-    950,
+    1160,
     1080,
-    850
+    634
    ],
    "marks": [
     {
      "box": [
-      64,
-      968,
-      952,
-      552
+      53,
+      1250,
+      974,
+      190
      ],
      "n": 1,
-     "label": "Outbreak Map",
-     "side": "below"
+     "label": "Last scan",
+     "side": "above"
     },
     {
      "box": [
-      20,
-      1605,
-      1040,
+      10,
+      1600,
+      1060,
       180
      ],
      "n": 2,
-     "label": "Dashboard · History · Settings",
+     "label": "Home · Map · Scan · Feed · History",
      "side": "above"
     }
    ]
   },
   {
    "out": "tutorial_03_scan",
-   "raw": "02_scan.png",
+   "raw": "03_scan.png",
    "crop": [
     0,
-    560,
+    480,
     1080,
-    880
+    1090
    ],
    "marks": [
     {
      "box": [
-      75,
-      800,
-      930,
-      115
+      63,
+      796,
+      954,
+      183
      ],
      "n": 1,
-     "label": "Your barangay",
-     "side": "above"
+     "label": "Filed under",
+     "side": "below"
     },
     {
      "box": [
-      188,
-      1062,
-      703,
-      157
+      193,
+      1126,
+      693,
+      336
      ],
      "n": 2,
-     "label": "Take a photo",
-     "side": "above"
-    },
-    {
-     "box": [
-      188,
-      1251,
-      703,
-      157
-     ],
-     "n": 3,
-     "label": "Choose a photo",
+     "label": "Camera or gallery",
      "side": "below"
     }
    ]
   },
   {
-   "out": "tutorial_04_result",
-   "raw": "03_result.png",
+   "out": "tutorial_04_frame",
+   "raw": "04_frame.png",
    "crop": [
     0,
-    300,
+    90,
     1080,
-    470
+    1470
    ],
    "marks": [
     {
      "box": [
-      300,
-      415,
-      480,
-      85
+      165,
+      395,
+      750,
+      746
+     ],
+     "n": 1,
+     "label": "One leaf in the box",
+     "side": "inside"
+    },
+    {
+     "box": [
+      42,
+      1227,
+      996,
+      147
+     ],
+     "n": 2,
+     "label": "Analyze",
+     "side": "inside"
+    },
+    {
+     "box": [
+      42,
+      1395,
+      996,
+      147
+     ],
+     "n": 3,
+     "label": "Retake",
+     "side": "inside"
+    }
+   ]
+  },
+  {
+   "out": "tutorial_05_result",
+   "raw": "05_result.png",
+   "crop": [
+    0,
+    90,
+    1080,
+    660
+   ],
+   "marks": [
+    {
+     "box": [
+      284,
+      248,
+      504,
+      106
      ],
      "n": 1,
      "label": "Disease",
@@ -148,66 +205,74 @@
     },
     {
      "box": [
-      300,
-      508,
-      450,
-      65
+      284,
+      360,
+      746,
+      134
      ],
      "n": 2,
      "label": "How sure",
-     "side": "right"
+     "side": "inside"
     },
     {
      "box": [
-      300,
-      585,
-      600,
-      135
+      284,
+      500,
+      604,
+      156
      ],
      "n": 3,
-     "label": "Filed under",
+     "label": "Your barangay",
      "side": "below"
     }
    ]
   },
   {
-   "out": "tutorial_05_result_action",
-   "raw": "03_result.png",
+   "out": "tutorial_06_action",
+   "raw": "05_result.png",
    "crop": [
     0,
-    770,
+    700,
     1080,
-    700
+    600
    ],
    "marks": [
     {
      "box": [
-      100,
-      910,
-      880,
-      195
+      84,
+      836,
+      912,
+      204
      ],
      "n": 1,
-     "label": "What to do",
-     "side": "above"
+     "label": "First steps",
+     "side": "below",
+     "at": [
+      640,
+      756
+     ]
     },
     {
      "box": [
-      100,
-      1120,
-      650,
-      55
+      84,
+      1050,
+      912,
+      104
      ],
      "n": 2,
-     "label": "Checked",
-     "side": "right"
+     "label": "Checked sources",
+     "side": "below",
+     "at": [
+      540,
+      1100
+     ]
     },
     {
      "box": [
-      100,
-      1200,
-      410,
-      85
+      84,
+      1170,
+      426,
+      100
      ],
      "n": 3,
      "label": "Full guide",
@@ -216,168 +281,150 @@
    ]
   },
   {
-   "out": "tutorial_06_details",
-   "raw": "05_details.png",
+   "out": "tutorial_07_guide",
+   "raw": "07_details.png",
    "crop": [
     0,
-    140,
+    90,
     1080,
-    960
+    1000
    ],
    "marks": [
     {
      "box": [
-      90,
-      420,
-      900,
-      640
+      64,
+      365,
+      952,
+      725
      ],
      "n": 1,
-     "label": "Treatment steps",
-     "side": "above"
+     "label": "Treatment",
+     "side": "inside"
     }
    ]
   },
   {
-   "out": "tutorial_07_details_more",
-   "raw": "05b_details_more.png",
+   "out": "tutorial_08_disease",
+   "raw": "08_details_more.png",
    "crop": [
     0,
-    880,
+    908,
     1080,
-    850
+    872
    ],
    "marks": [
     {
      "box": [
-      90,
-      945,
-      900,
-      265
+      64,
+      930,
+      952,
+      240
      ],
      "n": 1,
      "label": "Symptoms",
-     "side": "above"
+     "side": "inside"
     },
     {
      "box": [
-      45,
-      1300,
-      990,
-      410
+      48,
+      1252,
+      984,
+      466
      ],
      "n": 2,
-     "label": "Source & safety note",
+     "label": "Sources",
      "side": "above"
     }
    ]
   },
   {
-   "out": "tutorial_08_share",
-   "raw": "03_result.png",
+   "out": "tutorial_09_share",
+   "raw": "05_result.png",
    "crop": [
     0,
-    1340,
+    1330,
     1080,
-    420
+    464
    ],
    "marks": [
     {
      "box": [
-      58,
-      1469,
-      964,
-      168
+      63,
+      1595,
+      954,
+      158
      ],
      "n": 1,
-     "label": "Send to the map",
-     "side": "above"
-    },
-    {
-     "box": [
-      370,
-      1660,
-      345,
-      60
-     ],
-     "n": 2,
-     "label": "Saved automatically",
-     "side": "right"
+     "label": "Share",
+     "side": "inside"
     }
    ]
   },
   {
-   "out": "tutorial_09_history",
-   "raw": "07_history.png",
+   "out": "tutorial_10_history",
+   "raw": "10_history.png",
    "crop": [
     0,
-    320,
+    330,
     1080,
-    1180
+    1250
    ],
    "marks": [
     {
      "box": [
       42,
-      350,
+      360,
       996,
-      543
+      558
      ],
      "n": 1,
-     "label": "Tap to reopen",
-     "side": "below"
+     "label": "Tap to open",
+     "side": "below",
+     "at": [
+      720,
+      836
+     ]
     },
     {
      "box": [
-      395,
-      408,
-      192,
-      75
+      407,
+      420,
+      200,
+      70
      ],
      "n": 2,
-     "label": "On this phone only",
-     "side": "below"
-    },
-    {
-     "box": [
-      384,
-      992,
-      155,
-      75
-     ],
-     "n": 3,
-     "label": "Shared to map",
-     "side": "below"
+     "label": "Only on phone",
+     "side": "above"
     },
     {
      "box": [
       905,
-      410,
+      415,
       80,
-      75
+      80
      ],
-     "n": 4,
+     "n": 3,
      "label": "Delete",
-     "side": "below"
+     "side": "above"
     }
    ]
   },
   {
-   "out": "tutorial_10_feed",
-   "raw": "08_feed.png",
+   "out": "tutorial_11_feed",
+   "raw": "11_feed.png",
    "crop": [
     0,
-    280,
+    255,
     1080,
-    1300
+    1305
    ],
    "marks": [
     {
      "box": [
-      35,
-      1468,
-      150,
-      92
+      42,
+      1450,
+      140,
+      70
      ],
      "n": 1,
      "label": "Like",
@@ -386,20 +433,20 @@
     {
      "box": [
       240,
-      1468,
-      150,
-      92
+      1450,
+      130,
+      70
      ],
      "n": 2,
      "label": "Comments",
-     "side": "above"
+     "side": "right"
     },
     {
      "box": [
-      845,
-      1347,
-      190,
-      190
+      848,
+      1352,
+      179,
+      179
      ],
      "n": 3,
      "label": "New post",
@@ -407,10 +454,10 @@
     },
     {
      "box": [
-      968,
-      350,
-      80,
-      95
+      960,
+      330,
+      90,
+      80
      ],
      "n": 4,
      "label": "More",
@@ -419,54 +466,62 @@
    ]
   },
   {
-   "out": "tutorial_11_create_post",
-   "raw": "09_create_post.png",
+   "out": "tutorial_12_create_post",
+   "raw": "12_create_post.png",
    "crop": [
     0,
-    640,
+    630,
     1080,
-    1150
+    1160
    ],
    "marks": [
     {
      "box": [
-      55,
-      870,
-      970,
-      170
+      46,
+      868,
+      988,
+      412
      ],
      "n": 1,
-     "label": "Your message",
-     "side": "below"
+     "label": "Describe it",
+     "side": "below",
+     "at": [
+      700,
+      1180
+     ]
     },
     {
      "box": [
-      55,
-      1385,
-      970,
-      100
+      63,
+      1371,
+      954,
+      126
      ],
      "n": 2,
      "label": "Disease tag",
-     "side": "above"
+     "side": "below",
+     "at": [
+      460,
+      1288
+     ]
     },
     {
      "box": [
-      95,
-      1620,
-      320,
-      80
+      63,
+      1594,
+      386,
+      126
      ],
      "n": 3,
-     "label": "Add photo",
+     "label": "Photo",
      "side": "above"
     },
     {
      "box": [
       767,
-      1580,
-      255,
-      155
+      1584,
+      250,
+      147
      ],
      "n": 4,
      "label": "Post",
@@ -475,8 +530,8 @@
    ]
   },
   {
-   "out": "tutorial_12_comments",
-   "raw": "11b_report_comment_menu.png",
+   "out": "tutorial_13_comments",
+   "raw": "13_comments.png",
    "crop": [
     0,
     360,
@@ -486,10 +541,10 @@
    "marks": [
     {
      "box": [
-      205,
-      640,
-      790,
-      180
+      50,
+      630,
+      980,
+      220
      ],
      "n": 1,
      "label": "Comments",
@@ -497,112 +552,105 @@
     },
     {
      "box": [
-      497,
-      818,
-      525,
-      135
+      42,
+      1610,
+      996,
+      147
      ],
      "n": 2,
-     "label": "Hold to report",
-     "side": "below"
-    },
-    {
-     "box": [
-      37,
-      1600,
-      1006,
-      165
-     ],
-     "n": 3,
-     "label": "Write a reply",
+     "label": "Reply",
      "side": "above"
     }
    ]
   },
   {
-   "out": "tutorial_13_post_menu",
-   "raw": "11a_menu_own.png",
+   "out": "tutorial_14_post_menu",
+   "raw": "14_post_menu.png",
    "crop": [
     0,
-    290,
+    255,
     1080,
-    430
+    640
    ],
    "marks": [
     {
      "box": [
-      560,
-      445,
-      520,
-      260
+      565,
+      325,
+      515,
+      218
      ],
      "n": 1,
-     "label": "Your post",
-     "side": "left"
+     "label": "Report or edit",
+     "side": "below"
     }
    ]
   },
   {
-   "out": "tutorial_14_report",
-   "raw": "11c_report_sheet.png",
+   "out": "tutorial_15_report",
+   "raw": "15_report.png",
    "crop": [
     0,
-    385,
+    375,
     1080,
-    1405
+    1415
    ],
    "marks": [
     {
      "box": [
-      64,
-      725,
-      700,
-      590
+      63,
+      704,
+      954,
+      630
      ],
      "n": 1,
      "label": "Pick a reason",
-     "side": "right"
+     "side": "below",
+     "at": [
+      700,
+      856
+     ]
     },
     {
      "box": [
-      59,
-      1368,
-      962,
-      188
+      63,
+      1366,
+      954,
+      186
      ],
      "n": 2,
-     "label": "Optional details",
+     "label": "Details",
      "side": "inside"
     },
     {
      "box": [
-      585,
-      1590,
-      437,
-      155
+      570,
+      1594,
+      447,
+      147
      ],
      "n": 3,
-     "label": "Send to admin",
-     "side": "left"
+     "label": "Send",
+     "side": "above"
     }
    ]
   },
   {
-   "out": "tutorial_15_map",
-   "raw": "12_map.png",
+   "out": "tutorial_16_map",
+   "raw": "16_map.png",
    "crop": [
     0,
-    275,
+    63,
     1080,
-    1120
+    1270
    ],
    "marks": [
     {
      "box": [
-      22,
-      295,
-      125,
-      125
+      28,
+      97,
+      123,
+      123
      ],
      "n": 1,
      "label": "Search",
@@ -610,21 +658,21 @@
     },
     {
      "box": [
-      935,
-      295,
-      125,
-      125
+      28,
+      894,
+      127,
+      127
      ],
      "n": 2,
-     "label": "Filter",
-     "side": "left"
+     "label": "Map / Satellite",
+     "side": "right"
     },
     {
      "box": [
-      27,
-      1105,
-      137,
-      266
+      28,
+      1050,
+      127,
+      255
      ],
      "n": 3,
      "label": "Zoom",
@@ -632,340 +680,290 @@
     },
     {
      "box": [
-      870,
-      1238,
-      190,
-      100
+      866,
+      1178,
+      186,
+      90
      ],
      "n": 4,
      "label": "Legend",
      "side": "above"
-    }
-   ]
-  },
-  {
-   "out": "tutorial_16_legend",
-   "raw": "12b_legend.png",
-   "crop": [
-    0,
-    470,
-    1080,
-    900
-   ],
-   "marks": [
-    {
-     "box": [
-      625,
-      835,
-      420,
-      205
-     ],
-     "n": 1,
-     "label": "Colour = how bad",
-     "side": "left"
     },
     {
      "box": [
-      625,
-      1150,
-      420,
-      160
-     ],
-     "n": 2,
-     "label": "Shape = disease",
-     "side": "left"
-    },
-    {
-     "box": [
-      400,
-      500,
-      115,
-      180
-     ],
-     "n": 3,
-     "label": "One report",
-     "side": "right"
-    }
-   ]
-  },
-  {
-   "out": "tutorial_17_popup",
-   "raw": "13a_marker_popup.png",
-   "crop": [
-    0,
-    470,
-    1080,
-    580
-   ],
-   "marks": [
-    {
-     "box": [
-      235,
-      485,
-      545,
-      420
-     ],
-     "n": 1,
-     "label": "Report details",
-     "side": "right"
-    },
-    {
-     "box": [
-      465,
-      925,
-      105,
-      95
-     ],
-     "n": 2,
-     "label": "Tap a dot",
-     "side": "right"
-    }
-   ]
-  },
-  {
-   "out": "tutorial_18_search",
-   "raw": "14b_search_result.png",
-   "crop": [
-    0,
-    280,
-    1080,
-    820
-   ],
-   "marks": [
-    {
-     "box": [
-      22,
-      295,
+      645,
       850,
-      125
+      70,
+      50
      ],
-     "n": 1,
-     "label": "Search a place",
-     "side": "inside"
-    },
-    {
-     "box": [
-      170,
-      400,
-      743,
-      470
-     ],
-     "n": 2,
-     "label": "Area summary",
-     "side": "inside"
-    },
-    {
-     "box": [
-      135,
-      870,
-      810,
-      205
-     ],
-     "n": 3,
-     "label": "Area outlined",
-     "side": "below"
-    }
-   ]
-  },
-  {
-   "out": "tutorial_19_filter",
-   "raw": "15_filter.png",
-   "crop": [
-    0,
-    280,
-    1080,
-    920
-   ],
-   "marks": [
-    {
-     "box": [
-      935,
-      285,
-      135,
-      135
-     ],
-     "n": 1,
-     "label": "Filters on",
-     "side": "left"
-    },
-    {
-     "box": [
-      291,
-      520,
-      670,
-      190
-     ],
-     "n": 2,
-     "label": "Disease",
-     "side": "left"
-    },
-    {
-     "box": [
-      291,
-      823,
-      590,
-      190
-     ],
-     "n": 3,
-     "label": "Severity",
-     "side": "left"
-    },
-    {
-     "box": [
-      291,
-      1075,
-      745,
-      65
-     ],
-     "n": 4,
-     "label": "Count · Reset",
-     "side": "below"
-    }
-   ]
-  },
-  {
-   "out": "tutorial_20_nearby",
-   "raw": "16_nearby.png",
-   "crop": [
-    0,
-    445,
-    1080,
-    1140
-   ],
-   "marks": [
-    {
-     "box": [
-      470,
-      455,
-      140,
-      40
-     ],
-     "n": 1,
-     "label": "Drag up / down",
-     "side": "right"
-    },
-    {
-     "box": [
-      40,
-      500,
-      720,
-      115
-     ],
-     "n": 2,
-     "label": "Your area",
-     "side": "below"
-    },
-    {
-     "box": [
-      40,
-      650,
-      1000,
-      330
-     ],
-     "n": 3,
-     "label": "Verified outbreaks",
-     "side": "below"
-    }
-   ]
-  },
-  {
-   "out": "tutorial_21_alerts",
-   "raw": "17_notifications.png",
-   "crop": [
-    0,
-    90,
-    1080,
-    940
-   ],
-   "marks": [
-    {
-     "box": [
-      770,
-      120,
-      265,
-      80
-     ],
-     "n": 1,
-     "label": "Mark all read",
-     "side": "below"
-    },
-    {
-     "box": [
-      5,
-      280,
-      1070,
-      235
-     ],
-     "n": 2,
-     "label": "Reply to your post",
-     "side": "below"
-    },
-    {
-     "box": [
-      5,
-      730,
-      1070,
-      290
-     ],
-     "n": 3,
-     "label": "Outbreak alert",
+     "n": 5,
+     "label": "Your barangay",
      "side": "above"
     }
    ]
   },
   {
-   "out": "tutorial_22_settings",
-   "raw": "18_settings.png",
+   "out": "tutorial_17_legend",
+   "raw": "17_legend.png",
    "crop": [
     0,
-    310,
+    780,
     1080,
-    1250
+    500
    ],
    "marks": [
     {
      "box": [
-      50,
-      316,
-      980,
-      498
+      440,
+      870,
+      515,
+      110
      ],
      "n": 1,
-     "label": "My Farms",
+     "label": "Level",
+     "side": "left"
+    },
+    {
+     "box": [
+      440,
+      995,
+      450,
+      55
+     ],
+     "n": 2,
+     "label": "No data",
+     "side": "left"
+    },
+    {
+     "box": [
+      440,
+      1062,
+      480,
+      50
+     ],
+     "n": 3,
+     "label": "Your farm",
+     "side": "left"
+    }
+   ]
+  },
+  {
+   "out": "tutorial_18_area",
+   "raw": "18_tap_area.png",
+   "crop": [
+    0,
+    300,
+    1080,
+    800
+   ],
+   "marks": [
+    {
+     "box": [
+      600,
+      455,
+      110,
+      80
+     ],
+     "n": 1,
+     "label": "Tapped barangay",
      "side": "below"
     },
     {
      "box": [
-      50,
-      984,
-      980,
-      186
+      42,
+      930,
+      996,
+      130
      ],
      "n": 2,
+     "label": "Its level this week",
+     "side": "below",
+     "at": [
+      60,
+      845
+     ]
+    }
+   ]
+  },
+  {
+   "out": "tutorial_19_pills",
+   "raw": "19_pills.png",
+   "crop": [
+    0,
+    880,
+    1080,
+    480
+   ],
+   "marks": [
+    {
+     "box": [
+      42,
+      1085,
+      996,
+      105
+     ],
+     "n": 1,
+     "label": "Disease filter",
+     "side": "above"
+    }
+   ]
+  },
+  {
+   "out": "tutorial_20_search",
+   "raw": "20_search.png",
+   "crop": [
+    0,
+    63,
+    1080,
+    775
+   ],
+   "marks": [
+    {
+     "box": [
+      28,
+      265,
+      836,
+      115
+     ],
+     "n": 1,
+     "label": "Type a place",
+     "side": "above"
+    },
+    {
+     "box": [
+      28,
+      395,
+      836,
+      330
+     ],
+     "n": 2,
+     "label": "Pick one",
+     "side": "below"
+    }
+   ]
+  },
+  {
+   "out": "tutorial_21_nearby",
+   "raw": "21_nearby.png",
+   "crop": [
+    0,
+    835,
+    1080,
+    750
+   ],
+   "marks": [
+    {
+     "box": [
+      440,
+      855,
+      200,
+      50
+     ],
+     "n": 1,
+     "label": "Drag up",
+     "side": "right"
+    },
+    {
+     "box": [
+      42,
+      1110,
+      996,
+      420
+     ],
+     "n": 2,
+     "label": "Near you",
+     "side": "inside"
+    }
+   ]
+  },
+  {
+   "out": "tutorial_22_alerts",
+   "raw": "22_alerts.png",
+   "crop": [
+    0,
+    255,
+    1080,
+    1330
+   ],
+   "marks": [
+    {
+     "box": [
+      63,
+      313,
+      116,
+      116
+     ],
+     "n": 1,
+     "label": "Severe",
+     "side": "below"
+    },
+    {
+     "box": [
+      63,
+      655,
+      116,
+      116
+     ],
+     "n": 2,
+     "label": "Rising",
+     "side": "below"
+    }
+   ]
+  },
+  {
+   "out": "tutorial_23_profile",
+   "raw": "23_settings.png",
+   "crop": [
+    0,
+    330,
+    1080,
+    1060
+   ],
+   "marks": [
+    {
+     "box": [
+      848,
+      486,
+      137,
+      137
+     ],
+     "n": 1,
+     "label": "Edit",
+     "side": "below"
+    },
+    {
+     "box": [
+      42,
+      915,
+      996,
+      465
+     ],
+     "n": 2,
+     "label": "My Farms",
+     "side": "inside"
+    }
+   ]
+  },
+  {
+   "out": "tutorial_24_guide",
+   "raw": "24_settings_more.png",
+   "crop": [
+    0,
+    780,
+    1080,
+    740
+   ],
+   "marks": [
+    {
+     "box": [
+      42,
+      930,
+      996,
+      185
+     ],
+     "n": 1,
      "label": "This guide",
-     "side": "inside"
-    },
-    {
-     "box": [
-      50,
-      1176,
-      980,
-      186
-     ],
-     "n": 3,
-     "label": "App version",
-     "side": "inside"
-    },
-    {
-     "box": [
-      50,
-      1368,
-      980,
-      186
-     ],
-     "n": 4,
-     "label": "Sign out",
-     "side": "inside"
+     "side": "above"
     }
    ]
   }

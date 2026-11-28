@@ -78,7 +78,7 @@
                     android:layout_height="wrap_content"
                     android:adjustViewBounds="true"
                     android:scaleType="fitCenter"
-                    tools:src="@drawable/tutorial_15_map" />
+                    tools:src="@drawable/tutorial_16_map" />
             </com.google.android.material.card.MaterialCardView>
         </FrameLayout>
 
