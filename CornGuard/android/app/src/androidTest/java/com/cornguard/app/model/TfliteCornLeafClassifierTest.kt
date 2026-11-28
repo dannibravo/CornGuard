@@ -30,7 +30,7 @@ class TfliteCornLeafClassifierTest {
             assertEquals(4, result.probabilities.size)
             assertTrue(result.diseaseCode in DiseaseCode.ALL)
             assertEquals(1f, result.probabilities.sum(), 0.01f)
-            assertEquals("cornguard_mobilenetv2_v4", result.modelVersion)
+            assertEquals("cornguard_mobilenetv2_v5", result.modelVersion)
         } finally {
             classifier.close()
         }
